@@ -1,21 +1,15 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
-/// Screen-level sizing helpers. Uses [MediaQuery.sizeOf] so widgets only
-/// rebuild when the size changes (not on keyboard/padding changes).
-extension ResponsiveContext on BuildContext {
-  static const _designWidth = 390.0;
+extension ResponsiveExtension on BuildContext {
+  double get screenWidth => MediaQuery.sizeOf(this).width;
+  double get screenHeight => MediaQuery.sizeOf(this).height;
+  EdgeInsets get padding => MediaQuery.paddingOf(this);
+  EdgeInsets get viewInsets => MediaQuery.viewInsetsOf(this);
+  bool get isSmallScreen => screenWidth < 360;
+  bool get isTablet => screenWidth >= 600;
 
-  Size get screenSize => MediaQuery.sizeOf(this);
-
-  bool get isTablet => screenSize.shortestSide >= 600;
-
-  /// Scales a design value (from a 390pt-wide mock) to the current width,
-  /// clamped so tablets and tiny phones stay readable.
-  double scaled(double value) {
-    final factor = (screenSize.width / _designWidth).clamp(0.82, 1.25);
-    return value * factor;
+  double responsiveWidth(double mobileSize, {double? tabletSize}) {
+    if (isTablet) return tabletSize ?? (mobileSize * 1.3);
+    return mobileSize;
   }
 }
-
-/// Max width for phone-first layouts so they stay centered on tablets.
-const double kMaxContentWidth = 640;

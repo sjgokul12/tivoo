@@ -1,42 +1,76 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'app_colors.dart';
 
-abstract final class AppTheme {
-  static const fontFamily = 'Poppins';
-  static const scriptFontFamily = 'GreatVibes';
+class AppTheme {
+  AppTheme._();
 
-  static ThemeData get dark {
-    final base = ThemeData(
+  static ThemeData get darkTheme {
+    return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: fontFamily,
       scaffoldBackgroundColor: AppColors.background,
+      primaryColor: AppColors.primaryYellow,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.pink,
-        secondary: AppColors.purple,
-        tertiary: AppColors.gold,
-        surface: AppColors.navy,
-        error: AppColors.live,
+        primary: AppColors.primaryYellow,
+        secondary: AppColors.primaryAmber,
+        surface: AppColors.cardBackground,
+        onPrimary: AppColors.textOnPrimary,
+        onSurface: AppColors.textPrimary,
       ),
-    );
-    return base.copyWith(
-      textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.pink,
-        selectionColor: Color(0x55FF3FA4),
-        selectionHandleColor: AppColors.pink,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.navy.withValues(alpha: 0.95),
-        contentTextStyle: const TextStyle(fontFamily: fontFamily, color: Colors.white),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.glassBorder),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
         ),
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.pink),
-      splashFactory: InkSparkle.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.lightScaffoldBackground,
+      primaryColor: AppColors.primaryYellow,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primaryYellow,
+        secondary: AppColors.primaryAmber,
+        surface: Colors.white,
+        onPrimary: AppColors.textOnPrimary,
+        onSurface: AppColors.lightOnSurface,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
+      ),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 }
