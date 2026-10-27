@@ -25,6 +25,60 @@ class FloatingHeartsOverlayState extends State<FloatingHeartsOverlay>
   final List<_FloatingHeartOrStarItem> _items = [];
   final Random _random = Random();
 
+  /// Adds pure pink floating hearts for video like animations.
+  void addPinkHearts({int count = 1}) {
+    for (int i = 0; i < count; i++) {
+      if (_items.length >= 25) return;
+      const pinkColors = [
+        Color(0xFFFF2D55), // Hot pink / neon red-pink
+        Color(0xFFFF3366), // Rose pink
+        Color(0xFFFF5277), // Coral pink
+        Color(0xFFFF4081), // Vivid pink
+        Color(0xFFFF69B4), // Bubblegum pink
+        Color(0xFFFF2DAA), // Glossy magenta pink
+      ];
+
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 1800 + _random.nextInt(600)),
+      );
+
+      final item = _FloatingHeartOrStarItem(
+        controller: controller,
+        color: pinkColors[_random.nextInt(pinkColors.length)],
+        startX: _random.nextDouble() * 50 - 25,
+        size: _random.nextDouble() * 14 + 22,
+        toLeft: false,
+        icon: Icons.favorite_rounded,
+        rotationSpeed: (_random.nextDouble() - 0.5) * 1.5,
+      );
+
+      void doAdd() {
+        if (!mounted) return;
+        setState(() {
+          _items.add(item);
+        });
+        controller.forward().then((_) {
+          if (mounted) {
+            setState(() {
+              _items.remove(item);
+            });
+            controller.dispose();
+          }
+        });
+      }
+
+      if (WidgetsBinding.instance.schedulerPhase ==
+              SchedulerPhase.persistentCallbacks ||
+          WidgetsBinding.instance.schedulerPhase ==
+              SchedulerPhase.midFrameMicrotasks) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => doAdd());
+      } else {
+        doAdd();
+      }
+    }
+  }
+
   void addHeart({bool? toLeft}) {
     if (_items.length >= 12) return;
 

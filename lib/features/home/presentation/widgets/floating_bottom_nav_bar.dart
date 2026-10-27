@@ -54,15 +54,17 @@ class FloatingBottomNavBar extends StatelessWidget {
                 child: Row(
                   children: [
                     _NavItem(
-                      icon: Icons.home_rounded,
-                      label: AppStrings.navHome,
+                      icon: Icons.explore_rounded,
+                      unselectedIcon: Icons.explore_outlined,
+                      label: AppStrings.navExplore,
                       selected: currentIndex == 0,
                       height: barHeight,
                       onTap: () => onTap(0),
                     ),
                     _NavItem(
-                      icon: Icons.explore_rounded,
-                      label: AppStrings.navExplore,
+                      icon: Icons.sensors_rounded,
+                      unselectedIcon: Icons.sensors_outlined,
+                      label: AppStrings.navLive,
                       selected: currentIndex == 1,
                       height: barHeight,
                       onTap: () => onTap(1),
@@ -70,6 +72,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                     SizedBox(width: orb + 14),
                     _NavItem(
                       icon: Icons.notifications_rounded,
+                      unselectedIcon: Icons.notifications_outlined,
                       label: AppStrings.navActivity,
                       selected: currentIndex == 2,
                       height: barHeight,
@@ -78,6 +81,7 @@ class FloatingBottomNavBar extends StatelessWidget {
                     ),
                     _NavItem(
                       icon: Icons.person_rounded,
+                      unselectedIcon: Icons.person_outline_rounded,
                       label: AppStrings.navProfile,
                       selected: currentIndex == 3,
                       height: barHeight,
@@ -156,6 +160,7 @@ class _BarPainter extends CustomPainter {
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
+  final IconData? unselectedIcon;
   final String label;
   final bool selected;
   final double height;
@@ -164,6 +169,7 @@ class _NavItem extends StatelessWidget {
 
   const _NavItem({
     required this.icon,
+    this.unselectedIcon,
     required this.label,
     required this.selected,
     required this.height,
@@ -175,7 +181,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = height * 0.4;
+    final iconSize = height * 0.38;
+    final currentIcon = selected ? icon : (unselectedIcon ?? icon);
+
     return Expanded(
       child: Semantics(
         button: true,
@@ -195,20 +203,24 @@ class _NavItem extends StatelessWidget {
                     children: [
                       ShaderMask(
                         blendMode: BlendMode.srcIn,
-                        shaderCallback:
-                            (selected
-                                    ? const LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [LuxeColors.goldLight, LuxeColors.gold, LuxeColors.goldDeep],
-                                      )
-                                    : const LinearGradient(colors: [_idle, _idle]))
-                                .createShader,
+                        shaderCallback: (selected
+                                ? const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Color(0xFFFFF7C2), LuxeColors.goldLight, LuxeColors.gold, LuxeColors.goldDeep],
+                                  )
+                                : const LinearGradient(colors: [_idle, _idle]))
+                            .createShader,
                         child: Icon(
-                          icon,
+                          currentIcon,
                           size: iconSize,
                           color: Colors.white,
-                          shadows: selected ? const [Shadow(color: Color(0x99FFC928), blurRadius: 10)] : null,
+                          shadows: selected
+                              ? const [
+                                  Shadow(color: Color(0xCCFFC928), blurRadius: 12),
+                                  Shadow(color: Color(0x66FF2DC0), blurRadius: 16),
+                                ]
+                              : null,
                         ),
                       ),
                       if (badge > 0) Positioned(right: -8, top: -6, child: LuxeBadge(count: badge)),
@@ -219,20 +231,32 @@ class _NavItem extends StatelessWidget {
                     label,
                     style: TextStyle(
                       color: selected ? LuxeColors.gold : _idle,
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      shadows: selected ? const [Shadow(color: Color(0x66FFC928), blurRadius: 6)] : null,
+                      letterSpacing: 0.2,
+                      shadows: selected
+                          ? const [
+                              Shadow(color: Color(0x88FFC928), blurRadius: 6),
+                              Shadow(color: Color(0x44FF2DC0), blurRadius: 10),
+                            ]
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 3),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    width: selected ? 34 : 0,
+                    curve: Curves.easeOutCubic,
+                    width: selected ? 28 : 0,
                     height: 3,
                     decoration: BoxDecoration(
-                      gradient: LuxeColors.goldGradient,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFF1A8), LuxeColors.gold, Color(0xFFFF9D00)],
+                      ),
                       borderRadius: BorderRadius.circular(2),
-                      boxShadow: const [BoxShadow(color: Color(0xAAFFC928), blurRadius: 6)],
+                      boxShadow: const [
+                        BoxShadow(color: Color(0xCCFFC928), blurRadius: 8, spreadRadius: 0.5),
+                        BoxShadow(color: Color(0x55FF2DC0), blurRadius: 12),
+                      ],
                     ),
                   ),
                 ],

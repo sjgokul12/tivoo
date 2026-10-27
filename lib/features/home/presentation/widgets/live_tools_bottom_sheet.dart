@@ -20,6 +20,7 @@ class LiveToolsBottomSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => LiveToolsBottomSheet(
         onPkSettingsTap: onPkSettingsTap,
@@ -32,6 +33,7 @@ class LiveToolsBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF13151D),
@@ -39,12 +41,14 @@ class LiveToolsBottomSheet extends StatelessWidget {
         border: Border.all(color: const Color(0x33448AFF), width: 1.2),
         boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 36, offset: Offset(0, -6))],
       ),
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+      padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + (bottomInset > 0 ? bottomInset : 0)),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Top Bar: Live Tools Title + Close ✕ Button
             Row(
@@ -190,6 +194,7 @@ class LiveToolsBottomSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

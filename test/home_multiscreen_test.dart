@@ -43,7 +43,7 @@ void main() {
     // 2. Verify Search bar, heart, clock icons
     expect(find.text('Search'), findsOneWidget);
     expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
 
     // 3. Live Tab: 2-column grid cards (mini broadcasters and weekly all-stars removed)
     expect(find.byType(PopularTaalmilView), findsOneWidget);
@@ -57,41 +57,35 @@ void main() {
     await advanceAnimation(tester);
     expect(find.byType(PkBattleLiveScreen), findsOneWidget);
 
-    // Verify PK Screen: 10m & 20m Duration buttons, Invite button, Streamers, MVPs
-    expect(find.text('10m'), findsOneWidget);
-    expect(find.text('20m'), findsOneWidget);
-    expect(find.text('Invite'), findsOneWidget);
-    expect(find.text('Daisy 🥰'), findsWidgets);
-    expect(find.text('Alex Martin'), findsOneWidget);
-    expect(find.text('Elena Star'), findsOneWidget);
-    expect(find.text('TOP MVPs'), findsOneWidget);
-
-    // Tap 20m Duration button
-    await tester.tap(find.text('20m'));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('PK 20:00'), findsOneWidget);
+    // Verify PK Screen: Battle Time, Comment List, Type a message input bar
+    expect(find.text('Battle Time'), findsOneWidget);
+    expect(find.text('Comment List'), findsOneWidget);
+    expect(find.text('Type a message...'), findsOneWidget);
 
     // 5. Switch to Chat Room Tab (Index 2)
+    Navigator.of(tester.element(find.byType(PkBattleLiveScreen))).pop();
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
     await tester.tap(find.text('Chat Room').first);
-    await advanceAnimation(tester);
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
     expect(find.byType(ChatRoomPartyScreen), findsOneWidget);
 
-    // Verify Chat Room: Host info, 9-seat audio mode, guidelines card
-    expect(find.text('rohit_rajdhanis6'), findsWidgets);
-    expect(find.text('Monthly Host'), findsOneWidget);
-    expect(find.text('Audio Party (9 Seats)'), findsOneWidget);
-    expect(find.text('NO.3'), findsOneWidget);
-    expect(find.text('NO.4'), findsOneWidget);
-    expect(find.textContaining('Welcome to Tiki Live'), findsOneWidget);
-
-    // Toggle to Video Party (6 Members)
-    await tester.tap(find.text('Video Party (6 Members)'));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Rohit (Host)'), findsOneWidget);
+    // Verify Chat Room: Host info and rooms list
+    expect(find.text('Diya_Official'), findsWidgets);
+    expect(find.text('Create Chat Room'), findsOneWidget);
 
     // 6. Switch back to Live Tab (Index 0)
+    Navigator.of(tester.element(find.byType(ChatRoomPartyScreen))).pop();
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
     await tester.tap(find.text('Live').first);
-    await advanceAnimation(tester);
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
     expect(find.byType(PopularTaalmilView), findsOneWidget);
   });
 
@@ -118,7 +112,7 @@ void main() {
 
     // 2. Verify downside live comments area is rendered
     expect(find.byIcon(Icons.star_rounded), findsWidgets);
-    expect(find.byIcon(Icons.send_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.near_me_rounded), findsOneWidget);
 
     // 3. Verify ActiveGiftAnimationOverlay exists in tree
     expect(find.byType(ActiveGiftAnimationOverlay), findsOneWidget);
@@ -134,6 +128,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // 5. Verify the active moving car banner is rendered on screen
-    expect(find.text('You sent Super Car!'), findsOneWidget);
+    expect(find.textContaining('You sent Super Car'), findsOneWidget);
   });
 }

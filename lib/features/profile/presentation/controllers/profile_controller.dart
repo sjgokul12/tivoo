@@ -90,6 +90,23 @@ class ProfileController extends StateNotifier<ProfileState> {
     final updatedPosts = [newPost, ...state.profile.posts];
     state = state.copyWith(profile: state.profile.copyWith(posts: updatedPosts));
   }
+
+  void deletePost(String postId) {
+    final updatedPosts = state.profile.posts.where((p) => p.id != postId).toList();
+    state = state.copyWith(profile: state.profile.copyWith(posts: updatedPosts));
+  }
+
+  void modifyFollowing(int delta) {
+    final nextFollowing = (state.profile.followingCount + delta).clamp(0, 9999999);
+    state = state.copyWith(profile: state.profile.copyWith(followingCount: nextFollowing));
+  }
+
+  void modifyFollowers(int delta) {
+    int current = int.tryParse(state.profile.followersCount.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4700;
+    int next = (current + delta).clamp(0, 9999999);
+    String formatted = next >= 1000 ? '${(next / 1000).toStringAsFixed(1)}K' : '$next';
+    state = state.copyWith(profile: state.profile.copyWith(followersCount: formatted));
+  }
 }
 
 final profileControllerProvider = StateNotifierProvider<ProfileController, ProfileState>((ref) {

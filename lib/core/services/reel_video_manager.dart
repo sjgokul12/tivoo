@@ -2,6 +2,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:video_player/video_player.dart';
 
+import '../utils/video_source.dart';
+
 /// Centralized manager for Reels video controllers with 3-slot Sliding Window Pool.
 ///
 /// Ultra-Fast Performance Architecture:
@@ -80,10 +82,7 @@ class ReelVideoManager {
     }
 
     try {
-      final controller = VideoPlayerController.asset(
-        videoPath,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      final controller = videoControllerFor(videoPath);
 
       await controller.initialize();
       await controller.setLooping(true);
@@ -150,10 +149,7 @@ class ReelVideoManager {
     }
 
     try {
-      final controller = VideoPlayerController.asset(
-        videoPath,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      final controller = videoControllerFor(videoPath);
 
       await controller.initialize();
       if (_activePath != videoPath) {

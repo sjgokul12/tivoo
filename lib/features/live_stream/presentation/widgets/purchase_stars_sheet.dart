@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/star_wallet_controller.dart';
+import '../../../wallet/presentation/screens/wallet_screen.dart';
 
 class PurchaseStarsSheet extends ConsumerStatefulWidget {
   const PurchaseStarsSheet({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => const PurchaseStarsSheet(),
-    );
+    return WalletScreen.push(context);
   }
 
   @override

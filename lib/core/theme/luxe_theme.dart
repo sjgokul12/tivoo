@@ -114,21 +114,27 @@ class LuxePanel extends StatelessWidget {
 
 /// Round glass button with a purple neon ring (top-bar icons) and an optional badge.
 class LuxeCircleButton extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? imageAsset;
+  final Widget? child;
   final VoidCallback? onTap;
   final double size;
   final String label;
   final int badge;
   final bool gold;
+  final Color? iconColor;
 
   const LuxeCircleButton({
     super.key,
-    required this.icon,
+    this.icon,
+    this.imageAsset,
+    this.child,
     required this.label,
     this.onTap,
     this.size = 42,
     this.badge = 0,
     this.gold = false,
+    this.iconColor,
   });
 
   @override
@@ -166,7 +172,22 @@ class LuxeCircleButton extends StatelessWidget {
                     gradient: RadialGradient(colors: [Color(0xFF241B5C), Color(0xFF0E0B2C)]),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, color: Colors.white, size: size * 0.5),
+                  child: child ??
+                      (imageAsset != null
+                          ? Padding(
+                              padding: EdgeInsets.all(size * 0.12),
+                              child: Image.asset(
+                                imageAsset!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Icon(Icons.account_balance_wallet_rounded, color: const Color(0xFFFFD700), size: size * 0.52),
+                              ),
+                            )
+                          : Icon(
+                              icon ?? Icons.circle,
+                              color: iconColor ?? (gold ? const Color(0xFFFFD700) : Colors.white),
+                              size: size * 0.5,
+                            )),
                 ),
               ),
               if (badge > 0) Positioned(right: -3, top: -3, child: LuxeBadge(count: badge)),

@@ -1,65 +1,34 @@
-// Gift panel: Gift card (from features/gift), Like / Share buttons.
+// Right side of the comment panel: 3D star portal on a multi-tier pedestal with glowing neon rings
+// and rising glossy 3D hearts, matching the reference image.
+
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/luxe_theme.dart';
-import '../../gift/pk_gift_widgets.dart' show PkGiftCard;
-import '../core/pk_common_widgets.dart';
+import '../../../core/constants/app_assets.dart';
+import '../../../core/widgets/heart_3d.dart';
 
-/// Right column: Gift card on top, then wide ♥ Like and ↪ Share buttons.
+/// Right column of the comment panel: the star gift portal at the bottom,
+/// and floating / rising 3D pink hearts above that.
 class PkRightColumn extends StatelessWidget {
   final VoidCallback onGift;
-  final VoidCallback onLike;
-  final VoidCallback onShare;
-  final Widget hearts;
+  final Widget? hearts;
 
-  const PkRightColumn({
-    super.key,
-    required this.onGift,
-    required this.onLike,
-    required this.onShare,
-    required this.hearts,
-  });
+  const PkRightColumn({super.key, required this.onGift, this.hearts});
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final pillHeight = (constraints.maxHeight * 0.17).clamp(36.0, 48.0);
+        final w = constraints.maxWidth;
+        final iconSize = w.clamp(48.0, 54.0);
+
         return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(child: PkGiftCard(onTap: onGift)),
-                  // Hearts rise from the Gift card (above the Like / Share buttons).
-                  Positioned(left: constraints.maxWidth / 2 - 22, width: 44, top: 0, bottom: 20, child: hearts),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            _SidePill(
-              height: pillHeight,
-              label: 'Like',
-              onTap: onLike,
-              icon: PkGradientIcon(
-                Icons.favorite_rounded,
-                size: pillHeight * 0.55,
-                colors: const [Color(0xFFFFA8D8), LuxeColors.pink],
-              ),
-            ),
-            const SizedBox(height: 8),
-            _SidePill(
-              height: pillHeight,
-              label: 'Share',
-              onTap: onShare,
-              icon: PkGradientIcon(
-                Icons.shortcut_rounded,
-                size: pillHeight * 0.55,
-                colors: const [LuxeColors.goldLight, LuxeColors.goldDeep],
-              ),
-            ),
+            if (hearts != null) Expanded(child: ClipRect(child: hearts!)),
+            PkGiftOrb(size: iconSize, onTap: onGift),
           ],
         );
       },
@@ -67,37 +36,169 @@ class PkRightColumn extends StatelessWidget {
   }
 }
 
-class _SidePill extends StatelessWidget {
+/// Floating 3D pink hearts cluster matching the reference screenshot.
+class _FloatingHeartsCluster extends StatefulWidget {
+  final double width;
   final double height;
-  final String label;
-  final Widget icon;
-  final VoidCallback onTap;
+  const _FloatingHeartsCluster({required this.width, required this.height});
 
-  const _SidePill({required this.height, required this.label, required this.icon, required this.onTap});
+  @override
+  State<_FloatingHeartsCluster> createState() => _FloatingHeartsClusterState();
+}
+
+class _FloatingHeartsClusterState extends State<_FloatingHeartsCluster> with SingleTickerProviderStateMixin {
+  late final AnimationController _float = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _float.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _float,
+      builder: (context, _) {
+        final t = _float.value;
+        final floatY = sin(t * pi) * 4.0;
+        final floatY2 = cos(t * pi) * 3.0;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 1. Large main heart (center-left)
+            Positioned(
+              left: widget.width * 0.08,
+              bottom: widget.height * 0.14 + floatY,
+              child: Transform.rotate(
+                angle: -0.12,
+                child: const Heart3D(size: 38, color: Color(0xFFFF2DAA), glow: 1.0),
+              ),
+            ),
+            // 2. Medium heart (upper-right)
+            Positioned(
+              right: widget.width * 0.08,
+              bottom: widget.height * 0.44 - floatY2,
+              child: Transform.rotate(angle: 0.15, child: const Heart3D(size: 30, color: Color(0xFFFF4FD8), glow: 0.8)),
+            ),
+            // 3. Small heart (upper-left)
+            Positioned(
+              left: widget.width * 0.22,
+              bottom: widget.height * 0.58 + floatY,
+              child: Transform.rotate(
+                angle: -0.08,
+                child: const Heart3D(size: 22, color: Color(0xFFFF3D9A), glow: 0.6),
+              ),
+            ),
+            // 4. Lower-right heart
+            Positioned(
+              right: widget.width * 0.03,
+              bottom: widget.height * 0.18 + floatY2,
+              child: Transform.rotate(angle: 0.2, child: const Heart3D(size: 25, color: Color(0xFFFF5CC4), glow: 0.7)),
+            ),
+            // Golden 4-point sparkle stars matching Image 1
+            Positioned(right: widget.width * 0.16, top: widget.height * 0.08, child: const _SparkleStar(size: 15)),
+            Positioned(left: widget.width * 0.06, top: widget.height * 0.34, child: const _SparkleStar(size: 12)),
+            Positioned(right: widget.width * 0.02, top: widget.height * 0.52, child: const _SparkleStar(size: 14)),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 4-point golden sparkle glint matching Image 1.
+class _SparkleStar extends StatelessWidget {
+  final double size;
+  const _SparkleStar({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size(size, size), painter: const _SparkleStarPainter());
+  }
+}
+
+class _SparkleStarPainter extends CustomPainter {
+  const _SparkleStarPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final path = Path()
+      ..moveTo(cx, 0)
+      ..quadraticBezierTo(cx, cy, size.width, cy)
+      ..quadraticBezierTo(cx, cy, cx, size.height)
+      ..quadraticBezierTo(cx, cy, 0, cy)
+      ..quadraticBezierTo(cx, cy, cx, 0)
+      ..close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFFFD600)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    );
+    canvas.drawPath(path, Paint()..color = const Color(0xFFFFFBE0));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Star gift button: clean, compact icon placed above the share button,
+/// keeping the 3D star image artwork style with responsive tap feedback and subtle golden glow.
+class PkGiftOrb extends StatefulWidget {
+  final double size;
+  final VoidCallback onTap;
+
+  const PkGiftOrb({super.key, required this.size, required this.onTap});
+
+  @override
+  State<PkGiftOrb> createState() => _PkGiftOrbState();
+}
+
+class _PkGiftOrbState extends State<PkGiftOrb> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+
     return Semantics(
       button: true,
-      label: label,
+      label: 'Send gift',
       child: GestureDetector(
-        onTap: onTap,
-        child: PkNeonBox(
-          height: height,
-          radius: height / 2,
-          borderColors: LuxeColors.neon,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              children: [
-                icon,
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                ),
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.90 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutBack,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Color(0x9900E5FF), blurRadius: 12, spreadRadius: 1.0),
+                BoxShadow(color: Color(0x66FFD700), blurRadius: 8, spreadRadius: 0.5),
               ],
+            ),
+            child: Image.asset(
+              AppAssets.pkStarPortal,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 34),
             ),
           ),
         ),

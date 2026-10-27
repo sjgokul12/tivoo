@@ -10,6 +10,7 @@ import '../controllers/auth_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/login_hero_section.dart';
 import '../widgets/social_login_buttons.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -99,147 +100,153 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? constraints.maxHeight - 32
                           : 0,
                     ),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Top Hero Section: Logo, Live. Stream. Connect., Subtitle
-                          const LoginHeroSection(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Hero Section: Logo, Live. Stream. Connect., Subtitle
+                        const LoginHeroSection(),
 
-                          // Welcome Back form, in a neon-glass card
-                          GlassContainer(
-                            borderRadius: BorderRadius.circular(24),
-                            glowColor: AppColors.glowPurple,
-                            glowBlur: 24,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 18,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Welcome Back',
-                                  style: AppTextStyles.heroHeading.copyWith(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Login to continue your journey',
-                                  style: AppTextStyles.heroSubtitle.copyWith(
-                                    fontSize: 12.5,
-                                    color: Colors.white60,
-                                  ),
-                                ),
+                        const SizedBox(height: 16),
 
-                                const SizedBox(height: 14),
-
-                                // Email or Phone Number Input Field
-                                AuthTextField(
-                                  controller: _emailController,
-                                  hintText: 'Email or Phone Number',
-                                  prefixIcon: Icons.mail_outline_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-
-                                const SizedBox(height: 10),
-
-                                // Password Input Field with Visibility Toggle
-                                AuthTextField(
-                                  controller: _passwordController,
-                                  hintText: 'Password',
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  isPassword: true,
-                                  isPasswordVisible:
-                                      authState.isPasswordVisible,
-                                  onTogglePassword:
-                                      authController.togglePasswordVisibility,
-                                ),
-
-                                const SizedBox(height: 10),
-
-                                // Forgot Password Button
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Password reset link sent to email',
-                                          ),
-                                          duration: Duration(seconds: 1),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text(
-                                      'Forgot Password?',
-                                      style: TextStyle(
-                                        color: AppColors.primaryYellow,
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                // Gradient Log In CTA Button
-                                GradientButton(
-                                  text: 'Log In',
-                                  height: 48,
-                                  borderRadius: 24,
-                                  isLoading: authState.isLoading,
-                                  onPressed: _onLogin,
-                                ),
-                              ],
-                            ),
+                        // Welcome Back form, in a neon-glass card
+                        GlassContainer(
+                          borderRadius: BorderRadius.circular(24),
+                          glowColor: AppColors.glowPurple,
+                          glowBlur: 24,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 18,
                           ),
-
-                          // OR Divider
-                          Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Container(
-                                  height: 1,
-                                  color: Colors.white.withValues(alpha: 0.12),
+                              Text(
+                                'Welcome Back',
+                                style: AppTextStyles.heroHeading.copyWith(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
                                 ),
                               ),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 14),
-                                child: Text(
-                                  'OR',
+                              const SizedBox(height: 4),
+                              Text(
+                                'Login to continue your journey',
+                                style: AppTextStyles.heroSubtitle.copyWith(
+                                  fontSize: 12.5,
+                                  color: Colors.white60,
+                                ),
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              // Email or Phone Number Input Field
+                              AuthTextField(
+                                controller: _emailController,
+                                hintText: 'Email or Phone Number',
+                                prefixIcon: Icons.mail_outline_rounded,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Password Input Field with Visibility Toggle
+                              AuthTextField(
+                                controller: _passwordController,
+                                hintText: 'Password',
+                                prefixIcon: Icons.lock_outline_rounded,
+                                isPassword: true,
+                                isPasswordVisible:
+                                    authState.isPasswordVisible,
+                                onTogglePassword:
+                                    authController.togglePasswordVisibility,
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Forgot Password Button
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Password reset link sent to email',
+                                      ),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  'Forgot Password?',
                                   style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.45),
-                                    fontSize: 11.5,
+                                    color: AppColors.primaryYellow,
+                                    fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.2,
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                child: Container(
-                                  height: 1,
-                                  color: Colors.white.withValues(alpha: 0.12),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
 
-                          // Social Logins: Google, Apple, Facebook
-                          SocialLoginButtons(
-                            onGoogleTap: _onLogin,
-                            onAppleTap: _onLogin,
-                            onFacebookTap: _onLogin,
+                            const SizedBox(height: 14),
+
+                            // Gradient Log In CTA Button
+                            GradientButton(
+                              text: 'Log In',
+                              height: 48,
+                              borderRadius: 24,
+                              isLoading: authState.isLoading,
+                              onPressed: _onLogin,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // OR Divider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
                           ),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              'OR',
+                              style: TextStyle(
+                                color:
+                                    Colors.white.withValues(alpha: 0.45),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Social Logins: Google, Apple, Facebook
+                      SocialLoginButtons(
+                        onGoogleTap: _onLogin,
+                        onAppleTap: _onLogin,
+                        onFacebookTap: _onLogin,
+                      ),
+
+                      const SizedBox(height: 16),
 
                           // Sign Up Footer
                           Center(
@@ -257,12 +264,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Navigating to Sign Up registration'),
-                                        duration: Duration(seconds: 1),
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterScreen(),
                                       ),
                                     );
                                   },
@@ -281,9 +285,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
             ),
           ),
         ],

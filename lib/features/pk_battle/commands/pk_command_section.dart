@@ -1,18 +1,21 @@
-// Command section: Command List, input bar and the lower panel.
+// Comment section: outer glassmorphic panel with tubular neon comment capsules,
+// the star gift portal with floating 3D hearts, and the glowing input bar matching Image 1.
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-import '../../../core/theme/luxe_theme.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/custom_avatar.dart';
 import '../../live_stream/domain/models/live_comment.dart';
 import '../core/pk_common_widgets.dart';
 import '../core/pk_models.dart';
 
-/// Full-width bottom area on one background that runs to the screen edge:
-///   [Command List ...............] [Gift card | ♥ Like | ↪ Share]
-///   [😊] [Type a message...] [•••]
+/// Lower part of the screen:
+///   ┌ grand glassmorphic neon panel ─────────┐
+///   │ (comment pills ...)        ♥  ♥        │
+///   │                          (★ portal)    │
+///   └────────────────────────────────────────┘
+///   [😊 Type a messa... 😊]  (Like) (Share)
 class PkLowerSection extends StatelessWidget {
   final Widget commandList;
   final Widget rightColumn;
@@ -22,41 +25,120 @@ class PkLowerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(10, 10, 10, 8 + bottomInset),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xF0171340), LuxeColors.bg, LuxeColors.bgBottom],
+    final media = MediaQuery.sizeOf(context);
+    final viewInsetsBottom = context.viewInsets.bottom;
+    final isKeyboardOpen = viewInsetsBottom > 50;
+    final isSmall = media.width < 376;
+    final effectiveBottom = isKeyboardOpen ? 6.0 : (context.padding.bottom + (isSmall ? 4.0 : 8.0));
+    final horizontalPad = isSmall ? 8.0 : 10.0;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutQuad,
+      padding: EdgeInsets.only(bottom: viewInsetsBottom),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(horizontalPad, 0, horizontalPad, effectiveBottom),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final circle = (constraints.maxWidth / 9.8).clamp(36.0, 42.0);
+            final starSize = (circle * 1.30).clamp(48.0, 56.0);
+            final rightWidth = starSize;
+            final hasEnoughHeight = constraints.maxHeight > 100;
+            return Column(
+              children: [
+                if (hasEnoughHeight)
+                  Expanded(
+                    child: _GlassCommentPanel(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: commandList),
+                          const SizedBox(width: 8.0),
+                          SizedBox(width: rightWidth, child: rightColumn),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (hasEnoughHeight) SizedBox(height: isSmall ? 6.0 : 8.0),
+                inputBar,
+              ],
+            );
+          },
         ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-        border: Border.all(color: const Color(0x77FFC928)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x447B4DFF), blurRadius: 24, offset: Offset(0, -4)),
-          BoxShadow(color: Color(0x22FFC928), blurRadius: 12, offset: Offset(0, -2)),
-        ],
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final rightWidth = (constraints.maxWidth * 0.27).clamp(92.0, 130.0);
-          return Column(
-            children: [
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: commandList),
-                    const SizedBox(width: 8),
-                    SizedBox(width: rightWidth, child: rightColumn),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              inputBar,
-            ],
+    );
+  }
+}
+
+/// Grand outer glassmorphic container enclosing both the comments and the star gift portal,
+/// with deep frosted glass blur, dual-tone cyan/magenta neon border, and curved specular reflections.
+class _GlassCommentPanel extends StatelessWidget {
+  final Widget child;
+  const _GlassCommentPanel({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: child);
+  }
+}
+
+/// Live comments as pills, newest at the bottom, fading out at the top of the panel.
+class PkCommandList extends StatelessWidget {
+  final List<LiveComment> comments;
+  final ScrollController controller;
+  final ValueChanged<LiveComment>? onUserTap;
+  final ValueChanged<LiveComment>? onUserLongPress;
+  final VoidCallback? onLiveTap;
+
+  const PkCommandList({
+    super.key,
+    required this.comments,
+    required this.controller,
+    this.onUserTap,
+    this.onUserLongPress,
+    this.onLiveTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.white, Colors.white],
+        stops: [0, 0.08, 1],
+      ).createShader,
+      child: ListView.builder(
+        controller: controller,
+        reverse: true,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: comments.length,
+        itemBuilder: (_, index) {
+          final comment = comments[comments.length - 1 - index];
+          final gift = PkGiftEvent.fromChatMessage(
+            id: index,
+            sender: comment.userName,
+            avatar: comment.userAssetPath ?? AppAssets.status4,
+            message: comment.message,
+          );
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3.5),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: gift != null
+                  ? _GiftCommentPill(
+                      gift: gift,
+                      onTap: () => onUserTap?.call(comment),
+                      onLongPress: () => onUserLongPress?.call(comment),
+                    )
+                  : _CommentPill(
+                      comment: comment,
+                      onTap: () => onUserTap?.call(comment),
+                      onLongPress: () => onUserLongPress?.call(comment),
+                    ),
+            ),
           );
         },
       ),
@@ -64,238 +146,484 @@ class PkLowerSection extends StatelessWidget {
   }
 }
 
-/// "Command List" panel: header with a Live pill, then comments (newest at the bottom).
-class PkCommandList extends StatelessWidget {
-  final List<LiveComment> comments;
-  final ScrollController controller;
-  final VoidCallback onLiveTap;
+/// Neon style per viewer (stable for the same name): pill border colours and name colour.
+typedef _NeonStyle = ({List<Color> border, Color name});
 
-  const PkCommandList({super.key, required this.comments, required this.controller, required this.onLiveTap});
+const List<_NeonStyle> _styles = [
+  (border: [Color(0xFFFF5CE1), Color(0xFFB04DFF)], name: Color(0xFFFF82DC)), // pink/magenta (Sneha)
+  (border: [Color(0xFF00E5FF), Color(0xFF2E7BFF)], name: Color(0xFF00E5FF)), // cyan/blue (Vicky)
+  (border: [Color(0xFF9E47FF), Color(0xFF00E5FF)], name: Color(0xFFC4B5FD)), // purple/blue (Ananya)
+  (border: [Color(0xFF00E5FF), Color(0xFFFF2DC0)], name: Color(0xFFFF82DC)), // cyan/magenta (Meena)
+];
 
-  @override
-  Widget build(BuildContext context) {
-    return PkNeonBox(
-      radius: 22,
-      borderColors: LuxeColors.goldToNeon,
-      glow: const Color(0x337B4DFF),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(21),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-              child: Row(
-                children: [
-                  const PkGradientIcon(
-                    Icons.sms_outlined,
-                    size: 22,
-                    colors: [LuxeColors.goldLight, LuxeColors.goldDeep],
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Comment List',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  _LivePill(onTap: onLiveTap),
-                ],
-              ),
-            ),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-            Expanded(
-              child: ListView.separated(
-                controller: controller,
-                reverse: true,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
-                itemCount: comments.length,
-                separatorBuilder: (_, _) => Padding(
-                  padding: const EdgeInsets.only(left: 46),
-                  child: Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-                ),
-                itemBuilder: (_, index) => _CommandRow(comment: comments[comments.length - 1 - index]),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+_NeonStyle _styleFor(String name) => _styles[name.codeUnits.fold<int>(0, (a, b) => a + b) % _styles.length];
 
-class _LivePill extends StatelessWidget {
+/// Pill with the neon tubular gradient border, glassmorphism fill and top specular gloss.
+class _Pill extends StatelessWidget {
+  final String avatar;
+  final Widget content;
   final VoidCallback onTap;
-  const _LivePill({required this.onTap});
+  final VoidCallback? onLongPress;
+  final List<Color> border;
+  const _Pill({
+    required this.avatar,
+    required this.content,
+    required this.onTap,
+    this.onLongPress,
+    required this.border,
+  });
 
   @override
   Widget build(BuildContext context) {
+    const avatarRadius = 13.5;
+    final primaryColor = border.first;
+
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+        padding: const EdgeInsets.all(1.3),
         decoration: BoxDecoration(
-          color: LuxeColors.gold.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: LuxeColors.gold.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(30),
+          gradient: LinearGradient(colors: border),
+          boxShadow: [BoxShadow(color: primaryColor.withValues(alpha: 0.45), blurRadius: 10, spreadRadius: 0.5)],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF2EE59D),
-                boxShadow: [BoxShadow(color: Color(0xAA2EE59D), blurRadius: 6)],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xDD121652), Color(0xBB0A0D32)],
+              stops: [0, 1],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Specular curved glass gloss reflection on the upper curve
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 16,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.white.withValues(alpha: 0.35), Colors.transparent],
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 5),
-            const Text(
-              'Live',
-              style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
-            ),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 18),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(1.2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: border),
+                        boxShadow: [BoxShadow(color: primaryColor.withValues(alpha: 0.5), blurRadius: 6)],
+                      ),
+                      child: CustomAvatar(radius: avatarRadius, assetPath: avatar),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(child: content),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _CommandRow extends StatelessWidget {
+/// (avatar) Name 👑 / message
+class _CommentPill extends StatelessWidget {
   final LiveComment comment;
-  const _CommandRow({required this.comment});
-
-  static final DateFormat _time = DateFormat('hh:mm a');
-  static const _ringColors = [LuxeColors.gold, LuxeColors.violet, LuxeColors.blue, LuxeColors.pink];
-
-  bool get _isGift => comment.type == LiveCommentType.gift || comment.message.startsWith('sent ');
-  bool get _isVip => PkDemoData.vipNames.contains(comment.userName);
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  const _CommentPill({required this.comment, required this.onTap, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
-    final ring = _ringColors[comment.userName.codeUnits.fold<int>(0, (a, b) => a + b) % _ringColors.length];
-    final messageColor = _isGift ? LuxeColors.gold : const Color(0xFFCDBBFF);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    final isVip = PkDemoData.vipNames.contains(comment.userName);
+    final style = _styleFor(comment.userName);
+    return _Pill(
+      avatar: comment.userAssetPath ?? AppAssets.status4,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      border: style.border,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(1.8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ring, width: 1.8),
-              boxShadow: [BoxShadow(color: ring.withValues(alpha: 0.45), blurRadius: 8)],
-            ),
-            child: CustomAvatar(radius: 15, assetPath: comment.userAssetPath ?? AppAssets.status4),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        comment.userName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    if (_isVip) ...[const SizedBox(width: 5), const PkGoldCrown(size: 13)],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  comment.message,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  comment.userName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: messageColor, fontSize: 12.5, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: style.name, fontSize: 12.0, fontWeight: FontWeight.w800, height: 1.15),
+                ),
+              ),
+              if (isVip) ...[const SizedBox(width: 3.5), const PkGoldCrown(size: 11)],
+            ],
+          ),
+          Text(
+            comment.message,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: comment.isReported ? Colors.white54 : Colors.white,
+              fontStyle: comment.isReported ? FontStyle.italic : FontStyle.normal,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// (avatar) Name sent Oce... 💎 x1
+class _GiftCommentPill extends StatelessWidget {
+  final PkGiftEvent gift;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  const _GiftCommentPill({required this.gift, required this.onTap, this.onLongPress});
+
+  @override
+  Widget build(BuildContext context) {
+    const iconSize = 18.0;
+    final giftIcon = gift.giftImage != null
+        ? Image.asset(
+            gift.giftImage!,
+            width: iconSize,
+            height: iconSize,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8)),
+          )
+        : Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8));
+
+    final style = _styleFor(gift.sender);
+    return _Pill(
+      avatar: gift.senderAvatar,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      border: style.border,
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: gift.sender,
+                    style: TextStyle(color: style.name, fontWeight: FontWeight.w800),
+                  ),
+                  TextSpan(text: ' sent ${gift.giftName}'),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 4),
+          giftIcon,
+          const SizedBox(width: 3),
+          Text(
+            'x${gift.count}',
+            style: const TextStyle(
+              color: Color(0xFFFFD23F),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w900,
+              fontStyle: FontStyle.italic,
+              shadows: [Shadow(color: Color(0x99FFB300), blurRadius: 8)],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Input row: [😊 Type a messa... 😊] (Like) (Share) (Wallet)
+class PkInputBar extends StatefulWidget {
+  final VoidCallback onEmojiTap;
+  final VoidCallback? onLikeTap;
+  final VoidCallback? onShareTap;
+  final VoidCallback? onMoreTap;
+  final VoidCallback? onWalletTap;
+  final ValueChanged<String>? onSend;
+  final TextEditingController? controller;
+  final FocusNode? focusNode;
+
+  /// Colour of the supported host (border, glow, emoji and share button).
+  final Color accent;
+  final String hint;
+
+  const PkInputBar({
+    super.key,
+    required this.onEmojiTap,
+    this.onLikeTap,
+    this.onShareTap,
+    this.onMoreTap,
+    this.onWalletTap,
+    this.onSend,
+    this.controller,
+    this.focusNode,
+    this.accent = const Color(0xFF00E5FF),
+    this.hint = 'Type a message…',
+  });
+
+  @override
+  State<PkInputBar> createState() => _PkInputBarState();
+}
+
+class _PkInputBarState extends State<PkInputBar> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _ownsController = false;
+  bool _ownsFocusNode = false;
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TextEditingController();
+      _ownsController = true;
+    }
+    if (widget.focusNode != null) {
+      _focusNode = widget.focusNode!;
+    } else {
+      _focusNode = FocusNode();
+      _ownsFocusNode = true;
+    }
+    _hasText = _controller.text.trim().isNotEmpty;
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final has = _controller.text.trim().isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTextChanged);
+    if (_ownsController) _controller.dispose();
+    if (_ownsFocusNode) _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    widget.onSend?.call(text);
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final circle = (constraints.maxWidth / 9.8).clamp(36.0, 42.0);
+        final emojiColor = widget.accent;
+
+        return Row(
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: circle,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(circle / 2),
+                  border: Border.all(color: _hasText ? const Color(0xFFFFD23F) : widget.accent, width: 1.5),
+                  gradient: const LinearGradient(colors: [Color(0xDD0D113C), Color(0xBB080B28)]),
+                  boxShadow: [
+                    BoxShadow(color: widget.accent.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 0.5),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Specular curved glass gloss along top half of the input capsule
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: circle * 0.45,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(circle / 2)),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.white.withValues(alpha: 0.30), Colors.transparent],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        _InlineIcon(
+                          size: circle - 4,
+                          label: 'Emoji',
+                          onTap: widget.onEmojiTap,
+                          child: Icon(Icons.sentiment_satisfied_alt_outlined, color: emojiColor, size: circle * 0.52),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            cursorColor: const Color(0xFFFFD23F),
+                            textAlignVertical: TextAlignVertical.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: widget.hint,
+                              hintStyle: const TextStyle(color: Color(0xFF8E9BCC), fontSize: 13),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            onSubmitted: (_) => _send(),
+                          ),
+                        ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: _hasText
+                              ? _InlineIcon(
+                                  key: const ValueKey('send'),
+                                  size: circle - 4,
+                                  label: 'Send',
+                                  onTap: _send,
+                                  child: const Icon(Icons.send_rounded, color: Color(0xFFFFD23F), size: 18),
+                                )
+                              : _InlineIcon(
+                                  key: const ValueKey('emoji'),
+                                  size: circle - 4,
+                                  label: 'Emoji',
+                                  onTap: widget.onEmojiTap,
+                                  child: Icon(
+                                    Icons.sentiment_satisfied_alt_outlined,
+                                    color: emojiColor,
+                                    size: circle * 0.52,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(width: circle * 0.22),
+            _ShareButton(size: circle, accent: widget.accent, onTap: widget.onShareTap, onLongPress: widget.onMoreTap),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Emoji / send button inside the message pill.
+class _InlineIcon extends StatelessWidget {
+  final double size;
+  final String label;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _InlineIcon({super.key, required this.size, required this.label, required this.onTap, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+}
+
+/// Glossy gradient share button in the supported host's colour (long-press: live tools).
+class _ShareButton extends StatelessWidget {
+  final double size;
+  final Color accent;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  const _ShareButton({required this.size, required this.accent, this.onTap, this.onLongPress});
+
+  @override
+  Widget build(BuildContext context) {
+    final deep = Color.lerp(accent, const Color(0xFF120A3A), 0.55)!;
+    return Semantics(
+      button: true,
+      label: 'Share',
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent, deep]),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.2),
+            boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.55), blurRadius: 12, offset: const Offset(0, 3))],
+          ),
+          child: ClipOval(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Top gloss
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: size * 0.5,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white.withValues(alpha: 0.35), Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                Transform.rotate(
+                  angle: -0.35,
+                  child: Icon(Icons.send_rounded, color: Colors.white, size: size * 0.46),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              _time.format(comment.timestamp),
-              style: const TextStyle(color: LuxeColors.textDim, fontSize: 10.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// [😊] [Type a message...] [•••]
-class PkInputBar extends StatelessWidget {
-  final VoidCallback onEmojiTap;
-  final VoidCallback onMessageTap;
-  final VoidCallback onMoreTap;
-
-  const PkInputBar({super.key, required this.onEmojiTap, required this.onMessageTap, required this.onMoreTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return PkNeonBox(
-      radius: 32,
-      borderColors: LuxeColors.goldToNeon,
-      padding: const EdgeInsets.all(5),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final circle = (constraints.maxWidth / 8.2).clamp(36.0, 46.0);
-          return Row(
-            children: [
-              PkPanelCircle(
-                size: circle,
-                accent: LuxeColors.gold,
-                onTap: onEmojiTap,
-                label: 'Emoji',
-                child: Icon(Icons.sentiment_satisfied_alt_rounded, color: LuxeColors.gold, size: circle * 0.62),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onMessageTap,
-                  child: Container(
-                    height: circle,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    alignment: Alignment.centerLeft,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0E0B2C),
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(color: LuxeColors.purple.withValues(alpha: 0.55)),
-                    ),
-                    child: const Text(
-                      'Type a message...',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: LuxeColors.textDim, fontSize: 14),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              PkPanelCircle(
-                size: circle,
-                accent: LuxeColors.violet,
-                onTap: onMoreTap,
-                label: 'More',
-                child: Icon(Icons.more_horiz_rounded, color: Colors.white, size: circle * 0.55),
-              ),
-            ],
-          );
-        },
+        ),
       ),
     );
   }

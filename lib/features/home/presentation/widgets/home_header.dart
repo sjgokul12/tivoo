@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/luxe_theme.dart';
 import '../../../../core/widgets/luxe_tivoo_logo.dart';
+import '../../../wallet/presentation/screens/wallet_screen.dart';
 
 /// Home palette — aliases of the shared Luxe theme (gold + deep indigo / purple neon).
 const Color kHomeGold = LuxeColors.gold;
@@ -28,10 +30,11 @@ BoxDecoration neonBorder({double radius = 20, List<Color> colors = kNeonColors, 
 /// Glass panel fill.
 BoxDecoration neonFill({double radius = 20}) => LuxeDecor.fill(radius: radius);
 
-/// Top row: [Tivoo logo] [search pill] [♡] [🔔 badge].
+/// Top row: [Tivoo logo] [search pill] [Wallet] [🔔 badge].
 class HomeHeader extends StatelessWidget {
   final VoidCallback? onSearchTap;
   final VoidCallback? onFavoritesTap;
+  final VoidCallback? onWalletTap;
   final VoidCallback? onNotificationsTap;
   final int notificationCount;
 
@@ -43,11 +46,15 @@ class HomeHeader extends StatelessWidget {
     {'label': 'Popular', 'icon': Icons.workspace_premium_rounded},
   ];
 
+  final VoidCallback? onGoLiveTap;
+
   const HomeHeader({
     super.key,
     this.onSearchTap,
     this.onFavoritesTap,
+    this.onWalletTap,
     this.onNotificationsTap,
+    this.onGoLiveTap,
     this.notificationCount = 0,
   });
 
@@ -60,37 +67,84 @@ class HomeHeader extends StatelessWidget {
         return Row(
           children: [
             // Logo scales down on narrow screens / large text instead of overflowing.
-            // The wordmark gets up to 44% of the row and scales down on narrow phones.
             ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.4),
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.38),
               child: const FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: LuxeTivooLogo(size: 36),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: _SearchPill(onTap: onSearchTap, height: circle),
             ),
-            const SizedBox(width: 8),
-            _GoldCircleButton(
-              size: circle,
-              icon: Icons.favorite_border_rounded,
-              label: 'Favorites',
-              onTap: onFavoritesTap,
-            ),
-            const SizedBox(width: 8),
-            _GoldCircleButton(
-              size: circle,
-              icon: Icons.notifications_none_rounded,
-              label: 'Notifications',
-              badge: notificationCount,
-              onTap: onNotificationsTap,
-            ),
+            if (onGoLiveTap != null) ...[
+              const SizedBox(width: 8),
+              _GoLiveHeaderPill(onTap: onGoLiveTap, height: circle),
+            ] else ...[
+              const SizedBox(width: 8),
+              _GoldCircleButton(
+                size: circle,
+                imageAsset: AppAssets.walletIcon,
+                label: 'Wallet',
+                onTap: onWalletTap ?? () => WalletScreen.push(context),
+              ),
+            ],
           ],
         );
       },
+    );
+  }
+}
+
+class _GoLiveHeaderPill extends StatelessWidget {
+  final VoidCallback? onTap;
+  final double height;
+
+  const _GoLiveHeaderPill({required this.onTap, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8B2CFF), Color(0xFFFF2DC0)],
+          ),
+          borderRadius: BorderRadius.circular(height / 2),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x66FF2DC0),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.videocam_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 5),
+            Text(
+              'Go Live',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+            SizedBox(width: 2),
+            Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -131,20 +185,18 @@ class _SearchPill extends StatelessWidget {
   }
 }
 
-/// Neon glass circle button (heart / bell) with an optional red badge.
+/// Neon glass circle button (wallet)
 class _GoldCircleButton extends StatelessWidget {
   final double size;
-  final IconData icon;
+  final String? imageAsset;
   final String label;
-  final int badge;
   final VoidCallback? onTap;
 
   const _GoldCircleButton({
     required this.size,
-    required this.icon,
+    this.imageAsset,
     required this.label,
     required this.onTap,
-    this.badge = 0,
   });
 
   @override
@@ -157,49 +209,33 @@ class _GoldCircleButton extends StatelessWidget {
         child: SizedBox(
           width: size,
           height: size,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(1.4),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [Color(0xFF5B3CFF), LuxeColors.violet, LuxeColors.blue, Color(0xFF5B3CFF)],
-                  ),
-                  boxShadow: [BoxShadow(color: Color(0x667B4DFF), blurRadius: 12)],
-                ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(colors: [Color(0xFF241B5C), Color(0xFF0E0B2C)]),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(icon, color: Colors.white, size: size * 0.5),
-                ),
+          child: Container(
+            padding: const EdgeInsets.all(1.4),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: SweepGradient(
+                colors: [Color(0xFF5B3CFF), LuxeColors.violet, LuxeColors.blue, Color(0xFF5B3CFF)],
               ),
-              if (badge > 0)
-                Positioned(
-                  right: -3,
-                  top: -3,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 18),
-                    height: 18,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFFFF2D55), LuxeColors.pink]),
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(color: kHomeNavy, width: 1.5),
-                      boxShadow: const [BoxShadow(color: Color(0x88FF2D55), blurRadius: 6)],
-                    ),
-                    child: Text(
-                      '$badge',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-            ],
+              boxShadow: [BoxShadow(color: Color(0x667B4DFF), blurRadius: 12)],
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [Color(0xFF241B5C), Color(0xFF0E0B2C)]),
+              ),
+              alignment: Alignment.center,
+              child: imageAsset != null
+                  ? Padding(
+                      padding: EdgeInsets.all(size * 0.12),
+                      child: Image.asset(
+                        imageAsset!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.account_balance_wallet_rounded, color: const Color(0xFFFFD700), size: size * 0.52),
+                      ),
+                    )
+                  : Icon(Icons.circle, color: Colors.white, size: size * 0.5),
+            ),
           ),
         ),
       ),

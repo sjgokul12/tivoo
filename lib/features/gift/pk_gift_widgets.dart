@@ -144,60 +144,35 @@ class PkGiftPill extends StatelessWidget {
   }
 }
 
-/// Glowing card with the animated purple gift box, floating hearts and "Gift" label.
+/// Glowing card with the animated 3D Star ('juststar.png') and soft, professional ambient stars.
 class PkGiftCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const PkGiftCard({super.key, required this.onTap});
 
-  static const _hearts = [(-46.0, -30.0, 16.0), (-12.0, -50.0, 12.0), (34.0, -44.0, 10.0), (48.0, -22.0, 15.0)];
-
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Open gifts',
+      label: 'Open stars',
       child: GestureDetector(
         onTap: onTap,
         child: PkNeonBox(
-          radius: 24,
-          borderColors: const [Color(0xFFFFC928), Color(0xFFB04DFF), Color(0xFF3D6BFF)],
-          glow: const Color(0x55FFC928),
-          padding: const EdgeInsets.all(8),
+          radius: 22,
+          borderColors: const [
+            Color(0xFFFFD700),
+            Color(0xFFBA68C8),
+            Color(0xFFFFC928),
+          ],
+          glow: const Color(0x44FFD700),
+          padding: const EdgeInsets.all(4),
           child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 120,
-                    height: 112,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        BigGiftButton(size: 100, onTap: onTap),
-                        for (final (dx, dy, size) in _hearts)
-                          Positioned(
-                            left: 60 + dx - size / 2,
-                            top: 56 + dy - size / 2,
-                            child: Icon(
-                              Icons.favorite_rounded,
-                              size: size,
-                              color: const Color(0xFFFF5CB8),
-                              shadows: const [Shadow(color: Color(0xAAFF2D9A), blurRadius: 8)],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Gift',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                ],
+              child: SizedBox(
+                width: 110,
+                height: 110,
+                child: BigGiftButton(size: 100, onTap: onTap),
               ),
             ),
           ),
@@ -207,7 +182,18 @@ class PkGiftCard extends StatelessWidget {
   }
 }
 
-/// Floating purple gift box with a glowing orbit ring passing around it.
+class _StarParticle {
+  final double dx;
+  final double dy;
+  final double size;
+  final double phase;
+  final Color color;
+  final bool isSparkle;
+
+  const _StarParticle(this.dx, this.dy, this.size, this.phase, this.color, {this.isSparkle = true});
+}
+
+/// Floating 3D Star ('juststar.png') with a soft ambient glow and gentle twinkling stars.
 class BigGiftButton extends StatefulWidget {
   final double size;
   final VoidCallback onTap;
@@ -219,102 +205,131 @@ class BigGiftButton extends StatefulWidget {
 }
 
 class _BigGiftButtonState extends State<BigGiftButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _orbit = AnimationController(vsync: this, duration: const Duration(seconds: 3))
-    ..repeat();
+  late final AnimationController _anim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 4500),
+  )..repeat();
+
+  static const _particles = [
+    _StarParticle(-38.0, -32.0, 14.0, 0.0, Color(0xFFFFE082), isSparkle: true),
+    _StarParticle(36.0, -28.0, 12.0, 0.35, Color(0xFFE1BEE7), isSparkle: false),
+    _StarParticle(-36.0, 20.0, 11.0, 0.65, Color(0xFFFFF59D), isSparkle: true),
+    _StarParticle(38.0, 18.0, 13.0, 0.85, Color(0xFFFFD700), isSparkle: true),
+    _StarParticle(-4.0, -42.0, 15.0, 0.50, Color(0xFFE1BEE7), isSparkle: true),
+  ];
 
   @override
   void dispose() {
-    _orbit.dispose();
+    _anim.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
+    final starSize = size * 0.84;
+
     return Semantics(
       button: true,
-      label: 'Open gifts',
+      label: 'Open stars',
       child: GestureDetector(
         onTap: widget.onTap,
         child: SizedBox(
           width: size,
           height: size,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: Size(size, size),
-                painter: GiftOrbitPainter(animation: _orbit, front: false),
-              ),
-              AnimatedBuilder(
-                animation: _orbit,
-                builder: (context, child) =>
-                    Transform.translate(offset: Offset(0, sin(_orbit.value * 2 * pi) * 2.5), child: child),
-                child: Image.asset(AppAssets.pkGiftPurple, width: size * 0.78, height: size * 0.78),
-              ),
-              CustomPaint(
-                size: Size(size, size),
-                painter: GiftOrbitPainter(animation: _orbit, front: true),
-              ),
-            ],
+          child: AnimatedBuilder(
+            animation: _anim,
+            builder: (context, _) {
+              final t = _anim.value;
+              final floatDy = sin(t * 2 * pi) * 2.2;
+              final pulseScale = 1.0 + 0.018 * sin(t * 2 * pi);
+
+              return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  // Dual soft aura (warm gold + royal violet) behind juststar
+                  Container(
+                    width: starSize * 0.78,
+                    height: starSize * 0.78,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFD700).withValues(
+                            alpha: (0.16 + 0.08 * sin(t * 2 * pi).abs()).clamp(0.0, 1.0),
+                          ),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFFBA68C8).withValues(
+                            alpha: (0.12 + 0.06 * cos(t * 2 * pi).abs()).clamp(0.0, 1.0),
+                          ),
+                          blurRadius: 32,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Floating 3D Star (glossy_star.png)
+                  Transform.translate(
+                    offset: Offset(0, floatDy),
+                    child: Transform.scale(
+                      scale: pulseScale,
+                      child: Image.asset(
+                        AppAssets.glossyStar,
+                        width: starSize,
+                        height: starSize,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFFFD700),
+                          size: 56,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Soft ambient floating & twinkling sparkles around the star
+                  for (final p in _particles) ...[
+                    Builder(
+                      builder: (context) {
+                        final phaseT = (t + p.phase) % 1.0;
+                        final particleFloatDy = sin(phaseT * 2 * pi) * 1.8;
+                        final twinkle = 0.45 + 0.45 * sin(phaseT * 2 * pi).abs();
+
+                        return Positioned(
+                          left: size / 2 + p.dx - p.size / 2,
+                          top: size / 2 + p.dy - p.size / 2 + particleFloatDy,
+                          child: Opacity(
+                            opacity: twinkle.clamp(0.25, 0.95),
+                            child: Transform.scale(
+                              scale: twinkle,
+                              child: Icon(
+                                p.isSparkle ? Icons.auto_awesome : Icons.star_rounded,
+                                size: p.size,
+                                color: p.color,
+                                shadows: [
+                                  Shadow(
+                                    color: p.color.withValues(alpha: 0.5),
+                                    blurRadius: 5,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
-}
-
-/// Tilted neon ellipse around the big gift. Drawn in two passes (back half behind
-/// the box, front half over it) so the ring appears to wrap around it.
-class GiftOrbitPainter extends CustomPainter {
-  final Animation<double> animation;
-  final bool front;
-
-  GiftOrbitPainter({required this.animation, required this.front}) : super(repaint: animation);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height * 0.62);
-    final rect = Rect.fromCenter(center: Offset.zero, width: size.width * 1.02, height: size.height * 0.34);
-
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(-0.18);
-
-    // Front half = lower arc (0..π), back half = upper arc (π..2π).
-    final start = front ? 0.0 : pi;
-    final shader = const SweepGradient(
-      colors: [Color(0xFFFFC928), Color(0xFFB04DFF), Color(0xFF3D6BFF), Color(0xFFB04DFF), Color(0xFFFFC928)],
-    ).createShader(rect);
-
-    canvas.drawArc(
-      rect,
-      start,
-      pi,
-      false,
-      Paint()
-        ..shader = shader
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-
-    canvas.drawArc(
-      rect,
-      start,
-      pi,
-      false,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6,
-    );
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant GiftOrbitPainter oldDelegate) =>
-      oldDelegate.front != front || oldDelegate.animation.value != animation.value;
 }

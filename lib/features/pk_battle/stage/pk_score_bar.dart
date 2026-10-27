@@ -1,12 +1,10 @@
-// Pink vs blue clash score bar.
+// Pink vs blue clash score bar in a thick glossy gold frame.
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/constants/app_assets.dart';
-
-/// Pink vs blue clash bar with 3D gift boxes on both ends.
-/// The split follows the live scores, clamped so neither side disappears.
+/// [ 19,020  ▬▬pink▬▬ ╱ ▬▬blue▬▬  16,640 ] in a glossy gold frame with a slanted
+/// white junction. The pink / blue split follows the live scores.
 class PkScoreBar extends StatelessWidget {
   final int leftScore;
   final int rightScore;
@@ -15,129 +13,202 @@ class PkScoreBar extends StatelessWidget {
 
   static final NumberFormat _format = NumberFormat('#,###');
 
-  static const _scoreStyle = TextStyle(
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 0.3,
-    shadows: [Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1.5))],
-  );
-
   @override
   Widget build(BuildContext context) {
     final total = leftScore + rightScore;
-    final ratio = total == 0 ? 0.5 : (leftScore / total).clamp(0.35, 0.62);
+    // Guarantee minimum colored space on each side so that even with 0 points/stars,
+    // the score always sits comfortably within its own color without colliding.
+    const double minRatio = 0.24;
+    const double maxRatio = 0.76;
+    final double ratio;
+    if (total == 0) {
+      ratio = 0.5;
+    } else {
+      final normalized = (leftScore / total).clamp(0.0, 1.0);
+      ratio = minRatio + (maxRatio - minRatio) * normalized;
+    }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
-      child: SizedBox(
-        height: 32,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x80FF0055), blurRadius: 10, offset: Offset(-2, 1.5)),
-                    BoxShadow(color: Color(0x8000E5FF), blurRadius: 10, offset: Offset(2, 1.5)),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth - 20;
+        final barH = (width * 0.10).clamp(34.0, 48.0);
+        final scoreStyle = TextStyle(
+          color: Colors.white,
+          fontSize: barH * 0.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.3,
+          shadows: const [Shadow(color: Color(0x99000000), blurRadius: 4, offset: Offset(0, 1.5))],
+        );
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          child: SizedBox(
+            width: double.infinity,
+            height: barH,
+            child: Stack(
+              children: [
+                Positioned.fill(
                   child: TweenAnimationBuilder<double>(
                     tween: Tween(end: ratio.toDouble()),
                     duration: const Duration(milliseconds: 450),
                     curve: Curves.easeOutCubic,
-                    builder: (_, value, _) => CustomPaint(painter: _PkScoreBarPainter(leftRatio: value)),
+                    builder: (_, value, _) => CustomPaint(painter: _ScoreBarPainter(leftRatio: value)),
                   ),
                 ),
-              ),
-            ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 44),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(_format.format(leftScore), style: _scoreStyle),
-                      ),
+                Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: barH * 0.5),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, color: Color(0xFFFFDF00), size: 17),
+                                const SizedBox(width: 3),
+                                Text(_format.format(leftScore), style: scoreStyle),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: barH * 0.4),
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_format.format(rightScore), style: scoreStyle),
+                                const SizedBox(width: 3),
+                                const Icon(Icons.star_rounded, color: Color(0xFFFFDF00), size: 17),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Text(_format.format(rightScore), style: _scoreStyle),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            Positioned(left: -14, top: -16, child: Image.asset(AppAssets.pkGiftRed, width: 54, height: 54)),
-            Positioned(right: -14, top: -16, child: Image.asset(AppAssets.pkGiftBlue, width: 54, height: 54)),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-/// Glossy pink/blue clash bar with a glowing white oval at the junction.
-class _PkScoreBarPainter extends CustomPainter {
+class _ScoreBarPainter extends CustomPainter {
   final double leftRatio;
 
-  _PkScoreBarPainter({required this.leftRatio});
+  _ScoreBarPainter({required this.leftRatio});
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    final frame = h * 0.11; // gold frame thickness
+    final outer = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(h / 2));
+    final inner = outer.deflate(frame);
     final cx = w * leftRatio;
 
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, cx, h),
+    // Warm gold glow around the frame, pink / blue bloom underneath.
+    canvas.drawRRect(
+      outer.inflate(2),
       Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFFFF0055), Color(0xFFFF007F), Color(0xFFFF1A88)],
-        ).createShader(Rect.fromLTWH(0, 0, cx, h)),
+        ..color = const Color(0xAAFFB300)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.25),
     );
-    canvas.drawRect(
-      Rect.fromLTWH(cx, 0, w - cx, h),
+    canvas.drawRRect(
+      outer,
       Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF0072FF), Color(0xFF00A6FF), Color(0xFF00F0FF)],
-        ).createShader(Rect.fromLTWH(cx, 0, w - cx, h)),
+        ..shader = const LinearGradient(colors: [Color(0x99FF2DB4), Color(0x992D6BFF)]).createShader(Offset.zero & size)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.4),
     );
 
-    // Top gloss
-    final gloss = Rect.fromLTWH(0, 0, w, h * 0.45);
+    // Glossy gold frame: bright top edge, deep amber bottom edge.
+    canvas.drawRRect(
+      outer,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFF6C8), Color(0xFFFFC928), Color(0xFFE08A00), Color(0xFFFFD54A)],
+          stops: [0, 0.35, 0.75, 1],
+        ).createShader(Offset.zero & size),
+    );
+
+    canvas.save();
+    canvas.clipRRect(inner);
+    final innerRect = inner.outerRect;
+    // Slanted junction: the pink side leans right at the top.
+    final slant = h * 0.18;
+    final pink = Path()
+      ..moveTo(innerRect.left, innerRect.top)
+      ..lineTo(cx + slant, innerRect.top)
+      ..lineTo(cx - slant, innerRect.bottom)
+      ..lineTo(innerRect.left, innerRect.bottom)
+      ..close();
+    canvas.drawRect(
+      innerRect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF1EA0FF), Color(0xFF2D7BFF), Color(0xFF2B4FE8)],
+        ).createShader(innerRect),
+    );
+    canvas.drawPath(
+      pink,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFFE0158F), Color(0xFFFF2DB4), Color(0xFFFF4FC8)],
+        ).createShader(innerRect),
+    );
+    // Top gloss.
+    final gloss = Rect.fromLTWH(innerRect.left, innerRect.top, innerRect.width, innerRect.height * 0.5);
     canvas.drawRect(
       gloss,
       Paint()
         ..shader = LinearGradient(
-          colors: [Colors.white.withValues(alpha: 0.42), Colors.white.withValues(alpha: 0.1), Colors.transparent],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
+          colors: [Colors.white.withValues(alpha: 0.5), Colors.white.withValues(alpha: 0.06)],
         ).createShader(gloss),
     );
-
-    // Junction oval
-    final oval = Rect.fromCenter(center: Offset(cx, h / 2), width: 6.5, height: h * 0.9);
-    canvas.drawOval(
-      oval,
+    // Glowing slanted white junction.
+    final junction = Path()
+      ..moveTo(cx + slant, innerRect.top)
+      ..lineTo(cx - slant, innerRect.bottom);
+    canvas.drawPath(
+      junction,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.85)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = h * 0.22
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.18),
     );
-    canvas.drawOval(oval, Paint()..color = Colors.white);
+    canvas.drawPath(
+      junction,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = h * 0.07,
+    );
+    canvas.restore();
+
+    // Fine highlight on the frame's upper edge.
+    canvas.drawRRect(
+      outer.deflate(frame * 0.3),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _PkScoreBarPainter oldDelegate) => oldDelegate.leftRatio != leftRatio;
+  bool shouldRepaint(covariant _ScoreBarPainter oldDelegate) => oldDelegate.leftRatio != leftRatio;
 }

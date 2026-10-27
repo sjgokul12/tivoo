@@ -53,10 +53,46 @@ class LiveStreamState {
 
 class LiveStreamController extends StateNotifier<LiveStreamState> {
   Timer? _commentTimer;
+  bool _isCommentsPaused = false;
+  bool get isCommentsPaused => _isCommentsPaused;
 
   LiveStreamController()
       : super(LiveStreamState(comments: MockLiveComments.initialComments)) {
     _startCommentSimulation();
+  }
+
+  void pauseIncomingComments() {
+    _isCommentsPaused = true;
+  }
+
+  void resumeIncomingComments() {
+    _isCommentsPaused = false;
+  }
+
+  void deleteComment(String commentId) {
+    final updatedList = state.comments.where((c) => c.id != commentId).toList();
+    state = state.copyWith(
+      comments: updatedList,
+      commentsCount: (state.commentsCount - 1).clamp(0, 9999999),
+    );
+  }
+
+  void reportComment(String commentId) {
+    final updatedList = state.comments.map((c) {
+      if (c.id == commentId) {
+        return c.copyWith(
+          message: 'This comment has been reported',
+          isReported: true,
+        );
+      }
+      return c;
+    }).toList();
+    state = state.copyWith(comments: updatedList);
+  }
+
+  void blockUser(String userName) {
+    final updatedList = state.comments.where((c) => c.userName != userName).toList();
+    state = state.copyWith(comments: updatedList);
   }
 
   void _startCommentSimulation() {
@@ -69,6 +105,8 @@ class LiveStreamController extends StateNotifier<LiveStreamState> {
   }
 
   void _pushNextAutomatedComment() {
+    if (_isCommentsPaused) return;
+
     final pool = MockLiveComments.automatedIncomingPool;
     final nextCommentTemplate = pool[state.poolIndex % pool.length];
 

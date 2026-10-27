@@ -1,504 +1,505 @@
-import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/services/reel_video_manager.dart';
-import '../../../../core/widgets/custom_avatar.dart';
-import '../../../../core/widgets/glass_container.dart';
-import '../../../../core/widgets/reel_media_view.dart';
-import '../../../live_stream/presentation/widgets/floating_hearts_overlay.dart';
-import '../../../live_stream/presentation/widgets/floating_stars_overlay.dart';
-import '../../../live_stream/presentation/widgets/star_up_bottom_sheet.dart';
-import '../../domain/models/explore_stream_model.dart';
+import 'dart:ui' show ImageFilter;
 
-class ExploreReelCard extends StatefulWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/services/reel_video_manager.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/widgets/reel_media_view.dart';
+import '../../../../core/widgets/tivoo_share_sheet.dart';
+import '../../../home/domain/models/live_stream_card_model.dart';
+import '../../../home/presentation/widgets/streamer_id_profile_sheet.dart';
+import '../../../live_stream/presentation/widgets/floating_hearts_overlay.dart';
+import '../../../profile/presentation/controllers/follow_controller.dart';
+import '../../../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
+import '../../../profile/presentation/widgets/instagram_follow_button.dart';
+import '../../domain/models/explore_stream_model.dart';
+import '../controllers/comments_controller.dart';
+import '../controllers/posts_controller.dart';
+import 'comments_sheet.dart';
+
+/// One full-screen Explore video with the creator info and the action rail.
+class ExploreReelCard extends ConsumerStatefulWidget {
   final ExploreStreamModel stream;
   final bool isActive;
-  final VoidCallback? onEnterLiveRoom;
-  final VoidCallback? onLikeTap;
-  final VoidCallback? onFollowTap;
-  final VoidCallback? onShareTap;
-  final VoidCallback? onCommentTap;
 
-  const ExploreReelCard({
-    super.key,
-    required this.stream,
-    this.isActive = true,
-    this.onEnterLiveRoom,
-    this.onLikeTap,
-    this.onFollowTap,
-    this.onShareTap,
-    this.onCommentTap,
-  });
+  const ExploreReelCard({super.key, required this.stream, this.isActive = true});
 
   @override
-  State<ExploreReelCard> createState() => _ExploreReelCardState();
+  ConsumerState<ExploreReelCard> createState() => _ExploreReelCardState();
 }
 
-class _ExploreReelCardState extends State<ExploreReelCard> with SingleTickerProviderStateMixin {
-  final GlobalKey<FloatingHeartsOverlayState> _heartsKey = GlobalKey();
-  final GlobalKey<FloatingStarsOverlayState> _starsKey = GlobalKey();
-  bool _isFollowing = false;
-  late bool _isLiked;
-  late final AnimationController _likeAnimController;
-  late final Animation<double> _likeScaleAnimation;
+class _ExploreReelCardState extends ConsumerState<ExploreReelCard> with SingleTickerProviderStateMixin {
+  final _heartsKey = GlobalKey<FloatingHeartsOverlayState>();
+  late final AnimationController _likePop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+  late bool _isLiked = widget.stream.isLiked;
+  late int _likes = _parseCount(widget.stream.diamondsCount);
 
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = widget.stream.isLiked;
-    _likeAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
-    _likeScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
-    ]).animate(CurvedAnimation(parent: _likeAnimController, curve: Curves.easeInOut));
+  ExploreStreamModel get _s => widget.stream;
+
+  /// Comments for demo videos get sample comments; real uploads start empty.
+  (String, bool) get _commentsKey => (_s.id, _s.post == null);
+
+  bool get _isOwnPost => _s.post != null && ref.watch(postsControllerProvider).isMine(_s.post!);
+
+  static int _parseCount(String s) {
+    final clean = s.trim().toUpperCase().replaceAll(',', '');
+    final n = double.tryParse(clean.replaceAll(RegExp('[KM]'), '')) ?? 0;
+    return (clean.endsWith('M') ? n * 1e6 : clean.endsWith('K') ? n * 1e3 : n).toInt();
   }
 
-  @override
-  void didUpdateWidget(covariant ExploreReelCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.stream.isLiked != widget.stream.isLiked) {
-      _isLiked = widget.stream.isLiked;
-    }
+  static String _format(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+    return '$n';
   }
 
   @override
   void dispose() {
-    _likeAnimController.dispose();
+    _likePop.dispose();
     super.dispose();
   }
 
-  void _handleDoubleTap() {
-    if (!_isLiked) {
-      setState(() => _isLiked = true);
-      widget.onLikeTap?.call();
-    }
-    _likeAnimController.forward(from: 0.0);
-    _heartsKey.currentState?.addHeart();
-    _heartsKey.currentState?.addHeart();
-  }
-
-  void _handleLikeTap() {
-    setState(() => _isLiked = !_isLiked);
+  void _like({bool fromDoubleTap = false}) {
+    setState(() {
+      if (_isLiked && !fromDoubleTap) {
+        _isLiked = false;
+        _likes--;
+      } else if (!_isLiked) {
+        _isLiked = true;
+        _likes++;
+      }
+    });
     if (_isLiked) {
-      _likeAnimController.forward(from: 0.0);
-      _heartsKey.currentState?.addHeart();
+      _likePop.forward(from: 0);
+      _heartsKey.currentState?.addPinkHearts(count: fromDoubleTap ? 3 : 1);
     }
-    widget.onLikeTap?.call();
   }
 
-  void _handleStarTap() {
-    StarUpBottomSheet.show(
+  void _share() {
+    final url = 'https://tivoo.app/video/${_s.id}';
+    TivooShareSheet.show(
       context,
-      streamerName: widget.stream.streamerName,
-      onSendStars: (count) {
-        _starsKey.currentState?.addStars(count * 2);
-      },
-    );
-  }
-
-  void _toggleFollow() {
-    setState(() => _isFollowing = !_isFollowing);
-    widget.onFollowTap?.call();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isFollowing ? 'Followed ${widget.stream.streamerName} ❤️' : 'Unfollowed ${widget.stream.streamerName}',
-        ),
-        duration: const Duration(seconds: 1),
-      ),
+      title: 'Share Video',
+      subtitle: _s.streamerName,
+      shareUrl: url,
+      shareText: 'Watch ${_s.streamerName}\'s video on Tivoo! $url',
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final stream = widget.stream;
-    final hasVideo = stream.videoAssetPath != null && stream.videoAssetPath!.isNotEmpty;
+    final compact = MediaQuery.sizeOf(context).height < 720;
+    final button = compact ? 44.0 : 48.0;
+    final gap = compact ? 14.0 : 18.0;
+    final bottom = compact ? 86.0 : 96.0;
+    final comments = ref.watch(commentsProvider(_commentsKey)).length;
 
     return FloatingHeartsOverlay(
       key: _heartsKey,
-      child: FloatingStarsOverlay(
-        key: _starsKey,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onDoubleTap: _handleDoubleTap,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. Full Reel Media (Video Player or Cover Image)
-              Positioned.fill(child: _buildMediaBackground()),
-
-              // 2. Cinematic Gradient Scrims for Readability
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0x99000000), Colors.transparent, Colors.transparent, Color(0xCC000000)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      stops: [0.0, 0.20, 0.58, 1.0],
-                    ),
-                  ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Video (double-tap to like). Only this layer listens for double taps so the
+          // buttons react instantly.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: () => _like(fromDoubleTap: true),
+            child: ReelMediaView(
+              videoAssetPath: _s.videoAssetPath,
+              coverAssetPath: _s.coverAssetPath,
+              coverImageUrl: _s.coverImageUrl,
+              isActive: widget.isActive,
+            ),
+          ),
+          const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x88000000), Colors.transparent, Colors.transparent, Color(0xCC000000)],
+                  stops: [0.0, 0.18, 0.6, 1.0],
                 ),
               ),
+            ),
+          ),
 
-              // 3. Ambient Neon Accent Glow in bottom corner
-              Positioned(
-                left: -30,
-                bottom: 40,
-                width: 220,
-                height: 220,
-                child: IgnorePointer(
-                  child: DecoratedBox(
+          // Action rail
+          Positioned(
+            right: 10,
+            bottom: bottom,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAvatar(),
+                SizedBox(height: gap + 6),
+                ScaleTransition(
+                  scale: TweenSequence<double>([
+                    TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 40),
+                    TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 60),
+                  ]).animate(CurvedAnimation(parent: _likePop, curve: Curves.easeOut)),
+                  child: _GlassAction(
+                    size: button,
+                    count: _format(_likes),
+                    highlighted: _isLiked,
+                    semantics: _isLiked ? 'Unlike' : 'Like',
+                    onTap: _like,
+                    icon: _isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                  ),
+                ),
+                SizedBox(height: gap),
+                _GlassAction(
+                  size: button,
+                  count: comments == 0 ? null : _format(comments),
+                  semantics: 'Comments',
+                  onTap: () => CommentsSheet.show(context, itemId: _s.id, seed: _s.post == null),
+                  icon: Icons.mode_comment_outlined,
+                  flipIcon: true,
+                ),
+                SizedBox(height: gap),
+                _GlassAction(
+                  size: button,
+                  semantics: 'Share',
+                  onTap: _share,
+                  icon: Icons.send_rounded,
+                  iconTurn: -0.42,
+                ),
+                SizedBox(height: gap),
+                ValueListenableBuilder<bool>(
+                  valueListenable: ReelVideoManager.instance.isMutedNotifier,
+                  builder: (context, muted, _) => _GlassAction(
+                    size: button,
+                    semantics: muted ? 'Unmute' : 'Mute',
+                    onTap: ReelVideoManager.instance.toggleMute,
+                    icon: muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  ),
+                ),
+                SizedBox(height: gap + 2),
+                _SpinningDisc(
+                  size: button * 0.8,
+                  spinning: widget.isActive,
+                  assetPath: _s.avatarAssetPath,
+                  imageUrl: _s.avatarUrl,
+                ),
+              ],
+            ),
+          ),
+
+          // Creator + caption
+          Positioned(
+            left: 16,
+            right: button + 30,
+            bottom: bottom,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _s.streamerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: compact ? 15 : 16.5,
+                          fontWeight: FontWeight.w700,
+                          shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
+                        ),
+                      ),
+                    ),
+                    if (_s.isVerified) ...[
+                      const SizedBox(width: 5),
+                      const Icon(Icons.verified, color: AppColors.primaryYellow, size: 16),
+                    ],
+                    if (!_isOwnPost) ...[
+                      const SizedBox(width: 10),
+                      InstagramFollowButton(
+                        userId: _s.id,
+                        userName: _s.streamerName,
+                        userAvatar: _s.avatarAssetPath ?? _s.avatarUrl ?? '',
+                        initialFollowers: 120400,
+                        initialFollowing: false,
+                        height: 30,
+                        fontSize: 11.5,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _s.subCategory,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    final rel =
+        ref.watch(followControllerProvider)[_s.id] ??
+        ref
+            .read(followControllerProvider.notifier)
+            .getRelationship(
+              _s.id,
+              defaultName: _s.streamerName,
+              defaultAvatar: _s.avatarAssetPath ?? _s.avatarUrl ?? '',
+              initialFollowers: 120400,
+              initialFollowing: false,
+            );
+
+    void onBadgeTap() {
+      final follow = ref.read(followControllerProvider.notifier);
+      if (rel.isNotFollowing) {
+        follow.sendFollowRequest(
+          _s.id,
+          targetName: _s.streamerName,
+          targetAvatar: _s.avatarAssetPath ?? _s.avatarUrl ?? '',
+          onStatusNotify: (msg) => ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2))),
+        );
+      } else if (rel.isRequested) {
+        InstagramFollowActionsSheet.showRequestedSheet(
+          context,
+          relationship: rel,
+          streamerId: _s.id,
+          onCancelRequest: () => follow.cancelFollowRequest(_s.id),
+        );
+      } else {
+        InstagramFollowActionsSheet.show(context, relationship: rel, streamerId: _s.id);
+      }
+    }
+
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () => StreamerIdProfileSheet.show(
+            context,
+            stream: LiveStreamCardModel(
+              id: _s.id,
+              userId: '109284',
+              streamerName: _s.streamerName,
+              streamerBio: _s.subCategory,
+              streamerAssetPath: _s.avatarAssetPath,
+              streamerAvatarUrl: _s.avatarUrl,
+              viewersCount: _s.viewersCount,
+              diamondsCount: _s.diamondsCount,
+              isFollowing: rel.isFollowingOrMutual,
+              isVerified: _s.isVerified,
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(2.2),
+            decoration: const BoxDecoration(shape: BoxShape.circle, gradient: _ringGradient),
+            child: CustomAvatar(radius: 22, assetPath: _s.avatarAssetPath, imageUrl: _s.avatarUrl),
+          ),
+        ),
+        if (!_isOwnPost)
+          Positioned(
+            bottom: -7,
+            child: GestureDetector(
+              onTap: onBadgeTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: rel.isFollowingOrMutual
+                      ? const LinearGradient(colors: [Color(0xFF4CD964), Color(0xFF2E7D32)])
+                      : _likeGradient,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Icon(
+                  rel.isFollowingOrMutual
+                      ? Icons.check_rounded
+                      : rel.isRequested
+                      ? Icons.schedule_rounded
+                      : Icons.add_rounded,
+                  color: Colors.white,
+                  size: 13,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+const _ringGradient = SweepGradient(colors: [Color(0xFFFFD54F), Color(0xFFFF3B8D), Color(0xFF8E5BFF), Color(0xFFFFD54F)]);
+const _likeGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFF6A88), Color(0xFFFF2D55), Color(0xFFE0115F)],
+);
+
+/// Frosted-glass round button with an optional count under it; springs while pressed.
+class _GlassAction extends StatefulWidget {
+  final IconData icon;
+  final double size;
+  final String semantics;
+  final VoidCallback onTap;
+  final String? count;
+  final bool highlighted;
+  final bool flipIcon;
+  final double iconTurn;
+
+  const _GlassAction({
+    required this.icon,
+    required this.size,
+    required this.semantics,
+    required this.onTap,
+    this.count,
+    this.highlighted = false,
+    this.flipIcon = false,
+    this.iconTurn = 0,
+  });
+
+  @override
+  State<_GlassAction> createState() => _GlassActionState();
+}
+
+class _GlassActionState extends State<_GlassAction> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.size;
+    Widget icon = Icon(widget.icon, color: Colors.white, size: s * 0.5);
+    if (widget.flipIcon) icon = Transform.flip(flipX: true, child: icon);
+    if (widget.iconTurn != 0) icon = Transform.rotate(angle: widget.iconTurn, child: icon);
+
+    return Semantics(
+      button: true,
+      label: widget.semantics,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: _pressed ? 0.86 : 1,
+              duration: const Duration(milliseconds: 110),
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: s,
+                    height: s,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.glowPurple.withValues(alpha: 0.22),
-                          AppColors.glowPurple.withValues(alpha: 0.0),
-                        ],
-                      ),
+                      gradient: widget.highlighted
+                          ? _likeGradient
+                          : LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.white.withValues(alpha: 0.26), Colors.white.withValues(alpha: 0.08)],
+                            ),
+                      border: Border.all(color: Colors.white.withValues(alpha: widget.highlighted ? 0.6 : 0.28)),
                     ),
+                    child: Center(child: icon),
                   ),
                 ),
               ),
-
-              // 4. Top Reel Viewer Counter Pill (Beneath header, NO LIVE badge)
-              Positioned(
-                top: 110,
-                left: 16,
-                right: 16,
-                child: Row(
-                  children: [
-                    // Viewers counter pill
-                    GlassContainer(
-                      enableBlur: false,
-                      blur: 0,
-                      opacity: 0.45,
-                      borderRadius: BorderRadius.circular(16),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.visibility_outlined, color: Colors.white, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            stream.viewersCount,
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Video indicator badge if this reel has video playback
-                    if (hasVideo)
-                      GlassContainer(
-                        enableBlur: false,
-                        blur: 0,
-                        opacity: 0.55,
-                        borderRadius: BorderRadius.circular(16),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primaryPink),
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'REEL',
-                              style: TextStyle(
-                                color: AppColors.primaryPink,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // 5. Right-side Interactive Action Column (Instagram Reels style)
-              Positioned(
-                right: 12,
-                bottom: 96,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Streamer Avatar with Follow "+" Badge
-                    _buildStreamerAvatarAction(),
-                    const SizedBox(height: 18),
-
-                    // Like Button with heart animation
-                    _buildReelActionButton(
-                      icon: _isLiked ? Icons.favorite : Icons.favorite_border_rounded,
-                      iconColor: _isLiked ? const Color(0xFFFF2D55) : Colors.white,
-                      label: stream.diamondsCount,
-                      onTap: _handleLikeTap,
-                      customIcon: ScaleTransition(
-                        scale: _likeScaleAnimation,
-                        child: Icon(
-                          _isLiked ? Icons.favorite : Icons.favorite_border_rounded,
-                          color: _isLiked ? const Color(0xFFFF2D55) : Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Comment / Chat Button
-                    _buildReelActionButton(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      iconColor: Colors.white,
-                      label: 'Chat',
-                      onTap: () {
-                        if (widget.onCommentTap != null) {
-                          widget.onCommentTap!();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Join conversation on ${stream.streamerName}\'s reel! 💬'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // StarUp Button (Exclusively on Explore Reels)
-                    _buildReelActionButton(
-                      icon: Icons.star_rounded,
-                      iconColor: const Color(0xFFFFD700),
-                      label: 'Star',
-                      onTap: _handleStarTap,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Share Button
-                    _buildReelActionButton(
-                      icon: Icons.share_rounded,
-                      iconColor: Colors.white,
-                      label: 'Share',
-                      onTap: () {
-                        if (widget.onShareTap != null) {
-                          widget.onShareTap!();
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Shared ${stream.streamerName}\'s reel!'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Sound Mute Toggle (if video is active)
-                    if (hasVideo)
-                      ValueListenableBuilder<bool>(
-                        valueListenable: ReelVideoManager.instance.isMutedNotifier,
-                        builder: (context, isMuted, _) {
-                          return _buildReelActionButton(
-                            icon: isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                            iconColor: isMuted ? Colors.white70 : AppColors.primaryYellow,
-                            label: isMuted ? 'Muted' : 'Sound',
-                            onTap: () {
-                              ReelVideoManager.instance.toggleMute();
-                            },
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-
-              // 6. Bottom Creator Details with Prominent Follow Button (Left Aligned)
-              Positioned(
-                left: 16,
-                right: 80,
-                bottom: 96,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Creator Name + Verified Icon + Prominent Follow Button
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            stream.streamerName,
-                            style: AppTextStyles.streamerName.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (stream.isVerified) ...[
-                          const SizedBox(width: 5),
-                          const Icon(Icons.verified, color: AppColors.primaryYellow, size: 16),
-                        ],
-                        const SizedBox(width: 10),
-
-                        // Prominent Follow Button on Explore Reel
-                        GestureDetector(
-                          onTap: _toggleFollow,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: _isFollowing
-                                  ? const LinearGradient(colors: [Color(0x55FFFFFF), Color(0x33FFFFFF)])
-                                  : AppColors.followButtonGradient,
-                              boxShadow: _isFollowing
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.primaryYellow.withValues(alpha: 0.35),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!_isFollowing) ...[
-                                  const Icon(Icons.add, color: Colors.black, size: 13),
-                                  const SizedBox(width: 3),
-                                ],
-                                Text(
-                                  _isFollowing ? 'Following' : 'Follow',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: _isFollowing ? Colors.white : Colors.black,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-
-                    // Subcategory / Caption Description
-                    Text(
-                      stream.subCategory,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+            ),
+            if (widget.count != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                widget.count!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  shadows: [Shadow(color: Color(0x99000000), blurRadius: 8)],
                 ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildMediaBackground() {
-    return ReelMediaView(
-      videoAssetPath: widget.stream.videoAssetPath,
-      coverAssetPath: widget.stream.coverAssetPath,
-      coverImageUrl: widget.stream.coverImageUrl,
-      isActive: widget.isActive,
-    );
+/// Rotating record with the creator's photo, like the sound disc on Reels / TikTok.
+class _SpinningDisc extends StatefulWidget {
+  final double size;
+  final bool spinning;
+  final String? assetPath;
+  final String? imageUrl;
+
+  const _SpinningDisc({required this.size, required this.spinning, this.assetPath, this.imageUrl});
+
+  @override
+  State<_SpinningDisc> createState() => _SpinningDiscState();
+}
+
+class _SpinningDiscState extends State<_SpinningDisc> with SingleTickerProviderStateMixin {
+  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 5));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.spinning) _spin.repeat();
   }
 
-  Widget _buildStreamerAvatarAction() {
-    return GestureDetector(
-      onTap: _toggleFollow,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryYellow, width: 1.5),
-            ),
-            child: CustomAvatar(
-              radius: 21,
-              assetPath: widget.stream.avatarAssetPath,
-              imageUrl: widget.stream.avatarUrl,
-            ),
-          ),
-          Positioned(
-            bottom: -5,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: _isFollowing
-                    ? const LinearGradient(colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)])
-                    : AppColors.getStartedButtonGradient,
-                boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
-              ),
-              child: Icon(_isFollowing ? Icons.check : Icons.add, color: Colors.white, size: 12),
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void didUpdateWidget(covariant _SpinningDisc old) {
+    super.didUpdateWidget(old);
+    if (widget.spinning && !_spin.isAnimating) {
+      _spin.repeat();
+    } else if (!widget.spinning && _spin.isAnimating) {
+      _spin.stop();
+    }
   }
 
-  Widget _buildReelActionButton({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required VoidCallback onTap,
-    Widget? customIcon,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.35),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
-              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
-            ),
-            child: Center(child: customIcon ?? Icon(icon, color: iconColor, size: 24)),
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _spin,
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        padding: EdgeInsets.all(widget.size * 0.2),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: SweepGradient(
+            colors: [Color(0xFF1B1B1F), Color(0xFF3A3A42), Color(0xFF1B1B1F), Color(0xFF3A3A42), Color(0xFF1B1B1F)],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
-            ),
-          ),
-        ],
+          boxShadow: [BoxShadow(color: Color(0x88000000), blurRadius: 8)],
+        ),
+        child: CustomAvatar(radius: widget.size * 0.3, assetPath: widget.assetPath, imageUrl: widget.imageUrl),
       ),
     );
   }

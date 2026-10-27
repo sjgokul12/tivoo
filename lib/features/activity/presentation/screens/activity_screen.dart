@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/neon_tab_bar.dart';
 import '../../../home/domain/models/live_stream_card_model.dart';
 import '../../../live_stream/presentation/screens/live_stream_screen.dart';
 import '../../domain/models/activity_item_model.dart';
 import '../controllers/activity_controller.dart';
 import '../widgets/activity_card.dart';
 import '../widgets/activity_header.dart';
-import '../widgets/top_gifter_banner.dart';
 
 LiveStreamCardModel _toLiveStreamCardModel(ActivityItemModel item) {
   return LiveStreamCardModel(
@@ -54,84 +52,67 @@ class ActivityScreen extends ConsumerWidget {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-            // 2. Category Filter Tabs: "All", "Live", "Following", "Likes", "Mentions"
-            SliverToBoxAdapter(
-              child: NeonTabBar(
-                categories: state.categories,
-                selectedIndex: state.selectedCategoryIndex,
-                onCategorySelected: controller.selectCategory,
-              ),
-            ),
+            // 2. Activity Items List
+            Builder(
+              builder: (context) {
+                final activities = state.allActivities
+                    .where((i) => i.type != ActivityType.topGifter)
+                    .toList();
 
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                return SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.isTablet
+                        ? ((context.screenWidth - 600) / 2).clamp(16.0, 200.0)
+                        : 16.0,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = activities[index];
 
-            // 3. Activity Items List (centered/capped width on tablets)
-            SliverPadding(
-              padding: EdgeInsets.symmetric(
-                horizontal: context.isTablet
-                    ? ((context.screenWidth - 600) / 2).clamp(16.0, 200.0)
-                    : 16.0,
-              ),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final item = state.filteredActivities[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ActivityCard(
+                            activity: item,
+                            onFollowBackTap: () {
+                              controller.toggleFollow(item.id);
+                            },
+                            onTap: () {
+                              if (item.isLive) {
+                                final liveItems = activities
+                                    .where((i) => i.isLive)
+                                    .toList();
+                                final liveIndex = liveItems.indexOf(item);
+                                final streams = liveItems
+                                    .map(_toLiveStreamCardModel)
+                                    .toList();
 
-                    if (item.type == ActivityType.topGifter) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TopGifterBanner(
-                          onViewRankTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Weekly Gifter Leaderboard #8 Rank'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: ActivityCard(
-                        activity: item,
-                        onFollowBackTap: () {
-                          controller.toggleFollow(item.id);
-                        },
-                        onTap: () {
-                          if (item.isLive) {
-                            final liveItems = state.filteredActivities
-                                .where((i) => i.isLive)
-                                .toList();
-                            final liveIndex = liveItems.indexOf(item);
-                            final streams = liveItems
-                                .map(_toLiveStreamCardModel)
-                                .toList();
-
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => LiveStreamScreen(
-                                  streams: streams,
-                                  initialIndex: liveIndex,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  childCount: state.filteredActivities.length,
-                ),
-              ),
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => LiveStreamScreen(
+                                      streams: streams,
+                                      initialIndex: liveIndex,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        );
+                      },
+                      childCount: activities.length,
+                    ),
+                  ),
+                );
+              },
             ),
 
             // Bottom space for floating bottom nav bar
-            const SliverToBoxAdapter(child: SizedBox(height: 96)),
+            SliverToBoxAdapter(
+              child: SizedBox(height: 100 + MediaQuery.paddingOf(context).bottom),
+            ),
           ],
         ),
       ),

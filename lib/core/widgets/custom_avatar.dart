@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_assets.dart';
@@ -59,33 +60,78 @@ class CustomAvatar extends StatelessWidget {
         ),
       );
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
-      avatarImage = CachedNetworkImage(
-        imageUrl: imageUrl!,
-        fit: BoxFit.cover,
-        alignment: effectiveAlignment,
-        filterQuality: FilterQuality.high,
-        width: radius * 2,
-        height: radius * 2,
-        memCacheWidth: pixelDim,
-        placeholder: (context, url) => Image.asset(
-          fallbackAsset,
+      final isAsset = imageUrl!.startsWith('assets/');
+      final isLocalFile = !isAsset &&
+          !imageUrl!.startsWith('http://') &&
+          !imageUrl!.startsWith('https://');
+
+      if (isAsset) {
+        avatarImage = Image.asset(
+          imageUrl!,
           fit: BoxFit.cover,
           alignment: effectiveAlignment,
           filterQuality: FilterQuality.high,
           width: radius * 2,
           height: radius * 2,
           cacheWidth: pixelDim,
-        ),
-        errorWidget: (context, url, error) => Image.asset(
-          fallbackAsset,
+          errorBuilder: (context, error, stackTrace) => Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            width: radius * 2,
+            height: radius * 2,
+            cacheWidth: pixelDim,
+          ),
+        );
+      } else if (isLocalFile) {
+        final filePath = imageUrl!.replaceFirst('file://', '');
+        avatarImage = Image.file(
+          File(filePath),
           fit: BoxFit.cover,
           alignment: effectiveAlignment,
           filterQuality: FilterQuality.high,
           width: radius * 2,
           height: radius * 2,
-          cacheWidth: pixelDim,
-        ),
-      );
+          errorBuilder: (context, error, stackTrace) => Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            width: radius * 2,
+            height: radius * 2,
+            cacheWidth: pixelDim,
+          ),
+        );
+      } else {
+        avatarImage = CachedNetworkImage(
+          imageUrl: imageUrl!,
+          fit: BoxFit.cover,
+          alignment: effectiveAlignment,
+          filterQuality: FilterQuality.high,
+          width: radius * 2,
+          height: radius * 2,
+          memCacheWidth: pixelDim,
+          placeholder: (context, url) => Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            alignment: effectiveAlignment,
+            filterQuality: FilterQuality.high,
+            width: radius * 2,
+            height: radius * 2,
+            cacheWidth: pixelDim,
+          ),
+          errorWidget: (context, url, error) => Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            alignment: effectiveAlignment,
+            filterQuality: FilterQuality.high,
+            width: radius * 2,
+            height: radius * 2,
+            cacheWidth: pixelDim,
+          ),
+        );
+      }
     } else {
       avatarImage = Image.asset(
         AppAssets.liveCard1,

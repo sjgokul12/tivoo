@@ -57,7 +57,7 @@ void main() {
     expect(find.text('Find Friends'), findsOneWidget);
 
     // 7. Verify Badges
-    expect(find.text('Tiki Star'), findsOneWidget);
+    expect(find.text('Tivoo Star'), findsOneWidget);
     expect(find.text('Angels'), findsOneWidget);
     expect(find.text('Share'), findsOneWidget);
     expect(find.text('Family'), findsOneWidget);

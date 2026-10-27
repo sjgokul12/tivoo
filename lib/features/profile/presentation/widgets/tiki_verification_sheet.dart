@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../family/presentation/controllers/family_controller.dart';
 
-class TikiVerificationSheet extends ConsumerWidget {
-  const TikiVerificationSheet({super.key});
+class TivooVerificationSheet extends ConsumerWidget {
+  const TivooVerificationSheet({super.key});
 
   static void show(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const TikiVerificationSheet(),
+      builder: (_) => const TivooVerificationSheet(),
     );
   }
 
@@ -60,11 +60,11 @@ class TikiVerificationSheet extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tiki Creator Verification',
+                      'Tivoo Creator Verification',
                       style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
                     ),
                     Text(
-                      'Step-by-step roadmap to White Tiki & Gray Tiki',
+                      'Step-by-step roadmap to White Tivoo & Gray Tivoo',
                       style: TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],
@@ -74,7 +74,7 @@ class TikiVerificationSheet extends ConsumerWidget {
 
             const SizedBox(height: 18),
 
-            // 1. White Tiki Milestone (⚪)
+            // 1. White Tivoo Milestone (⚪)
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -96,7 +96,7 @@ class TikiVerificationSheet extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'White Tiki (Beginning Tier)',
+                          'White Tivoo (Beginning Tier)',
                           style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 2),
@@ -114,7 +114,7 @@ class TikiVerificationSheet extends ConsumerWidget {
 
             const SizedBox(height: 12),
 
-            // 2. Gray Tiki Milestone (🔘) with 500 Views / 1 Month Target
+            // 2. Gray Tivoo Milestone (🔘) with 500 Views / 1 Month Target
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -141,7 +141,7 @@ class TikiVerificationSheet extends ConsumerWidget {
                             Row(
                               children: [
                                 const Text(
-                                  'Gray Tiki (Target Tier)',
+                                  'Gray Tivoo (Target Tier)',
                                   style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(width: 6),
@@ -189,7 +189,7 @@ class TikiVerificationSheet extends ConsumerWidget {
 
                   const SizedBox(height: 10),
 
-                  // Claim Gray Tiki Button
+                  // Claim Gray Tivoo Button
                   if (!v.hasGrayTiki)
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -202,12 +202,12 @@ class TikiVerificationSheet extends ConsumerWidget {
                         familyCtrl.claimGrayTiki();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('🎉 Congratulations! You achieved 500 views and earned Gray Tiki! 🔘'),
+                            content: Text('🎉 Congratulations! You achieved 500 views and earned Gray Tivoo! 🔘'),
                           ),
                         );
                       },
                       child: const Text(
-                        'Achieved 500 Views! Claim Gray Tiki 🔘',
+                        'Achieved 500 Views! Claim Gray Tivoo 🔘',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     )
@@ -221,7 +221,7 @@ class TikiVerificationSheet extends ConsumerWidget {
                           Icon(Icons.verified, color: Color(0xFF00E676), size: 14),
                           SizedBox(width: 4),
                           Text(
-                            'Gray Tiki Active • Family Creation Unlocked 👑',
+                            'Gray Tivoo Active • Family Creation Unlocked 👑',
                             style: TextStyle(color: Color(0xFF00E676), fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -233,7 +233,7 @@ class TikiVerificationSheet extends ConsumerWidget {
 
             const SizedBox(height: 14),
 
-            // 3. Family Team Creation Rule ("gray tiki vantha thu ku apporam tha family create pana mudiyu")
+            // 3. Family Team Creation Rule
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -258,8 +258,8 @@ class TikiVerificationSheet extends ConsumerWidget {
                             ),
                             Text(
                               v.canCreateFamily
-                                  ? 'Gray Tiki unlocked! You can lead a Family and accept members.'
-                                  : '🔒 Locked: Must achieve Gray Tiki (500 views in 1 month) to create a family.',
+                                  ? 'Gray Tivoo unlocked! You can lead a Family and accept members.'
+                                  : '🔒 Locked: Must achieve Gray Tivoo (500 views in 1 month) to create a family.',
                               style: TextStyle(
                                 color: v.canCreateFamily ? const Color(0xFF00E676) : Colors.white60,
                                 fontSize: 11,
@@ -289,3 +289,6 @@ class TikiVerificationSheet extends ConsumerWidget {
     );
   }
 }
+
+/// Backward compatibility alias
+typedef TikiVerificationSheet = TivooVerificationSheet;

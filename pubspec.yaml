@@ -45,6 +45,13 @@ dependencies:
   camera: ^0.12.1
   permission_handler: ^13.0.2
   audioplayers: ^6.8.1
+  image_picker: ^1.2.4
+  file_picker: ^13.1.0
+  url_launcher: ^6.3.3
+  path_provider: ^2.1.6
+  http: ^1.6.0
+  banuba_sdk: 3.1.7
+  video_compress: ^3.1.4
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +83,11 @@ flutter:
     - assets/gifts/premium/
     - assets/Home/
     - assets/banners/
+    - assets/stars/
+    - assets/wallet/
+    - assets/drafts/
+    - assets/pk/
+    - assets/videos/ # demo videos: Explore feed + PK battle arenas only
 
   fonts:
     - family: Pacifico # Tivoo wordmark

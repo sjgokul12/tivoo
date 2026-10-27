@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/pk_models.dart';
 import '../core/pk_theme.dart';
+import '../../../core/widgets/tivoo_share_sheet.dart';
 
 const Color _gold = Color(0xFFFFD600);
 
@@ -24,9 +25,16 @@ class PkSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolved = padding.resolve(Directionality.maybeOf(context));
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Container(
       constraints: maxHeight != null ? BoxConstraints(maxHeight: maxHeight!) : null,
-      padding: padding,
+      padding: EdgeInsets.fromLTRB(
+        resolved.left,
+        resolved.top,
+        resolved.right,
+        resolved.bottom + (bottomInset > 0 ? bottomInset : 0),
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF101018),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -50,7 +58,12 @@ class PkSheet extends StatelessWidget {
                 child: Material(type: MaterialType.transparency, child: child),
               )
             else
-              Material(type: MaterialType.transparency, child: child),
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Material(type: MaterialType.transparency, child: child),
+                ),
+              ),
           ],
         ),
       ),
@@ -141,6 +154,7 @@ class PkSheets {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _MessageInputSheet(onSend: onSend),
     );
@@ -183,7 +197,7 @@ class PkSheets {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('1. PK Battle duration is configurable (3, 5, or 10 min).', style: rule),
+            Text('1. PK Battle duration is configurable (3, 5, 10, or 15 min).', style: rule),
             SizedBox(height: 8),
             Text("2. Every gift sent boosts the host's clash score bar.", style: rule),
             SizedBox(height: 8),
@@ -207,80 +221,15 @@ class PkSheets {
   // Share
   // ---------------------------------------------------------------------------
   static void showShare(BuildContext context) {
-    const options = [
-      ('WhatsApp', '💬'),
-      ('Instagram', '📸'),
-      ('Telegram', '✈️'),
-      ('Copy Link', '🔗'),
-      ('Friends', '👥'),
-    ];
+    const shareUrl = 'https://tivoo.app/pk/battle_live';
+    const shareText = 'Watch this intense PK Battle live on Tivoo! https://tivoo.app/pk/battle_live';
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => PkSheet(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.reply_rounded, color: _gold, size: 22),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Share PK Battle',
-                    style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                for (final (name, icon) in options)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            name == 'Copy Link'
-                                ? '📋 PK Battle link copied to clipboard!'
-                                : 'Shared battle to $name! 🚀',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF1B1B26),
-                            border: Border.all(color: Colors.white12),
-                          ),
-                          child: Text(icon, style: const TextStyle(fontSize: 24)),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(name, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
+    TivooShareSheet.show(
+      context,
+      title: 'Share PK Battle',
+      subtitle: 'Clash of Stars • Priya vs Anu',
+      shareUrl: shareUrl,
+      shareText: shareText,
     );
   }
 
@@ -476,11 +425,13 @@ class _MessageInputSheetState extends State<_MessageInputSheet> {
                       child: TextField(
                         controller: _controller,
                         autofocus: true,
+                        cursorColor: _gold,
+                        cursorWidth: 2.2,
                         textInputAction: TextInputAction.send,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
                         decoration: const InputDecoration(
                           hintText: 'Type a message...',
-                          hintStyle: TextStyle(color: Colors.white54, fontSize: 13.5),
+                          hintStyle: TextStyle(color: Color(0xFF9E9EAF), fontSize: 14),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(vertical: 10),
                         ),
@@ -555,8 +506,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           const SizedBox(height: 12),
           Row(
             children: [
-              for (final (label, secs) in const [('3 min', 180), ('5 min', 300), ('10 min', 600)]) ...[
-                if (secs != 180) const SizedBox(width: 10),
+              for (final (label, secs) in const [('3 min', 180), ('5 min', 300), ('10 min', 600), ('15 min', 900)]) ...[
+                if (secs != 180) const SizedBox(width: 8),
                 _durationPill(label, secs),
               ],
             ],

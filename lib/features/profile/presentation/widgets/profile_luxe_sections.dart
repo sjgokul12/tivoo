@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/luxe_theme.dart';
 import '../../../../core/widgets/custom_avatar.dart';
+import 'package:tivoo/features/explore/domain/models/video_post.dart';
+import 'package:tivoo/features/explore/presentation/widgets/video_thumbnail_view.dart';
 
 /// Ink used on gold surfaces.
 const Color _ink = Color(0xFF1A1300);
@@ -143,14 +145,13 @@ class _RingButton extends StatelessWidget {
   final String label;
   final double size;
   final VoidCallback onTap;
-  final double iconScale;
+  static const double _iconScale = 0.5;
 
   const _RingButton({
     required this.icon,
     required this.label,
     required this.size,
     required this.onTap,
-    this.iconScale = 0.5,
   });
 
   @override
@@ -178,7 +179,7 @@ class _RingButton extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(center: Alignment(-0.3, -0.4), colors: [Color(0xFF26215A), Color(0xFF0B0920)]),
             ),
-            child: Icon(icon, color: Colors.white, size: size * iconScale),
+            child: Icon(icon, color: Colors.white, size: size * _iconScale),
           ),
         ),
       ),
@@ -186,19 +187,19 @@ class _RingButton extends StatelessWidget {
   }
 }
 
-/// [←] [👑 VIP] ................. [≡] [⚙]
+/// [←] ................. [≡] [⚙]
 class ProfileTopBar extends StatelessWidget {
   final VoidCallback onBack;
-  final VoidCallback onVip;
-  final VoidCallback onMenu;
-  final VoidCallback onSettings;
+  final VoidCallback? onMenu;
+  final VoidCallback? onSettings;
+  final bool showActions;
 
   const ProfileTopBar({
     super.key,
     required this.onBack,
-    required this.onVip,
-    required this.onMenu,
-    required this.onSettings,
+    this.onMenu,
+    this.onSettings,
+    this.showActions = true,
   });
 
   @override
@@ -208,46 +209,13 @@ class ProfileTopBar extends StatelessWidget {
     return Row(
       children: [
         _RingButton(icon: Icons.arrow_back_rounded, label: 'Back', size: size, onTap: onBack),
-        SizedBox(width: 10 * s),
-        Semantics(
-          button: true,
-          label: 'VIP',
-          child: GestureDetector(
-            onTap: onVip,
-            child: Container(
-              height: 34 * s,
-              padding: EdgeInsets.symmetric(horizontal: 14 * s),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF2A2210), Color(0xFF120E06)],
-                ),
-                border: Border.all(color: LuxeColors.gold, width: 1.6),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x88FFC928), blurRadius: 14),
-                  BoxShadow(color: Color(0x33FFC928), blurRadius: 24, spreadRadius: 2),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LuxeCrown(size: 21 * s),
-                  SizedBox(width: 7 * s),
-                  LuxeGoldText(
-                    'VIP',
-                    style: TextStyle(fontSize: 16 * s, fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
         const Spacer(),
-        _RingButton(icon: Icons.menu_rounded, label: 'Menu', size: size, onTap: onMenu),
-        SizedBox(width: 9 * s),
-        _RingButton(icon: Icons.settings_rounded, label: 'Settings', size: size, onTap: onSettings),
+        if (showActions && onMenu != null)
+          _RingButton(icon: Icons.menu_rounded, label: 'Menu', size: size, onTap: onMenu!),
+        if (showActions && onMenu != null && onSettings != null)
+          SizedBox(width: 9 * s),
+        if (showActions && onSettings != null)
+          _RingButton(icon: Icons.settings_rounded, label: 'Settings', size: size, onTap: onSettings!),
       ],
     );
   }
@@ -263,12 +231,18 @@ class ProfileIdentityHeader extends StatelessWidget {
   final String username;
   final String avatarAsset;
   final VoidCallback onAvatarCamera;
+  final String followersCount;
+  final String followingCount;
+  final String likesCount;
 
   const ProfileIdentityHeader({
     super.key,
     required this.username,
     required this.avatarAsset,
     required this.onAvatarCamera,
+    this.followersCount = '4.7K',
+    this.followingCount = '300',
+    this.likesCount = '53.1K',
   });
 
   @override
@@ -312,19 +286,22 @@ class ProfileIdentityHeader extends StatelessWidget {
                 style: TextStyle(color: LuxeColors.textMuted, fontSize: 11 * s),
               ),
               SizedBox(height: 9 * s),
-              _StatsCard(s: s),
+              _StatsCard(
+                s: s,
+                followers: followersCount,
+                following: followingCount,
+                likes: likesCount,
+              ),
             ],
           ),
         ),
-        SizedBox(width: 4 * s),
-        _GoodVibes(s: s),
       ],
     );
   }
 }
 
 /// Photo in a thick glowing gold ring with a violet inner rim, a thin white bezel,
-/// lens-flare glints, a tilted crown and a camera button.
+/// lens-flare glints and a tilted crown.
 class _Avatar extends StatelessWidget {
   final double size;
   final String asset;
@@ -334,6 +311,7 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photoInset = size * 0.115;
+    final innerDiameter = size - photoInset * 2;
     return SizedBox(
       width: size,
       height: size,
@@ -356,9 +334,16 @@ class _Avatar extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.all(photoInset),
               child: ClipOval(
-                child: ColoredBox(
-                  color: Colors.white,
-                  child: Image.asset(asset, fit: BoxFit.cover, alignment: const Alignment(0, -0.6)),
+                child: GestureDetector(
+                  onTap: onCamera,
+                  child: ColoredBox(
+                    color: Colors.white,
+                    child: CustomAvatar(
+                      radius: innerDiameter / 2,
+                      imageUrl: asset,
+                      assetPath: asset.startsWith('assets/') ? asset : null,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -368,17 +353,6 @@ class _Avatar extends StatelessWidget {
             top: -size * 0.24,
             left: size * 0.02,
             child: Transform.rotate(angle: -0.36, child: LuxeCrown(size: size * 0.38)),
-          ),
-          Positioned(
-            right: -size * 0.04,
-            bottom: size * 0.02,
-            child: _RingButton(
-              icon: Icons.camera_alt_rounded,
-              label: 'Change photo',
-              size: size * 0.32,
-              iconScale: 0.5,
-              onTap: onCamera,
-            ),
           ),
         ],
       ),
@@ -524,7 +498,16 @@ class _LevelPill extends StatelessWidget {
 
 class _StatsCard extends StatelessWidget {
   final double s;
-  const _StatsCard({required this.s});
+  final String followers;
+  final String following;
+  final String likes;
+
+  const _StatsCard({
+    required this.s,
+    this.followers = '4.7K',
+    this.following = '300',
+    this.likes = '53.1K',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -551,43 +534,7 @@ class _StatsCard extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 9 * s, horizontal: 4 * s),
       decoration: _glass(16 * s),
       child: Row(
-        children: [stat('4.7K', 'Followers'), divider(), stat('300', 'Following'), divider(), stat('53.1K', 'Likes')],
-      ),
-    );
-  }
-}
-
-class _GoodVibes extends StatelessWidget {
-  final double s;
-  const _GoodVibes({required this.s});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 50 * s,
-      child: Column(
-        children: [
-          SizedBox(height: 10 * s),
-          Transform.rotate(angle: 0.12, child: LuxeCrown(size: 26 * s)),
-          SizedBox(height: 2 * s),
-          Transform.rotate(
-            angle: -0.12,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: LuxeGoldText(
-                'Good\nVibes\nOnly',
-                style: TextStyle(
-                  fontFamily: 'KaushanScript',
-                  fontSize: 17 * s,
-                  height: 1.0,
-                  shadows: const [Shadow(color: Color(0x99FFC928), blurRadius: 8)],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 2 * s),
-          Icon(Icons.favorite_border_rounded, color: LuxeColors.gold, size: 20 * s),
-        ],
+        children: [stat(followers, 'Followers'), divider(), stat(following, 'Following'), divider(), stat(likes, 'Likes')],
       ),
     );
   }
@@ -631,97 +578,162 @@ class ProfileBio extends StatelessWidget {
   }
 }
 
-/// [Edit Profile (glossy gold)] [Find Friends (neon glass)] [camera]
+/// [Edit Profile] and [Messages] action buttons.
 class ProfileActions extends StatelessWidget {
   final VoidCallback onEdit;
-  final VoidCallback onFindFriends;
-  final VoidCallback onCamera;
+  final VoidCallback onMessagesTap;
+  final int unreadCount;
 
-  const ProfileActions({super.key, required this.onEdit, required this.onFindFriends, required this.onCamera});
+  const ProfileActions({
+    super.key,
+    required this.onEdit,
+    required this.onMessagesTap,
+    this.unreadCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     final s = profileScale(context);
     final h = 46 * s;
-    Widget label(IconData icon, String text, Color color) => FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20 * s),
-          SizedBox(width: 9 * s),
-          Text(
-            text,
-            style: TextStyle(color: color, fontSize: 14 * s, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-
     return Row(
       children: [
+        // Edit Profile Button
         Expanded(
-          flex: 40,
           child: Semantics(
             button: true,
             child: GestureDetector(
               onTap: onEdit,
-              child: _GlossyGoldButton(height: h, child: label(Icons.person_rounded, 'Edit Profile', _ink)),
+              child: _GlossyGlassButton(
+                height: h,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.edit_outlined, color: LuxeColors.gold, size: 18 * s),
+                      SizedBox(width: 7 * s),
+                      Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5 * s,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
         SizedBox(width: 10 * s),
+        // Messages Panel Button
         Expanded(
-          flex: 34,
           child: Semantics(
             button: true,
             child: GestureDetector(
-              onTap: onFindFriends,
-              child: Container(
+              onTap: onMessagesTap,
+              child: _GlossyGoldButton(
                 height: h,
-                padding: const EdgeInsets.all(1.3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(h / 2),
-                  gradient: const LinearGradient(colors: [Color(0xFF7B4DFF), Color(0xFF5B3CFF), LuxeColors.blue]),
-                  boxShadow: const [BoxShadow(color: Color(0x557B4DFF), blurRadius: 12)],
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(h / 2),
-                    gradient: const LinearGradient(colors: [Color(0xFF1C1650), Color(0xFF100D33), Color(0xFF14184A)]),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded, color: _ink, size: 18 * s),
+                      SizedBox(width: 7 * s),
+                      Text(
+                        'Messages',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 13.5 * s,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      if (unreadCount > 0) ...[
+                        SizedBox(width: 6 * s),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 6 * s, vertical: 2 * s),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF161200),
+                            borderRadius: BorderRadius.circular(10 * s),
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: TextStyle(
+                              color: LuxeColors.gold,
+                              fontSize: 10.5 * s,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  alignment: Alignment.center,
-                  child: label(Icons.group_rounded, 'Find Friends', Colors.white),
                 ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: 10 * s),
-        Semantics(
-          button: true,
-          label: 'Camera',
-          child: GestureDetector(
-            onTap: onCamera,
-            child: Container(
-              width: h * 1.08,
-              height: h,
-              padding: const EdgeInsets.all(1.3),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(h / 2),
-                gradient: const LinearGradient(colors: [Color(0xFF7B4DFF), LuxeColors.blue]),
-                boxShadow: const [BoxShadow(color: Color(0x557B4DFF), blurRadius: 12)],
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(h / 2),
-                  gradient: const LinearGradient(colors: [Color(0xFF1C1650), Color(0xFF100D33)]),
-                ),
-                child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 22 * s),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Glass pill button with a subtle gold border and glossy top highlight.
+class _GlossyGlassButton extends StatelessWidget {
+  final double height;
+  final Widget child;
+  const _GlossyGlassButton({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final r = BorderRadius.circular(height / 2);
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0x331C1645),
+        borderRadius: r,
+        border: Border.all(color: LuxeColors.gold.withValues(alpha: 0.55), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x44000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: FractionallySizedBox(
+                heightFactor: 0.45,
+                widthFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.16),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Center(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: child)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -786,9 +798,10 @@ class _GlossyGoldButton extends StatelessWidget {
 // BADGES ROW
 // =============================================================================
 
-/// One glass panel: [⭐ Tiki Star No.500+ ›] | [Angels 👥 ›] | [Share] | [🛡 Family RS TECH ›]
+/// One glass panel: [⭐ Tivoo Star No.500+ ›] | [Angels 👥 ›] | [Share] | [🛡 Family RS TECH ›]
 class ProfileBadgesRow extends StatelessWidget {
   final VoidCallback onTikiStar;
+  final VoidCallback? onTivooStar;
   final VoidCallback onAngels;
   final VoidCallback onShare;
   final VoidCallback onFamily;
@@ -796,6 +809,7 @@ class ProfileBadgesRow extends StatelessWidget {
   const ProfileBadgesRow({
     super.key,
     required this.onTikiStar,
+    this.onTivooStar,
     required this.onAngels,
     required this.onShare,
     required this.onFamily,
@@ -804,13 +818,7 @@ class ProfileBadgesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = profileScale(context);
-    final h = 46 * s;
-    Widget divider() => Container(
-      width: 1,
-      height: 30 * s,
-      margin: EdgeInsets.symmetric(horizontal: 4 * s),
-      color: Colors.white.withValues(alpha: 0.12),
-    );
+    final h = 56 * s;
     Widget cell(Widget child, VoidCallback onTap, int flex, {bool framed = true}) => Expanded(
       flex: flex,
       child: GestureDetector(
@@ -822,20 +830,25 @@ class ProfileBadgesRow extends StatelessWidget {
           decoration: framed
               ? BoxDecoration(
                   borderRadius: BorderRadius.circular(h / 2),
-                  color: Colors.white.withValues(alpha: 0.03),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  color: Colors.white.withValues(alpha: 0.05),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.16), width: 1.1),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x22000000), blurRadius: 6, offset: Offset(0, 2)),
+                  ],
                 )
               : null,
-          child: FittedBox(fit: BoxFit.scaleDown, child: child),
+          child: Center(
+            child: FittedBox(fit: BoxFit.scaleDown, child: child),
+          ),
         ),
       ),
     );
 
     return Container(
-      padding: EdgeInsets.all(6 * s),
-      decoration: _glass(22 * s).copyWith(
-        boxShadow: const [BoxShadow(color: Color(0x337B4DFF), blurRadius: 12)],
-        border: Border.all(color: const Color(0x557B4DFF)),
+      padding: EdgeInsets.symmetric(horizontal: 8 * s, vertical: 8 * s),
+      decoration: _glass(26 * s).copyWith(
+        boxShadow: const [BoxShadow(color: Color(0x3D7B4DFF), blurRadius: 16)],
+        border: Border.all(color: const Color(0x667B4DFF), width: 1.2),
       ),
       child: Row(
         children: [
@@ -843,61 +856,65 @@ class ProfileBadgesRow extends StatelessWidget {
             _BadgeCell(
               s: s,
               leading: _RoundIcon(icon: Icons.star_rounded, color: LuxeColors.gold, s: s),
-              title: 'Tiki Star',
+              title: 'Tivoo Star',
               value: 'No.500+',
             ),
-            onTikiStar,
-            28,
+            onTivooStar ?? onTikiStar,
+            30,
           ),
-          divider(),
+          SizedBox(width: 5 * s),
           cell(
             _BadgeCell(
               s: s,
               title: 'Angels',
               valueWidget: SizedBox(
-                width: 40 * s,
-                height: 20 * s,
+                width: 44 * s,
+                height: 22 * s,
                 child: Stack(
                   children: [
                     Positioned(
                       left: 0,
-                      child: CustomAvatar(radius: 10 * s, assetPath: AppAssets.avatarPriya),
+                      child: CustomAvatar(radius: 11 * s, assetPath: AppAssets.avatarPriya),
                     ),
                     Positioned(
-                      left: 17 * s,
-                      child: CustomAvatar(radius: 10 * s, assetPath: AppAssets.avatarNeha),
+                      left: 18 * s,
+                      child: CustomAvatar(radius: 11 * s, assetPath: AppAssets.avatarNeha),
                     ),
                   ],
                 ),
               ),
             ),
             onAngels,
-            20,
+            22,
           ),
-          divider(),
+          SizedBox(width: 5 * s),
           cell(
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16 * s, vertical: 7 * s),
+              height: h - 8 * s,
+              padding: EdgeInsets.symmetric(horizontal: 14 * s),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFFFFE34D), LuxeColors.gold]),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(h / 2),
                 boxShadow: const [BoxShadow(color: Color(0x77FFC928), blurRadius: 10)],
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.push_pin_rounded, color: _ink, size: 15 * s),
+                  Icon(Icons.push_pin_rounded, color: _ink, size: 16 * s),
                   SizedBox(width: 5 * s),
                   Text(
                     'Share',
-                    style: TextStyle(color: _ink, fontSize: 13 * s, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: _ink, fontSize: 13.5 * s, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
             ),
             onShare,
             22,
+            framed: false,
           ),
-          divider(),
+          SizedBox(width: 5 * s),
           cell(
             _BadgeCell(
               s: s,
@@ -906,7 +923,7 @@ class ProfileBadgesRow extends StatelessWidget {
               value: 'RS TECH',
             ),
             onFamily,
-            28,
+            30,
           ),
         ],
       ),
@@ -926,20 +943,23 @@ class _BadgeCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (leading != null) ...[leading!, SizedBox(width: 7 * s)],
+        if (leading != null) ...[leading!, SizedBox(width: 6 * s)],
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               title,
-              style: TextStyle(color: const Color(0xFFD9D6EE), fontSize: 11 * s),
+              style: TextStyle(color: const Color(0xFFD9D6EE), fontSize: 12 * s, fontWeight: FontWeight.w500),
             ),
+            SizedBox(height: 1 * s),
             valueWidget ??
                 Text(
                   value ?? '',
-                  style: TextStyle(color: Colors.white, fontSize: 13 * s, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.white, fontSize: 13.5 * s, fontWeight: FontWeight.w700),
                 ),
           ],
         ),
@@ -959,18 +979,18 @@ class _RoundIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32 * s,
-      height: 32 * s,
+      width: 35 * s,
+      height: 35 * s,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const RadialGradient(colors: [Color(0xFF2A2366), Color(0xFF0E0B2C)]),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 8)],
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22), width: 1.1),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8)],
       ),
       child: Icon(
         icon,
         color: color,
-        size: 20 * s,
+        size: 21 * s,
         shadows: [Shadow(color: color.withValues(alpha: 0.6), blurRadius: 6)],
       ),
     );
@@ -978,393 +998,263 @@ class _RoundIcon extends StatelessWidget {
 }
 
 // =============================================================================
-// VIDEOS / LIKES BAR
+// CONTENT GRID (Instagram style)
 // =============================================================================
 
-/// Gold → blue glowing bar: [▶ Videos 411] [♥ Likes 39637], the active side underlined in gold.
-class ProfileStatsBar extends StatelessWidget {
-  final int videos;
-  final int likes;
-  final bool showVideos;
-  final ValueChanged<bool> onChanged;
-
-  const ProfileStatsBar({
-    super.key,
-    required this.videos,
-    required this.likes,
-    required this.showVideos,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final s = profileScale(context);
-    final h = 50 * s;
-    Widget side(bool isVideos) {
-      final active = isVideos == showVideos;
-      return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onChanged(isVideos),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 28 * s,
-                      height: 28 * s,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0x55000000),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (isVideos ? Colors.black : LuxeColors.blue).withValues(alpha: 0.5),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        isVideos ? Icons.play_arrow_rounded : Icons.favorite_rounded,
-                        color: Colors.white,
-                        size: (isVideos ? 24 : 19) * s,
-                      ),
-                    ),
-                    SizedBox(width: 9 * s),
-                    Text(
-                      isVideos ? 'Videos $videos' : 'Likes $likes',
-                      style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 4 * s),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: active ? 72 * s : 0,
-                height: 2.6,
-                decoration: BoxDecoration(
-                  gradient: LuxeColors.goldGradient,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: const [BoxShadow(color: Color(0xAAFFC928), blurRadius: 6)],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      height: h,
-      padding: const EdgeInsets.all(1.6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(h / 2),
-        gradient: const LinearGradient(
-          colors: [LuxeColors.goldLight, LuxeColors.gold, Color(0xFF9B3CFF), Color(0xFF3D8BFF), Color(0xFF8FC8FF)],
-          stops: [0, 0.18, 0.5, 0.82, 1],
-        ),
-        boxShadow: const [
-          BoxShadow(color: Color(0x66FFC928), blurRadius: 14, offset: Offset(-6, 0)),
-          BoxShadow(color: Color(0x663D8BFF), blurRadius: 14, offset: Offset(6, 0)),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(h / 2),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3A2A08), Color(0xFF15102E), Color(0xFF151848), Color(0xFF1F3FB8)],
-            stops: [0, 0.3, 0.62, 1],
-          ),
-        ),
-        child: Row(children: [side(true), side(false)]),
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// CONTENT: TABS + GRID
-// =============================================================================
-
+/// One tile in the profile grid: a photo post, an uploaded video, or the Drafts folder.
 class ProfileVideo {
   final String asset;
-  final String? views;
-  final bool pinned;
-  final bool draft;
 
-  const ProfileVideo(this.asset, {this.views, this.pinned = false, this.draft = false});
+  /// Likes (photos) or views (videos), e.g. "3.5K".
+  final String? views;
+  final bool isDraftFolder;
+
+  /// Set for videos the user uploaded.
+  final VideoPost? post;
+
+  const ProfileVideo(this.asset, {this.views, this.isDraftFolder = false, this.post});
+
+  ProfileVideo.uploaded(VideoPost post) : this(AppAssets.liveCard1, views: post.formattedViews, post: post);
+
+  bool get isVideo => post != null;
 }
 
-/// Glass panel with [Drafts 7] [Pinned] [My Posts] tabs and a 3-column grid.
+/// Model representing a draft video.
+class DraftVideoItem {
+  final String id;
+  final String asset;
+  final String title;
+  final String duration;
+  final String date;
+
+  const DraftVideoItem({
+    required this.id,
+    required this.asset,
+    required this.title,
+    required this.duration,
+    required this.date,
+  });
+}
+
+/// Posts grid (3 columns on phones, 4 on tablets) with in-place Drafts viewing.
 class ProfileContentPanel extends StatelessWidget {
-  final int tab;
-  final ValueChanged<int> onTab;
+  final bool isViewingDrafts;
   final List<ProfileVideo> videos;
+  final List<DraftVideoItem> draftVideos;
   final ValueChanged<ProfileVideo> onOpen;
+  final ValueChanged<ProfileVideo>? onLongPressVideo;
+  final VoidCallback? onOpenDrafts;
+  final VoidCallback? onCloseDrafts;
+  final ValueChanged<DraftVideoItem>? onOpenDraft;
 
   const ProfileContentPanel({
     super.key,
-    required this.tab,
-    required this.onTab,
+    this.isViewingDrafts = false,
     required this.videos,
+    this.draftVideos = const [],
     required this.onOpen,
+    this.onLongPressVideo,
+    this.onOpenDrafts,
+    this.onCloseDrafts,
+    this.onOpenDraft,
   });
 
   @override
   Widget build(BuildContext context) {
     final s = profileScale(context);
-    final width = MediaQuery.sizeOf(context).width;
-    return Container(
-      padding: EdgeInsets.fromLTRB(6 * s, 10 * s, 6 * s, 6 * s),
-      decoration: _glass(22 * s).copyWith(border: Border.all(color: const Color(0x447B4DFF))),
-      child: Column(
+    final columns = MediaQuery.sizeOf(context).width >= 700 ? 4 : 3;
+
+    Widget grid(int count, Widget Function(int) tile) => GridView.builder(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: count,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        childAspectRatio: 0.9, // a little taller than wide
+        crossAxisSpacing: 8 * s,
+        mainAxisSpacing: 8 * s,
+      ),
+      itemBuilder: (_, i) => tile(i),
+    );
+
+    if (!isViewingDrafts && !videos.any((v) => v.isVideo)) {
+      return Column(
         children: [
+          if (videos.isNotEmpty) grid(videos.length, (i) => _tileFor(videos[i])),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8 * s),
-            child: Row(
+            padding: EdgeInsets.symmetric(vertical: 28 * s),
+            child: Column(
               children: [
-                Expanded(
-                  child: _ContentTab(
-                    s: s,
-                    icon: Icons.inventory_2_outlined,
-                    label: 'Drafts',
-                    count: 7,
-                    selected: tab == 0,
-                    onTap: () => onTab(0),
-                  ),
+                Icon(Icons.video_library_outlined, color: Colors.white38, size: 40 * s),
+                SizedBox(height: 10 * s),
+                Text(
+                  'No videos yet',
+                  style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w700),
                 ),
-                SizedBox(width: 14 * s),
-                Expanded(
-                  child: _ContentTab(
-                    s: s,
-                    icon: Icons.push_pin_rounded,
-                    label: 'Pinned',
-                    selected: tab == 1,
-                    onTap: () => onTab(1),
-                  ),
-                ),
-                SizedBox(width: 14 * s),
-                Expanded(
-                  child: _ContentTab(
-                    s: s,
-                    icon: Icons.grid_view_rounded,
-                    label: 'My Posts',
-                    selected: tab == 2,
-                    onTap: () => onTab(2),
-                  ),
+                SizedBox(height: 4 * s),
+                Text(
+                  onLongPressVideo == null ? 'Videos will appear here.' : 'Tap + below to upload your first video.',
+                  style: TextStyle(color: Colors.white54, fontSize: 12.5 * s),
                 ),
               ],
             ),
           ),
-          SizedBox(height: 10 * s),
-          GridView.builder(
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: videos.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: width >= 700 ? 4 : 3,
-              childAspectRatio: width >= 700 ? 1.0 : 0.86,
-              crossAxisSpacing: 6 * s,
-              mainAxisSpacing: 6 * s,
-            ),
-            itemBuilder: (_, i) => _VideoTile(video: videos[i], onTap: () => onOpen(videos[i])),
-          ),
         ],
-      ),
+      );
+    }
+
+    if (!isViewingDrafts) {
+      return grid(videos.length, (i) => _tileFor(videos[i]));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: 10 * s),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: onCloseDrafts,
+                tooltip: 'Back to posts',
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.08)),
+              ),
+              SizedBox(width: 8 * s),
+              Text(
+                'Drafts · ${draftVideos.length}',
+                style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              Icon(Icons.lock_rounded, color: LuxeColors.gold, size: 14 * s),
+              SizedBox(width: 4 * s),
+              Text('Only you', style: TextStyle(color: Colors.white60, fontSize: 11.5 * s)),
+            ],
+          ),
+        ),
+        grid(draftVideos.length, (i) {
+          final d = draftVideos[i];
+          return _GridTile(
+            onTap: () => onOpenDraft?.call(d),
+            image: _asset(d.asset),
+            topRight: Icons.edit_rounded,
+            bottomIcon: Icons.schedule_rounded,
+            bottomText: d.duration,
+          );
+        }),
+      ],
     );
   }
+
+  /// The Drafts folder or an uploaded video.
+  Widget _tileFor(ProfileVideo v) {
+    if (v.isDraftFolder) {
+      return _GridTile(
+        onTap: () => onOpenDrafts?.call(),
+        image: _asset(v.asset),
+        bottomIcon: Icons.folder_rounded,
+        bottomText: 'Drafts',
+      );
+    }
+    return _GridTile(
+      onTap: () => onOpen(v),
+      onLongPress: onLongPressVideo == null ? null : () => onLongPressVideo!(v),
+      image: VideoThumbnailView(key: ValueKey(v.post!.id), post: v.post!),
+      topRight: Icons.smart_display_rounded,
+      bottomIcon: Icons.play_arrow_rounded,
+      bottomText: v.views ?? '',
+    );
+  }
+
+  static Widget _asset(String path) => Image.asset(path, fit: BoxFit.cover, cacheWidth: 420);
 }
 
-class _ContentTab extends StatelessWidget {
-  final double s;
-  final IconData icon;
-  final String label;
-  final int? count;
-  final bool selected;
+/// Rounded tile with a type icon at the top right and a stat at the bottom left.
+class _GridTile extends StatelessWidget {
+  final Widget image;
+  final IconData? topRight;
+  final IconData bottomIcon;
+  final String bottomText;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
-  const _ContentTab({
-    required this.s,
-    required this.icon,
-    required this.label,
-    required this.selected,
+  const _GridTile({
+    required this.image,
+    required this.bottomIcon,
+    required this.bottomText,
     required this.onTap,
-    this.count,
+    this.topRight,
+    this.onLongPress,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final h = 36 * s;
-    final fg = selected ? _ink : Colors.white;
-    final content = FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        children: [
-          Icon(icon, color: fg, size: 17 * s),
-          SizedBox(width: 7 * s),
-          Text(
-            label,
-            style: TextStyle(color: fg, fontSize: 13.5 * s, fontWeight: FontWeight.w500),
-          ),
-          if (count != null) ...[
-            SizedBox(width: 7 * s),
-            Container(
-              width: 19 * s,
-              height: 19 * s,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (selected ? _ink : Colors.white).withValues(alpha: 0.16),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(color: fg, fontSize: 11 * s, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          height: h,
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: 8 * s),
-          decoration: selected
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(h / 2),
-                  gradient: const LinearGradient(colors: [Color(0xFFFFE34D), LuxeColors.gold, Color(0xFFF2B200)]),
-                  boxShadow: const [BoxShadow(color: Color(0x77FFC928), blurRadius: 12)],
-                )
-              : BoxDecoration(
-                  borderRadius: BorderRadius.circular(h / 2),
-                  color: const Color(0xFF110E2E),
-                  border: Border.all(color: const Color(0xAA7B4DFF)),
-                  boxShadow: const [BoxShadow(color: Color(0x337B4DFF), blurRadius: 8)],
-                ),
-          child: content,
-        ),
-      ),
-    );
-  }
-}
-
-class _VideoTile extends StatelessWidget {
-  final ProfileVideo video;
-  final VoidCallback onTap;
-  const _VideoTile({required this.video, required this.onTap});
+  static const _shadow = [Shadow(color: Color(0xAA000000), blurRadius: 6)];
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(9),
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final u = (c.maxWidth / 110).clamp(0.85, 1.4);
-              final label = TextStyle(color: Colors.white, fontSize: 10.5 * u, fontWeight: FontWeight.w500);
-              return Stack(
+      onLongPress: onLongPress,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final u = (c.maxWidth / 120).clamp(0.85, 1.4);
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14 * u),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+              boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 8, offset: Offset(0, 3))],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(13 * u),
+              child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(video.asset, fit: BoxFit.cover, cacheWidth: 360),
+                  image,
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [Color(0x33000000), Colors.transparent, Color(0x99000000)],
-                        stops: [0, 0.5, 1],
+                        stops: [0, 0.45, 1],
                       ),
                     ),
                   ),
-                  if (video.draft || video.pinned)
+                  if (topRight != null)
                     Positioned(
-                      left: 5 * u,
-                      top: 5 * u,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 7 * u, vertical: 2.5 * u),
-                            decoration: BoxDecoration(
-                              color: const Color(0x8C0B0A1E),
-                              borderRadius: BorderRadius.circular(8 * u),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (video.draft) ...[
-                                  Icon(Icons.folder_rounded, color: Colors.white, size: 12 * u),
-                                  SizedBox(width: 4 * u),
-                                ],
-                                Text(video.draft ? 'Drafts' : 'Pinned', style: label),
-                              ],
+                      top: 7 * u,
+                      right: 7 * u,
+                      child: Icon(topRight, color: Colors.white, size: 17 * u, shadows: _shadow),
+                    ),
+                  Positioned(
+                    left: 8 * u,
+                    bottom: 6 * u,
+                    right: 8 * u,
+                    child: Row(
+                      children: [
+                        Icon(bottomIcon, color: Colors.white, size: 15 * u, shadows: _shadow),
+                        SizedBox(width: 4 * u),
+                        Flexible(
+                          child: Text(
+                            bottomText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5 * u,
+                              fontWeight: FontWeight.w700,
+                              shadows: _shadow,
                             ),
                           ),
-                          if (video.draft)
-                            Padding(
-                              padding: EdgeInsets.only(left: 5 * u, top: 2 * u),
-                              child: Text('12 Videos', style: label),
-                            ),
-                        ],
-                      ),
-                    ),
-                  if (video.draft)
-                    Positioned(
-                      left: 6 * u,
-                      bottom: 6 * u,
-                      child: Container(
-                        width: 18 * u,
-                        height: 18 * u,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD600),
-                          borderRadius: BorderRadius.circular(4 * u),
                         ),
-                        child: Text(
-                          'T',
-                          style: TextStyle(color: _ink, fontSize: 11 * u, fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    )
-                  else ...[
-                    Positioned(
-                      left: 6 * u,
-                      bottom: 5 * u,
-                      child: Row(
-                        children: [
-                          Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16 * u),
-                          SizedBox(width: 2 * u),
-                          Text(video.views ?? '', style: label.copyWith(fontSize: 11 * u)),
-                        ],
-                      ),
+                      ],
                     ),
-                    Positioned(
-                      right: 6 * u,
-                      bottom: 6 * u,
-                      child: LuxeCrown(size: 15 * u),
-                    ),
-                  ],
+                  ),
                 ],
-              );
-            },
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

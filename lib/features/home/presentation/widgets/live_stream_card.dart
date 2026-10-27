@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
@@ -7,9 +8,12 @@ import '../../../../core/widgets/custom_avatar.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/live_badge.dart';
 import '../../../../core/widgets/live_video_player.dart';
+import '../../../profile/domain/models/follow_relationship.dart';
+import '../../../profile/presentation/controllers/follow_controller.dart';
+import '../../../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
 import '../../domain/models/live_stream_card_model.dart';
 
-class LiveStreamCard extends StatelessWidget {
+class LiveStreamCard extends ConsumerWidget {
   final LiveStreamCardModel stream;
   final VoidCallback? onCardTap;
   final VoidCallback? onFollowTap;
@@ -17,7 +21,7 @@ class LiveStreamCard extends StatelessWidget {
   const LiveStreamCard({super.key, required this.stream, this.onCardTap, this.onFollowTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cardHeight = (context.screenHeight * 0.58).clamp(380.0, 560.0);
 
     final card = RepaintBoundary(
@@ -158,37 +162,8 @@ class LiveStreamCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
 
-                        // Follow Action Button (Pink to Blue gradient pill)
-                        GestureDetector(
-                          onTap: onFollowTap,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(24),
-                              gradient: stream.isFollowing
-                                  ? const LinearGradient(colors: [Color(0x55FFFFFF), Color(0x33FFFFFF)])
-                                  : AppColors.followButtonGradient,
-                              boxShadow: stream.isFollowing
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: AppColors.primaryYellow.withValues(alpha: 0.35),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                            ),
-                            child: Text(
-                              stream.isFollowing ? 'Following' : 'Follow',
-                              style: AppTextStyles.buttonSmall.copyWith(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: stream.isFollowing ? Colors.white : AppColors.textOnPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
+                        // Follow Action Button (Pink to Blue gradient pill or responsive Follow/Requested/Following)
+                        _buildFollowButton(context, ref),
                       ],
                     ),
                   ),
@@ -259,4 +234,123 @@ class LiveStreamCard extends StatelessWidget {
     }
     return Container(color: AppColors.surfaceColor);
   }
+
+  Widget _buildFollowButton(BuildContext context, WidgetRef ref) {
+    final followMap = ref.watch(followControllerProvider);
+    final rel = followMap[stream.id] ??
+        ref.read(followControllerProvider.notifier).getRelationship(
+              stream.id,
+              defaultName: stream.streamerName,
+              defaultAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+              initialFollowers: 120400,
+              initialFollowing: stream.isFollowing,
+            );
+
+    final (label, gradient, color, textColor, border, shadow) = switch (rel.status) {
+      FollowStatus.notFollowing => (
+          'Follow',
+          AppColors.followButtonGradient,
+          null,
+          AppColors.textOnPrimary,
+          null,
+          [
+            BoxShadow(
+              color: AppColors.primaryYellow.withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+      FollowStatus.requested => (
+          'Requested',
+          null,
+          const Color(0xFF1F2839),
+          const Color(0xFFFFDF00),
+          Border.all(color: const Color(0x66FFDF00), width: 1.1),
+          null,
+        ),
+      FollowStatus.following || FollowStatus.mutual => (
+          'Following',
+          const LinearGradient(colors: [Color(0x55FFFFFF), Color(0x33FFFFFF)]),
+          null,
+          Colors.white,
+          Border.all(color: Colors.white24, width: 1.0),
+          null,
+        ),
+      FollowStatus.blocked => (
+          'Blocked',
+          null,
+          const Color(0x44FF2D55),
+          const Color(0xFFFF2D55),
+          Border.all(color: Colors.redAccent, width: 1.0),
+          null,
+        ),
+    };
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (rel.isNotFollowing) {
+          ref.read(followControllerProvider.notifier).sendFollowRequest(
+                stream.id,
+                targetName: stream.streamerName,
+                targetAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        } else if (rel.isRequested) {
+          ref.read(followControllerProvider.notifier).cancelFollowRequest(
+                stream.id,
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        } else if (rel.isFollowingOrMutual) {
+          InstagramFollowActionsSheet.show(
+            context,
+            relationship: rel,
+            streamerId: stream.id,
+          );
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: gradient,
+          color: color,
+          border: border,
+          boxShadow: shadow,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: AppTextStyles.buttonSmall.copyWith(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
+

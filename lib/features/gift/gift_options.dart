@@ -37,6 +37,7 @@ class GiftItem {
   final int diamonds;
   final String category;
   final String tagline;
+  final bool isSceneArt;
   final GiftAnimationType? animationTypeOverride;
 
   const GiftItem({
@@ -47,6 +48,7 @@ class GiftItem {
     required this.diamonds,
     this.category = 'Popular',
     this.tagline = '',
+    this.isSceneArt = false,
     this.animationTypeOverride,
   });
 
@@ -177,6 +179,7 @@ class GiftItem {
     int? diamonds,
     String? category,
     String? tagline,
+    bool? isSceneArt,
     GiftAnimationType? animationTypeOverride,
   }) {
     return GiftItem(
@@ -187,6 +190,7 @@ class GiftItem {
       diamonds: diamonds ?? this.diamonds,
       category: category ?? this.category,
       tagline: tagline ?? this.tagline,
+      isSceneArt: isSceneArt ?? this.isSceneArt,
       animationTypeOverride: animationTypeOverride ?? this.animationTypeOverride,
     );
   }
@@ -200,6 +204,7 @@ class GiftItem {
       'diamonds': diamonds,
       'category': category,
       'tagline': tagline,
+      'isSceneArt': isSceneArt,
     };
   }
 
@@ -212,6 +217,7 @@ class GiftItem {
       diamonds: map['diamonds'] as int,
       category: (map['category'] as String?) ?? 'Popular',
       tagline: (map['tagline'] as String?) ?? '',
+      isSceneArt: (map['isSceneArt'] as bool?) ?? false,
     );
   }
 
@@ -421,23 +427,29 @@ class CoinPackOption {
   final int coins;
   final String price;
   final bool isPopular;
+  final String? badge;
   final String bonus;
 
   const CoinPackOption({
     required this.coins,
     required this.price,
     this.isPopular = false,
+    this.badge,
     this.bonus = '',
   });
 
   static const List<CoinPackOption> standardPacks = [
-    CoinPackOption(coins: 70, price: '₹49'),
-    CoinPackOption(coins: 350, price: '₹249', isPopular: true, bonus: '+25 Bonus'),
-    CoinPackOption(coins: 700, price: '₹499', bonus: '+60 Bonus'),
-    CoinPackOption(coins: 1750, price: '₹999', bonus: '+200 Bonus'),
-    CoinPackOption(coins: 3500, price: '₹1,999', bonus: '+500 Bonus'),
-    CoinPackOption(coins: 7000, price: '₹3,899', bonus: '+1,200 Bonus'),
-    CoinPackOption(coins: 15000, price: '₹7,999', bonus: '+3,000 Bonus'),
+    CoinPackOption(coins: 100, price: '₹20'),
+    CoinPackOption(coins: 300, price: '₹60'),
+    CoinPackOption(coins: 500, price: '₹100'),
+    CoinPackOption(coins: 1000, price: '₹200', isPopular: true, badge: 'Popular'),
+    CoinPackOption(coins: 2000, price: '₹400'),
+    CoinPackOption(coins: 3000, price: '₹600'),
+    CoinPackOption(coins: 4000, price: '₹800'),
+    CoinPackOption(coins: 5000, price: '₹1,000', isPopular: true, badge: 'Best Value'),
+    CoinPackOption(coins: 10000, price: '₹2,000'),
+    CoinPackOption(coins: 15000, price: '₹3,000'),
+    CoinPackOption(coins: 20000, price: '₹4,000', isPopular: true, badge: 'VIP Deal'),
   ];
 }
 

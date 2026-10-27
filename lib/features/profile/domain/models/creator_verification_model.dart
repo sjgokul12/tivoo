@@ -1,8 +1,10 @@
-/// Tiki Creator Verification Tiers:
-/// - White Tiki (⚪): Beginner Creator tier awarded after profile & authentic video conditions.
-/// - Gray Tiki (🔘): Advanced Creator tier awarded after reaching 500+ views in 1 month.
-/// - Only Gray Tiki verified creators can create a Family Team as Leader.
+/// Tivoo Creator Verification Tiers:
+/// - White Tivoo (⚪): Beginner Creator tier awarded after profile & authentic video conditions.
+/// - Gray Tivoo (🔘): Advanced Creator tier awarded after reaching 500+ views in 1 month.
+/// - Only Gray Tivoo verified creators can create a Family Team as Leader.
 enum TikiBadgeTier { none, whiteTiki, grayTiki }
+
+typedef TivooBadgeTier = TikiBadgeTier;
 
 class CreatorVerificationModel {
   final TikiBadgeTier badgeTier;
@@ -31,6 +33,8 @@ class CreatorVerificationModel {
 
   bool get isTargetAchieved => currentViews >= targetViews;
   bool get canCreateFamily => hasGrayTiki;
+  bool get hasWhiteTivoo => hasWhiteTiki;
+  bool get hasGrayTivoo => hasGrayTiki;
 
   double get progressRatio => (currentViews / targetViews).clamp(0.0, 1.0);
 

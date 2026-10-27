@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/widgets/custom_avatar.dart';
-import 'viewer_profile_screen.dart';
+import 'user_profile_bottom_sheet.dart';
 
 /// Interactive Viewers List Bottom Sheet matching Image 2 (Screen 2):
 /// - Header: "Viewers (85,432)" with close [✕] button
@@ -36,8 +36,6 @@ class LiveStreamViewersSheet extends StatefulWidget {
 }
 
 class _LiveStreamViewersSheetState extends State<LiveStreamViewersSheet> {
-  int _selectedTab = 0; // 0 = All Viewers, 1 = Top Viewers, 2 = Recent
-
   // Viewer list data matching Image 2 Screen 2
   final List<Map<String, dynamic>> _viewers = [
     {
@@ -193,12 +191,7 @@ class _LiveStreamViewersSheetState extends State<LiveStreamViewersSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-
-            // Tabs Row: All Viewers | Top Viewers | Recent
-            _buildTabsRow(),
-
-            const SizedBox(height: 6),
+            const SizedBox(height: 14),
 
             // Viewer List
             Expanded(
@@ -214,85 +207,6 @@ class _LiveStreamViewersSheetState extends State<LiveStreamViewersSheet> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabsRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              children: [
-                _buildTabPill('All Viewers', 0),
-                _buildTabPill('Top Viewers', 1),
-                _buildTabPill('Recent', 2),
-              ],
-            ),
-          ),
-
-          // Yellow Callout tooltip pointing to Recent ("Switch to see latest viewers")
-          Positioned(
-            right: 0,
-            top: -24,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD600),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black45,
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: const Text(
-                'Switch to see latest viewers',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabPill(String title, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF1E5BFF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white60,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -319,13 +233,12 @@ class _LiveStreamViewersSheetState extends State<LiveStreamViewersSheet> {
 
     return GestureDetector(
       onTap: () {
-        // Tap on any user to open their profile matching Image 2 Step 3!
         Navigator.of(context).pop();
-        ViewerProfileScreen.open(
+        UserProfileBottomSheet.show(
           context,
-          userName: hasCrown ? '$name 👑' : name,
+          userName: name,
           avatarAsset: avatar,
-          initialFollowing: isFollowing,
+          userId: 'user_${name.toLowerCase().replaceAll(' ', '_')}',
         );
       },
       child: Container(

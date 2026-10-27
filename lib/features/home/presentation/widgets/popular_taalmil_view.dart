@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../live_stream/presentation/screens/live_stream_screen.dart';
-import '../../../pk_battle/pk_battle_live_screen.dart';
 import '../../domain/models/live_stream_card_model.dart';
 import 'home_grid_stream_card.dart';
 
@@ -38,26 +37,29 @@ class PopularTaalmilView extends StatelessWidget {
           crossAxisSpacing: gap,
           mainAxisSpacing: gap,
         ),
-        delegate: SliverChildBuilderDelegate(childCount: streams.length, (context, index) {
-          final stream = streams[index];
-          return HomeGridStreamCard(
-            stream: stream,
-            index: index,
-            onFollowTap: onFollowTap == null ? null : () => onFollowTap!(stream),
-            onTap: () => _open(context, index),
-          );
-        }),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final stream = streams[index];
+            return HomeGridStreamCard(
+              key: ValueKey(stream.id),
+              stream: stream,
+              index: index,
+              onFollowTap: onFollowTap == null ? null : () => onFollowTap!(stream),
+              onTap: () => _open(context, index),
+            );
+          },
+          childCount: streams.length,
+          addAutomaticKeepAlives: true,
+          addRepaintBoundaries: true,
+        ),
       ),
     );
   }
 
   void _open(BuildContext context, int index) {
-    final stream = streams[index];
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => stream.isPk
-            ? PkBattleLiveScreen(onBack: () => Navigator.of(context).pop())
-            : LiveStreamScreen(streams: streams, initialIndex: index),
+        builder: (context) => LiveStreamScreen(streams: streams, initialIndex: index),
       ),
     );
   }

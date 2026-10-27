@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Copied from /effects at build time (Banuba)
+/app/src/main/assets/bnb-resources/

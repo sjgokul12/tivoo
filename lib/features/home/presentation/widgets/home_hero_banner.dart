@@ -78,8 +78,6 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> with SingleTickerProvid
   ];
 
   final PageController _pages = PageController();
-  late final AnimationController _zoom = AnimationController(vsync: this, duration: const Duration(seconds: 5))
-    ..forward();
   Timer? _auto;
   int _index = 0;
 
@@ -90,21 +88,26 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> with SingleTickerProvid
       if (!_pages.hasClients) return;
       _pages.animateToPage(
         (_index + 1) % _slides.length,
-        duration: const Duration(milliseconds: 700),
+        duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOutCubic,
       );
     });
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    for (final slide in _slides) {
+      precacheImage(AssetImage(slide.image), context);
+    }
+  }
+
+  @override
   void dispose() {
     _auto?.cancel();
-    _zoom.dispose();
     _pages.dispose();
     super.dispose();
   }
-
-  double get _page => _pages.hasClients && _pages.position.haveDimensions ? (_pages.page ?? 0) : _index.toDouble();
 
   @override
   Widget build(BuildContext context) {
@@ -135,17 +138,13 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> with SingleTickerProvid
                 child: PageView.builder(
                   controller: _pages,
                   itemCount: _slides.length,
+                  physics: const BouncingScrollPhysics(),
                   onPageChanged: (i) {
                     setState(() => _index = i);
-                    _zoom.forward(from: 0);
                   },
                   itemBuilder: (_, i) => GestureDetector(
                     onTap: widget.onTap,
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([_pages, _zoom]),
-                      builder: (context, _) =>
-                          _SlideView(slide: _slides[i], offset: i - _page, zoom: i == _index ? _zoom.value : 0),
-                    ),
+                    child: _SlideView(slide: _slides[i]),
                   ),
                 ),
               ),
@@ -179,13 +178,7 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> with SingleTickerProvid
 class _SlideView extends StatelessWidget {
   final _Slide slide;
 
-  /// Distance from the centre page (-1 … 1) for the parallax.
-  final double offset;
-
-  /// Progress of the slow zoom on the active slide (0 … 1).
-  final double zoom;
-
-  const _SlideView({required this.slide, required this.offset, required this.zoom});
+  const _SlideView({required this.slide});
 
   @override
   Widget build(BuildContext context) {
@@ -193,23 +186,14 @@ class _SlideView extends StatelessWidget {
       builder: (context, c) {
         final h = c.maxHeight;
         final w = c.maxWidth;
-        final textShift = offset * w * 0.25;
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Artwork moves slower than the page (parallax) and slowly zooms in.
-            Transform.translate(
-              offset: Offset(-offset * w * 0.35, 0),
-              child: Transform.scale(
-                scale: 1.12 + zoom * 0.06,
-                child: Image.asset(
-                  slide.image,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0.6, 0),
-                  cacheWidth: 1280,
-                  errorBuilder: (_, _, _) => const ColoredBox(color: LuxeColors.bgTop),
-                ),
-              ),
+            Image.asset(
+              slide.image,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              errorBuilder: (_, _, _) => const ColoredBox(color: LuxeColors.bgTop),
             ),
             // Bottom vignette
             const DecoratedBox(
@@ -223,16 +207,13 @@ class _SlideView extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: h * 0.09 + textShift,
+              left: h * 0.09,
               top: h * 0.09,
               bottom: h * 0.09,
-              width: w * 0.56,
-              child: Opacity(
-                opacity: (1 - offset.abs() * 1.6).clamp(0.0, 1.0),
-                child: DefaultTextStyle.merge(
-                  style: const TextStyle(fontFamily: 'Poppins'),
-                  child: _Copy(slide: slide, h: h),
-                ),
+              width: w * 0.58,
+              child: DefaultTextStyle.merge(
+                style: const TextStyle(fontFamily: 'Poppins'),
+                child: _Copy(slide: slide, h: h),
               ),
             ),
           ],

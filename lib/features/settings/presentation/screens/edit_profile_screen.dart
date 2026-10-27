@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_avatar.dart';
 import '../../../../core/widgets/glow_icon_button.dart';
@@ -56,6 +57,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() => _avatarUrl = picked.path);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(source == ImageSource.gallery
+                  ? 'Selected photo from gallery'
+                  : 'Photo captured'),
+              backgroundColor: AppColors.primaryYellow,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not pick image: $e'),
+            backgroundColor: const Color(0xFFFF453A),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showAvatarPicker() {
@@ -139,9 +176,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: const Text('Gallery'),
                     onPressed: () {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Selected photo from gallery')),
-                      );
+                      _pickImage(ImageSource.gallery);
                     },
                   ),
                 ),
@@ -160,9 +195,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: const Text('Camera'),
                     onPressed: () {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Opened Camera')),
-                      );
+                      _pickImage(ImageSource.camera);
                     },
                   ),
                 ),

@@ -5,18 +5,26 @@ class AppAssets {
   static const String liveCard1 = 'assets/Image1.png';
   static const String liveCard2 = 'assets/Image2.jpg';
   static const String loginBg = 'assets/Login.png';
-  static const String video1 = 'assets/Video1.mp4';
-  static const String video2 = 'assets/Video2.mp4';
-  static const String video3 = 'assets/Video3.mp4';
-  static const String video4 = 'assets/Video4.mp4';
-  static const String video5 = 'assets/Video5.mp4';
-  static const String video6 = 'assets/video6.mp4';
+  static const String video1 = 'assets/videos/video1.mp4';
+  static const String video2 = 'assets/videos/video2.mp4';
+  static const String video3 = 'assets/videos/video3.mp4';
+  static const String video4 = 'assets/videos/video4.mp4';
+  static const String video5 = 'assets/videos/video5.mp4';
+  static const String video6 = 'assets/videos/video6.mp4';
 
   static const String status1 = 'assets/status1.jpg';
   static const String status2 = 'assets/status2.jpg';
   static const String status3 = 'assets/status3.jpg';
   static const String status4 = 'assets/status4.jpg';
   static const String status5 = 'assets/status5.jpg';
+
+  // Drafts
+  static const String draft1 = 'assets/drafts/draft1.jpg';
+  static const String draft2 = 'assets/drafts/draft2.png';
+  static const String draft3 = 'assets/drafts/draft3.jpg';
+  static const String draft4 = 'assets/drafts/draft4.jpg';
+  static const String draft5 = 'assets/drafts/draft5.jpg';
+  static const String draft6 = 'assets/drafts/draft6.jpg';
 
   // High Quality Chat Room Avatars (Matching Reference Image)
   static const String avatarDiya = 'assets/avatar_diya.jpg';
@@ -38,19 +46,27 @@ class AppAssets {
 
   // 3D Animated Gift Effects from Image 2
   static const String giftGoldenHorse = 'assets/gift_golden_horse.png';
-  static const String giftOceanWhale = 'assets/gift_ocean_whale.png';
+  static const String giftOceanWhale = 'assets/gifts/premium/ocean_whale.png';
   static const String giftAngelVehicle = 'assets/gift_angel_vehicle.png';
   static const String giftGoldenLion = 'assets/gift_golden_lion.png';
 
   // PK Battle Screen Specific Assets
   static const String pkKingdomOfStars = 'assets/pk_kingdom_of_stars.png';
   static const String pkBattleBg = 'assets/pk_battle_bg.jpg';
+  static const String pkCrossedSwords = 'assets/pk_crossed_swords.png';
   static const String luxuryGlassBg = 'assets/luxury_glass_bg.png';
 
   // 3D UI Gift & Star Icons (Matching User Reference Images 1 & 3)
   static const String giftBox3D = 'assets/gift_box_3d.png';
   static const String giftBoxBlue = 'assets/gift_box_blue.png';
   static const String goldStar3D = 'assets/gold_star_3d.png';
+  static const String glossyStar = 'assets/glossy_star.png';
+  static const String pkStarPortal = 'assets/pk_star_portal.png';
+  static const String goldenStar = 'assets/glossy_star.png';
+  static const String goldenstar = 'assets/glossy_star.png';
+  static const String juststar = 'assets/glossy_star.png';
+  static const String gstar = 'assets/glossy_star.png';
+  static const String walletIcon = 'assets/wallet icon.png';
 
   // Transparent PK score-bar gift boxes (cut out from gift_box_3d / gift_box_blue)
   static const String pkGiftRed = 'assets/pk_gift_red.png';
@@ -60,6 +76,16 @@ class AppAssets {
   // PK battle header banner (Neha · PK BATTLE · Arun) and VS emblem
   static const String pkTopBanner = 'assets/PKtop.png';
   static const String pkVsEmblem = 'assets/VS.png';
+
+  // PK Lobby / Battle covers
+  static const String pkBannerBg = 'assets/banners/banner_pk.jpg';
+  static const String pkTrophy = 'assets/pk_kingdom_of_stars.png';
+  static const String pkCoverNehaArun = 'assets/banners/banner_pk.jpg';
+  static const String pkCoverPriyaAnu = 'assets/banners/banner_pk.jpg';
+  static const String pkCoverSweetyNila = 'assets/banners/banner_pk.jpg';
+  static const String pkCoverAngelDivya = 'assets/banners/banner_pk.jpg';
+  static const String pkCoverMeenaSneha = 'assets/banners/banner_pk.jpg';
+  static const String pkCoverDiyaPriya = 'assets/banners/banner_pk.jpg';
 
   // HD gift artwork — drop transparent PNGs with these names into assets/gifts/.
   // Until a file exists, the gift's emoji is shown instead.
@@ -139,4 +165,10 @@ class AppAssets {
   static const String bannerLive = 'assets/banners/banner_live.jpg';
   static const String bannerPk = 'assets/banners/banner_pk.jpg';
   static const String bannerGifts = 'assets/banners/banner_gifts.jpg';
+
+  // Social share icons
+  static const String iconInstagram = 'assets/Instagram_icon.png';
+  static const String iconWhatsapp = 'assets/WhatsApp.png';
+  static const String iconTelegram = 'assets/telegram.jpeg';
+  static const String iconX = 'assets/X Logo.png';
 }

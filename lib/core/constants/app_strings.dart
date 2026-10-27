@@ -24,8 +24,9 @@ class AppStrings {
   static const String you = 'You';
 
   // Bottom Navigation
-  static const String navHome = 'Home';
   static const String navExplore = 'Explore';
-  static const String navActivity = 'Activity';
+  static const String navLive = 'Live';
+  static const String navActivity = 'Notifications';
   static const String navProfile = 'Profile';
+  static const String navHome = 'Explore';
 }

@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/widgets/comment_action_sheet.dart';
 import '../../../../core/widgets/custom_avatar.dart';
 import '../../domain/models/live_comment.dart';
-import 'viewer_profile_screen.dart';
+import 'user_profile_bottom_sheet.dart';
 
 /// Glassmorphic Live Chat Stream strictly matching Image 4:
 /// - Special Gift Capsule: Avatar + "Aurora_X" + "Sent a Rose 🌹 x1" with glowing amber/gold border & sparkles
 /// - Regular Chat Capsules: Avatar + Username + Message + Timestamp ("2m ago", "4m ago")
 /// - Comments float upwards towards the video
-/// - Tapping any comment or avatar opens their ViewerProfileScreen!
+/// - Tapping any comment or avatar opens their profile pop-up
+/// - Holding any comment pauses stream and allows reporting or deleting
 class LiveChatListView extends StatefulWidget {
   final List<LiveComment> comments;
+  final bool isCreator;
+  final VoidCallback? onPauseComments;
+  final VoidCallback? onResumeComments;
+  final ValueChanged<String>? onDeleteComment;
+  final ValueChanged<String>? onReportComment;
+  final ValueChanged<String>? onBlockUser;
 
   const LiveChatListView({
     super.key,
     required this.comments,
+    this.isCreator = false,
+    this.onPauseComments,
+    this.onResumeComments,
+    this.onDeleteComment,
+    this.onReportComment,
+    this.onBlockUser,
   });
 
   @override
@@ -115,7 +129,7 @@ class _LiveChatListViewState extends State<LiveChatListView> {
         controller: _scrollController,
         reverse: true, // Anchor to bottom, new comments push upwards!
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
         itemCount: displayComments.length,
         itemBuilder: (context, index) {
           final itemIndex = displayComments.length - 1 - index;
@@ -154,14 +168,24 @@ class _LiveChatListViewState extends State<LiveChatListView> {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 4),
           child: GestureDetector(
             onTap: () {
-              ViewerProfileScreen.open(
+              UserProfileBottomSheet.show(
                 context,
                 userName: comment.userName,
                 avatarAsset: avatarAsset,
-                handle: '@${comment.userName.toLowerCase()}',
+                userId: 'user_${comment.userName.toLowerCase().replaceAll(' ', '_')}',
+              );
+            },
+            onLongPress: () {
+              CommentActionSheet.show(
+                context,
+                comment: comment,
+                onPause: widget.onPauseComments,
+                onResume: widget.onResumeComments,
+                onReported: () => widget.onReportComment?.call(comment.id),
+                onBlocked: () => widget.onBlockUser?.call(comment.userName),
               );
             },
             child: isGift
@@ -306,8 +330,9 @@ class _LiveChatListViewState extends State<LiveChatListView> {
                 const SizedBox(height: 1),
                 Text(
                   comment.message,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: comment.isReported ? Colors.white54 : Colors.white,
+                    fontStyle: comment.isReported ? FontStyle.italic : FontStyle.normal,
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                   ),

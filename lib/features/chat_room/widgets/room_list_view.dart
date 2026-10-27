@@ -63,7 +63,7 @@ class _RoomListViewState extends State<RoomListView> {
           child: Row(
             children: [
               LuxeCircleButton(icon: Icons.arrow_back_ios_new_rounded, label: 'Back', size: 38, onTap: widget.onBack),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               const Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -71,7 +71,7 @@ class _RoomListViewState extends State<RoomListView> {
                   child: LuxeTivooLogo(size: 26, showTagline: false),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               const _ChatRoomBadge(),
               const Spacer(),
               LuxeCircleButton(
@@ -171,99 +171,88 @@ class _RoomRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const meta = TextStyle(color: LuxeColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w600);
-    return LuxePanel(
-      radius: 20,
-      glow: 6,
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: Image.asset(
-              room.avatar,
-              width: 68,
-              height: 68,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
+    return GestureDetector(
+      onTap: onJoin,
+      child: LuxePanel(
+        radius: 20,
+        glow: 6,
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.asset(
+                room.avatar,
                 width: 68,
                 height: 68,
-                color: LuxeColors.panel,
-                child: const Icon(Icons.person_rounded, color: Colors.white30, size: 34),
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  width: 68,
+                  height: 68,
+                  color: LuxeColors.panel,
+                  child: const Icon(Icons.person_rounded, color: Colors.white30, size: 34),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        room.hostName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    if (room.isVerified) ...[
-                      const SizedBox(width: 4),
-                      const Icon(Icons.verified_rounded, color: LuxeColors.gold, size: 15),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  room.tagline,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: LuxeColors.textMuted, fontSize: 12.5),
-                ),
-                const SizedBox(height: 6),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
                     children: [
-                      GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 11),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF8A3D), size: 14),
-                      Text(' ${room.viewers}', style: meta.copyWith(color: LuxeColors.goldLight)),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.person_rounded, color: LuxeColors.textDim, size: 14),
-                      Text(' ${room.capacity}', style: meta),
+                      Flexible(
+                        child: Text(
+                          room.hostName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      if (room.isVerified) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified_rounded, color: LuxeColors.gold, size: 15),
+                      ],
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Semantics(
-            button: true,
-            label: 'Join ${room.hostName}',
-            child: GestureDetector(
-              onTap: onJoin,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: LuxeDecor.goldButton(radius: 18),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(room.isVideo ? Icons.videocam_rounded : Icons.mic_rounded, color: kGoldInk, size: 14),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Join',
-                      style: TextStyle(color: kGoldInk, fontSize: 13, fontWeight: FontWeight.w900),
+                  const SizedBox(height: 2),
+                  Text(
+                    room.tagline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: LuxeColors.textMuted, fontSize: 12.5),
+                  ),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 11),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF8A3D), size: 14),
+                        Text(' ${room.viewers}', style: meta.copyWith(color: LuxeColors.goldLight)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.person_rounded, color: LuxeColors.textDim, size: 14),
+                        Text(' ${room.capacity}', style: meta),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: LuxeDecor.goldButton(radius: 18),
+              child: const Text(
+                'Watch',
+                style: TextStyle(color: kGoldInk, fontSize: 13, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/luxe_theme.dart';
-import '../../../pk_battle/pk_battle_live_screen.dart';
+import '../../../pk_battle/lobby/pk_home_screen.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_hero_banner.dart';
 import '../widgets/popular_taalmil_view.dart';
+import '../../../broadcast/presentation/screens/go_live_broadcast_screen.dart';
 import '../../../chat_room/chat_room_party_screen.dart';
+import '../../../wallet/presentation/screens/wallet_screen.dart';
 
 /// Home: header, hero banner, category pills (Live / PK Battle / Chat Room / Popular)
 /// and the 2-column grid of live cards. PK Battle and Chat Room open full screen.
@@ -26,7 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (index == _pk) {
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (context) => PkBattleLiveScreen(onBack: () => Navigator.of(context).pop())));
+      ).push(MaterialPageRoute(builder: (context) => const PkHomeScreen()));
       return;
     }
     if (index == _chat) {
@@ -42,6 +44,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 1)));
+  }
+
+  void _openGoLive() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const GoLiveBroadcastScreen()),
+    );
   }
 
   @override
@@ -67,8 +75,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: HomeHeader(
                       notificationCount: 5,
                       onSearchTap: () => _toast('Search people, live streams & tags'),
-                      onFavoritesTap: () => _toast('Favorite streamers'),
+                      onWalletTap: () => WalletScreen.push(context),
                       onNotificationsTap: () => _toast('Notifications'),
+                      onGoLiveTap: _openGoLive,
                     ),
                   ),
                 ),

@@ -1,96 +1,280 @@
-// PK battle live screen: state, timers and layout.
+// PK battle live screen: vertical swipe scrolling feed, state, timers and layout.
 
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_assets.dart';
 import '../../core/services/reel_video_manager.dart';
+import '../../core/utils/responsive.dart';
+import '../../core/widgets/comment_action_sheet.dart';
+import '../gift/gift.dart' as store;
+import '../home/domain/models/live_stream_card_model.dart';
 import '../home/presentation/widgets/live_tools_bottom_sheet.dart';
+import '../home/presentation/widgets/streamer_id_profile_sheet.dart';
 import '../live_stream/domain/models/gift_item.dart';
+import '../live_stream/domain/models/live_comment.dart';
 import '../live_stream/presentation/widgets/active_gift_animation_overlay.dart';
 import '../live_stream/presentation/widgets/floating_hearts_overlay.dart';
 import '../live_stream/presentation/widgets/live_stream_viewers_sheet.dart';
-import '../live_stream/presentation/widgets/viewer_profile_screen.dart';
-import '../gift/gift.dart' as store;
+import '../live_stream/presentation/widgets/user_profile_bottom_sheet.dart';
+import '../profile/presentation/controllers/follow_controller.dart';
+import '../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
 import 'commands/pk_chat_controller.dart';
 import 'commands/pk_command_section.dart';
+import 'core/pk_common_widgets.dart';
+import 'core/pk_feed_data.dart';
 import 'core/pk_models.dart';
-import 'core/pk_theme.dart';
+import 'core/pk_support.dart';
 import 'gifts/pk_gift_panel.dart';
-import 'gifts/pk_hearts_lane.dart';
+import 'lobby/pk_home_screen.dart';
 import 'overlays/pk_winner_overlay.dart';
+import 'sheets/pk_explore_sheet.dart';
 import 'sheets/pk_match_flow.dart';
 import 'sheets/pk_sheets.dart';
-import 'stage/pk_header.dart';
 import 'stage/pk_score_bar.dart';
-import 'stage/pk_team_row.dart';
+import 'stage/pk_stage.dart';
+import 'stage/pk_top_gifters.dart';
 import 'stage/pk_video_arena.dart';
 
-/// Live PK battle between two hosts: split video, clash score bar, command section
-/// (live chat), gifting and rising hearts. Each UI section lives in its own folder.
-class PkBattleLiveScreen extends StatefulWidget {
+/// Live PK battle feed with smooth vertical swipe scrolling like a live video feed.
+/// Swiping up or down transitions to the next or previous mock PK battle with
+/// distinct streamers, videos, avatars, scores, viewer counts, and comments.
+class PkBattleLiveScreen extends ConsumerStatefulWidget {
   final VoidCallback? onBack;
 
-  const PkBattleLiveScreen({super.key, this.onBack});
+  /// The initial battle to show (defaults to Neha vs Arun).
+  final PkMatch match;
+
+  /// Whether the current user is host / creator of this battle.
+  final bool isCreator;
+
+  const PkBattleLiveScreen({super.key, this.onBack, this.match = PkDemoData.featured, this.isCreator = false});
 
   @override
-  State<PkBattleLiveScreen> createState() => _PkBattleLiveScreenState();
+  ConsumerState<PkBattleLiveScreen> createState() => _PkBattleLiveScreenState();
 }
 
-class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
-  final GlobalKey<ActiveGiftAnimationOverlayState> _giftOverlayKey = GlobalKey();
-  final GlobalKey<FloatingHeartsOverlayState> _floatingHeartsKey = GlobalKey();
-  final GlobalKey<PkHeartsLaneState> _heartsLaneKey = GlobalKey();
-  final GlobalKey _headerKey = GlobalKey();
-  final ValueNotifier<int> _secondsRemaining = ValueNotifier<int>(106); // 01:46
-
-  final PkHost _left = PkDemoData.leftHost;
-  PkHost _right = PkDemoData.rightHost;
-  int _leftScore = 7556900;
-  int _rightScore = 483400;
-  PkSettings _settings = const PkSettings();
-  bool _isBattleEnded = false;
-  bool _isFollowingLeft = false;
-  bool _isFollowingRight = false;
-  PkGiftEvent _leftGift = PkDemoData.leftGift;
-  PkGiftEvent _rightGift = PkDemoData.rightGift;
-  int _giftSeq = 0;
-
-  late final PkChatController _chat = PkChatController(hostName: _left.name);
-  Timer? _countdownTimer;
-  Timer? _commentTimer;
-
-  // ---------------------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------------------
+class _PkBattleLiveScreenState extends ConsumerState<PkBattleLiveScreen> {
+  late final List<PkBattleFeedItem> _feed;
+  late final PageController _pageController;
+  late int _currentPage;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // Free hardware decoders used by the feed so the two PK streams play smoothly.
-      ReelVideoManager.instance.pauseAll();
-      _startCountdown();
-      _commentTimer = Timer.periodic(const Duration(seconds: 3), (_) => _simulateAudienceComment());
-    });
+    _feed = List.of(PkFeedData.feedBattles);
+    final matchIndex = _feed.indexWhere((item) => item.match.id == widget.match.id);
+    if (matchIndex != -1) {
+      _currentPage = matchIndex;
+    } else {
+      _feed.insert(0, PkBattleFeedItem.fromMatch(widget.match));
+      _currentPage = 0;
+    }
+    _pageController = PageController(initialPage: _currentPage);
   }
 
   @override
   void dispose() {
-    ReelVideoManager.instance.pauseAll();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    if (_currentPage != index) {
+      setState(() => _currentPage = index);
+    }
+  }
+
+  void _openExploreSheet() {
+    final currentMatch = _feed[_currentPage].match;
+    PkExploreSheet.show(
+      context,
+      currentMatchId: currentMatch.id,
+      onSelectBattle: (newBattle) {
+        final foundIndex = _feed.indexWhere((f) => f.match.id == newBattle.id);
+        if (foundIndex != -1) {
+          _pageController.animateToPage(
+            foundIndex,
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOut,
+          );
+        } else {
+          setState(() {
+            _feed.add(PkBattleFeedItem.fromMatch(newBattle));
+          });
+          _pageController.animateToPage(
+            _feed.length - 1,
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOut,
+          );
+        }
+      },
+    );
+  }
+
+  void _goBack() {
+    if (widget.onBack != null) {
+      widget.onBack!();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const PkHomeScreen()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF131766),
+      resizeToAvoidBottomInset: false,
+      body: PageView.builder(
+        scrollDirection: Axis.vertical,
+        controller: _pageController,
+        physics: const _SmoothPagePhysics(),
+        // Build the neighbouring battle ahead of time so it slides in without a hitch.
+        allowImplicitScrolling: true,
+        itemCount: _feed.length,
+        onPageChanged: _onPageChanged,
+        itemBuilder: (context, index) {
+          return RepaintBoundary(
+            child: _PkBattlePageView(
+              key: ValueKey('feed_${_feed[index].match.id}'),
+              feedItem: _feed[index],
+              isActive: index == _currentPage,
+              isCreator: widget.isCreator,
+              onBack: _goBack,
+              onExplorePk: _openExploreSheet,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Page snapping with a softer, nearly critically damped spring: pages glide into place
+/// instead of snapping, and there's no overscroll bounce at the ends.
+class _SmoothPagePhysics extends PageScrollPhysics {
+  const _SmoothPagePhysics({super.parent = const ClampingScrollPhysics()});
+
+  @override
+  _SmoothPagePhysics applyTo(ScrollPhysics? ancestor) => _SmoothPagePhysics(parent: buildParent(ancestor));
+
+  @override
+  SpringDescription get spring => const SpringDescription(mass: 0.8, stiffness: 110, damping: 19);
+}
+
+/// Single interactive PK battle page inside the vertical feed.
+class _PkBattlePageView extends ConsumerStatefulWidget {
+  final PkBattleFeedItem feedItem;
+  final bool isActive;
+  final bool isCreator;
+  final VoidCallback onBack;
+  final VoidCallback onExplorePk;
+
+  const _PkBattlePageView({
+    super.key,
+    required this.feedItem,
+    required this.isActive,
+    required this.isCreator,
+    required this.onBack,
+    required this.onExplorePk,
+  });
+
+  @override
+  ConsumerState<_PkBattlePageView> createState() => _PkBattlePageViewState();
+}
+
+class _PkBattlePageViewState extends ConsumerState<_PkBattlePageView> {
+  final GlobalKey<ActiveGiftAnimationOverlayState> _giftOverlayKey = GlobalKey();
+  final GlobalKey<FloatingHeartsOverlayState> _floatingHeartsKey = GlobalKey();
+  final GlobalKey _arenaKey = GlobalKey();
+
+  late final ValueNotifier<int> _secondsRemaining;
+  late PkHost _left;
+  late PkHost _right;
+  late int _leftScore;
+  late int _rightScore;
+  late PkGiftEvent _leftGift;
+  late PkGiftEvent _rightGift;
+  late final Map<String, PkGifter> _leftGifters;
+  late final Map<String, PkGifter> _rightGifters;
+  late final PkChatController _chat;
+
+  PkSettings _settings = const PkSettings();
+
+  /// The host this viewer supports: their comments are tinted and gifts go straight to them.
+  bool _supportLeft = true;
+  PkHost get _supported => _supportLeft ? _left : _right;
+  bool _isBattleEnded = false;
+  int _giftSeq = 0;
+  bool _showVs = true;
+
+  Timer? _countdownTimer;
+  Timer? _commentTimer;
+  Timer? _vsTimer;
+
+  static const _vsDuration = Duration(seconds: 4);
+
+  @override
+  void initState() {
+    super.initState();
+    _left = widget.feedItem.match.left;
+    _right = widget.feedItem.match.right;
+    _leftScore = widget.feedItem.match.leftScore;
+    _rightScore = widget.feedItem.match.rightScore;
+    _leftGift = widget.feedItem.leftGift;
+    _rightGift = widget.feedItem.rightGift;
+    _secondsRemaining = ValueNotifier<int>(widget.feedItem.match.secondsLeft);
+    _leftGifters = {for (final g in widget.feedItem.leftGifters) g.name: g};
+    _rightGifters = {for (final g in widget.feedItem.rightGifters) g.name: g};
+    _chat = PkChatController(
+      hostName: _left.name,
+      initialComments: widget.feedItem.initialComments,
+      commentPool: widget.feedItem.commentPool,
+    );
+
+    if (widget.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ReelVideoManager.instance.pauseAll();
+        _startCountdown();
+        _flashVs();
+        _startCommentTimer();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PkBattlePageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        ReelVideoManager.instance.pauseAll();
+        _startCountdown();
+        _startCommentTimer();
+        _flashVs();
+      } else {
+        _countdownTimer?.cancel();
+        _commentTimer?.cancel();
+        _vsTimer?.cancel();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
     _countdownTimer?.cancel();
     _commentTimer?.cancel();
+    _vsTimer?.cancel();
     _chat.dispose();
     _secondsRemaining.dispose();
     super.dispose();
   }
-
-  // ---------------------------------------------------------------------------
-  // Battle state
-  // ---------------------------------------------------------------------------
 
   void _startCountdown() {
     _countdownTimer?.cancel();
@@ -103,51 +287,71 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
     });
   }
 
+  void _startCommentTimer() {
+    _commentTimer?.cancel();
+    _commentTimer = Timer.periodic(const Duration(seconds: 3), (_) => _simulateAudienceComment());
+  }
+
+  void _flashVs() {
+    _vsTimer?.cancel();
+    if (!_showVs) setState(() => _showVs = true);
+    _vsTimer = Timer(_vsDuration, () {
+      if (mounted) setState(() => _showVs = false);
+    });
+  }
+
   void _endBattle() {
     _countdownTimer?.cancel();
     _giftOverlayKey.currentState?.clear();
     setState(() => _isBattleEnded = true);
   }
 
-  /// Starts a fresh round, optionally against a new opponent.
   void _restartBattle({PkHost? opponent}) {
     setState(() {
       if (opponent != null) _right = opponent;
-      _leftScore = 12340;
-      _rightScore = 9870;
+      _leftScore = 0;
+      _rightScore = 0;
       _isBattleEnded = false;
       _secondsRemaining.value = _settings.durationSeconds;
     });
     _startCountdown();
+    _flashVs();
   }
-
-  void _addScore({required bool toLeft, required int points}) {
-    setState(() => toLeft ? _leftScore += points : _rightScore += points);
-  }
-
-  void _goBack() {
-    if (widget.onBack != null) {
-      widget.onBack!();
-    } else {
-      Navigator.of(context).maybePop();
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Chat
-  // ---------------------------------------------------------------------------
 
   void _simulateAudienceComment() {
-    if (!mounted || _isBattleEnded) return;
+    if (!mounted || _isBattleEnded || !widget.isActive) return;
     final c = _chat.addAudienceComment();
+    if (c == null) return;
     setState(() {
-      _leftScore += c.isGift ? 120 : 35;
-      _rightScore += c.isGift ? 90 : 25;
-      // Audience gifts show as a pill on the video (alternating hosts); full animations
-      // play only when the user sends a gift.
       final pill = PkGiftEvent.fromChatMessage(id: _giftSeq, sender: c.name, avatar: c.avatar, message: c.message);
-      if (pill != null) _showGiftPill(pill, toLeft: _giftSeq.isEven);
+      if (pill != null) {
+        final toLeft = _giftSeq.isEven;
+        final stars = (PkDemoData.giftValues[pill.giftName] ?? 10) * pill.count;
+        if (toLeft) {
+          _leftScore += stars;
+        } else {
+          _rightScore += stars;
+        }
+        _showGiftPill(pill, toLeft: toLeft);
+        _recordGift(c.name, c.avatar, stars, toLeft: toLeft);
+      }
     });
+  }
+
+  void _handleHoldComment(LiveComment comment) {
+    CommentActionSheet.show(
+      context,
+      comment: comment,
+      onPause: () => _chat.pause(),
+      onResume: () => _chat.resume(),
+      onReported: () => _chat.reportComment(comment.id),
+      onBlocked: () => _chat.blockUser(comment.userName),
+    );
+  }
+
+  void _recordGift(String name, String avatar, int stars, {required bool toLeft}) {
+    final gifters = toLeft ? _leftGifters : _rightGifters;
+    gifters[name] = (gifters[name] ?? PkGifter(name: name, avatar: avatar, total: 0)).add(stars);
   }
 
   void _showGiftPill(PkGiftEvent pill, {required bool toLeft}) {
@@ -157,28 +361,37 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
 
   void _sendComment(String text) {
     _chat.add(userName: 'You', avatar: AppAssets.status5, message: text);
-    _addScore(toLeft: true, points: 25);
     _floatingHeartsKey.currentState
-      ?..addHeart(toLeft: true)
-      ..addHeart(toLeft: true);
+      ?..addHeart(toLeft: _supportLeft)
+      ..addHeart(toLeft: _supportLeft);
   }
 
-  // ---------------------------------------------------------------------------
-  // Gifts & likes
-  // ---------------------------------------------------------------------------
-
+  /// Gifts always go to the supported host (no recipient picker).
   void _openGiftSheet() {
+    final to = _supported.name;
     store.GiftBottomSheet.show(
       context,
-      (gift) => _sendGift(_playable(gift), 1, _left.name),
-      recipients: [_left.name, _right.name],
-      initialRecipient: _left.name,
-      onGiftWithQuantitySelected: (gift, quantity) => _sendGift(_playable(gift), quantity, _left.name),
-      onGiftWithRecipientSelected: (gift, quantity, recipient) => _sendGift(_playable(gift), quantity, recipient),
+      (gift) => _sendGift(_playable(gift), 1, to),
+      recipients: [to],
+      initialRecipient: to,
+      onGiftWithRecipientSelected: (gift, quantity, _) => _sendGift(_playable(gift), quantity, to),
     );
   }
 
-  /// Gifts that have a dedicated 3D animation (flapping wings, rocket flight, ...).
+  void _support(bool isLeft) {
+    if (_supportLeft == isLeft) return;
+    HapticFeedback.selectionClick();
+    setState(() => _supportLeft = isLeft);
+  }
+
+  /// Tapping the other host's video asks to switch support to them.
+  Future<void> _onHostCardTap(bool isLeft) async {
+    if (isLeft == _supportLeft) return;
+    final host = isLeft ? _left : _right;
+    final ok = await PkSwitchSupportDialog.show(context, host: host, color: pkSideColor(isLeft));
+    if (ok == true && mounted) _support(isLeft);
+  }
+
   static const _animatedGiftIds = {
     'Royal Crown': 'p3d_royal_crown',
     'Angel Vehicle': 'p3d_angel_vehicle',
@@ -189,7 +402,6 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
     'Diamond Wings': 'p3d_diamond_wings',
   };
 
-  /// Gift store item → the animation overlay's gift model (store artwork, 3D animation).
   GiftItem _playable(store.GiftItem gift) => GiftItem(
     id: _animatedGiftIds[gift.name] ?? gift.id,
     name: gift.name,
@@ -207,8 +419,7 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
       isGift: true,
     );
     setState(() {
-      final points = gift.diamonds * 15 * quantity; // PKBattleGiftData.calculatePkPoints
-      toLeft ? _leftScore += points : _rightScore += points;
+      toLeft ? _leftScore += gift.diamonds * 15 * quantity : _rightScore += gift.diamonds * 15 * quantity;
       _showGiftPill(
         PkGiftEvent(
           id: _giftSeq,
@@ -221,73 +432,164 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
         ),
         toLeft: toLeft,
       );
+      _recordGift('You', AppAssets.status5, gift.diamonds * quantity, toLeft: toLeft);
     });
-    _giftOverlayKey.currentState?.playGift(
-      gift,
-      senderName: 'You',
-      count: quantity,
-      toLeft: toLeft,
-      recipient: recipient,
-      target: _hostAvatarPosition(toLeft),
-    );
-    // Hearts fly on the side of the host that received the gift.
+
+    final totalCost = gift.diamonds * quantity;
+    void showDetails() {
+      if (!mounted) return;
+      store.GiftBalanceDetailsDialog.show(
+        context: context,
+        gift: gift,
+        quantity: quantity,
+        recipient: recipient,
+        deductedStars: totalCost,
+        onSendMore: _openGiftSheet,
+      );
+    }
+
+    if (_giftOverlayKey.currentState != null) {
+      _giftOverlayKey.currentState?.playGift(
+        gift,
+        senderName: 'You',
+        count: quantity,
+        toLeft: toLeft,
+        recipient: recipient,
+        target: _hostVideoPosition(toLeft),
+        onComplete: showDetails,
+      );
+    } else {
+      Future.delayed(const Duration(milliseconds: 1500), showDetails);
+    }
     _floatingHeartsKey.currentState?.addHeart(toLeft: toLeft);
   }
 
-  /// Screen position of a host's profile photo in the header (where gifts fly to).
-  Offset? _hostAvatarPosition(bool isLeft) {
-    final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+  Offset? _hostVideoPosition(bool isLeft) {
+    final box = _arenaKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return null;
-    return box.localToGlobal(PkHeader.avatarCenter(isLeft: isLeft, width: box.size.width));
+    return box.localToGlobal(Offset(box.size.width * (isLeft ? 0.25 : 0.75), box.size.height * 0.5));
   }
 
-  /// Double-tap on a stream likes that host.
-  void _onArenaDoubleTap(TapDownDetails details, double width) {
-    final toLeft = details.localPosition.dx < width / 2;
-    _addScore(toLeft: toLeft, points: 50);
-    _floatingHeartsKey.currentState?.addHeart(toLeft: toLeft);
-    if (toLeft) _heartsLaneKey.currentState?.spawn(speed: 1.2);
-  }
-
-  /// Heart button / Like tile: burst of rising hearts and a small score boost.
-  void _onLike() {
-    _heartsLaneKey.currentState?.burst();
-    _addScore(toLeft: true, points: 20);
-    _floatingHeartsKey.currentState?.addHeart(toLeft: true);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Header actions
-  // ---------------------------------------------------------------------------
-
-  void _toggleFollow(bool isLeft) {
-    setState(() => isLeft ? _isFollowingLeft = !_isFollowingLeft : _isFollowingRight = !_isFollowingRight);
+  void _handleFollowHost(bool isLeft) {
     final host = isLeft ? _left : _right;
-    final following = isLeft ? _isFollowingLeft : _isFollowingRight;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(following ? 'Now following ${host.name} ${isLeft ? '❤️' : '💙'}' : 'Unfollowed ${host.name}'),
-        duration: const Duration(seconds: 1),
-        backgroundColor: PkColors.side(isLeft),
-      ),
-    );
+    final hostId = 'host_${host.name.toLowerCase().replaceAll(' ', '_')}';
+    final followMap = ref.read(followControllerProvider);
+    final rel =
+        followMap[hostId] ??
+        ref
+            .read(followControllerProvider.notifier)
+            .getRelationship(
+              hostId,
+              defaultName: host.name,
+              defaultAvatar: host.avatarAsset,
+              initialFollowers: isLeft ? 120400 : 98700,
+            );
+
+    if (rel.isNotFollowing) {
+      _support(isLeft); // following a host makes them the one you support
+      ref
+          .read(followControllerProvider.notifier)
+          .sendFollowRequest(
+            hostId,
+            targetName: host.name,
+            targetAvatar: host.avatarAsset,
+            initialFollowers: isLeft ? 120400 : 98700,
+            onStatusNotify: (msg) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(msg),
+                  backgroundColor: const Color(0xFF192233),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          );
+    } else if (rel.isRequested) {
+      InstagramFollowActionsSheet.showRequestedSheet(
+        context,
+        relationship: rel,
+        streamerId: hostId,
+        onCancelRequest: () {
+          ref
+              .read(followControllerProvider.notifier)
+              .cancelFollowRequest(
+                hostId,
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        },
+      );
+    } else if (rel.isFollowingOrMutual) {
+      InstagramFollowActionsSheet.show(context, relationship: rel, streamerId: hostId);
+    } else if (rel.isBlocked) {
+      ref
+          .read(followControllerProvider.notifier)
+          .unblockUser(
+            hostId,
+            onStatusNotify: (msg) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(msg),
+                  backgroundColor: const Color(0xFF192233),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          );
+    }
   }
 
   void _openHostProfile(bool isLeft) {
     final host = isLeft ? _left : _right;
-    ViewerProfileScreen.open(
-      context,
-      userName: host.name,
-      avatarAsset: host.avatarAsset,
-      handle: host.handle.isEmpty ? null : host.handle,
-      bio: host.bio.isEmpty ? null : host.bio,
-      followersCount: host.likes,
+    final hostId = 'host_${host.name.toLowerCase().replaceAll(' ', '_')}';
+    final followMap = ref.read(followControllerProvider);
+    final rel =
+        followMap[hostId] ??
+        ref
+            .read(followControllerProvider.notifier)
+            .getRelationship(
+              hostId,
+              defaultName: host.name,
+              defaultAvatar: host.avatarAsset,
+              initialFollowers: isLeft ? 120400 : 98700,
+            );
+
+    final streamModel = LiveStreamCardModel(
+      id: hostId,
+      userId: host.name.toLowerCase().replaceAll(' ', '_'),
+      streamerName: host.name,
+      streamerBio: host.bio.isNotEmpty ? host.bio : '✨ Live Stream Host | PK Champion ✨',
+      streamerAssetPath: host.avatarAsset,
+      viewersCount: host.viewers,
+      diamondsCount: '124.8K',
+      category: 'PK Battle',
+      isFollowing: rel.isFollowingOrMutual,
+      videoAssetPath: host.videoAsset,
+      isPk: true,
     );
+    StreamerIdProfileSheet.show(context, stream: streamModel);
   }
 
-  // ---------------------------------------------------------------------------
-  // Sheets
-  // ---------------------------------------------------------------------------
+  void _openUserProfile(String name, String? avatar) {
+    final userId = 'user_${name.toLowerCase().replaceAll(' ', '_')}';
+    UserProfileBottomSheet.show(
+      context,
+      userName: name,
+      avatarAsset: avatar ?? AppAssets.status4,
+      userId: userId,
+      onSendGiftTap: _openGiftSheet,
+    );
+  }
 
   void _openPkSettings() {
     PkSheets.showSettings(
@@ -343,17 +645,39 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
-    // Size the video from the height left after the status / navigation bars.
-    final padding = MediaQuery.paddingOf(context);
-    final usableHeight = MediaQuery.sizeOf(context).height - padding.top - padding.bottom;
-    final videoHeight = (usableHeight * 0.36).clamp(220.0, 400.0);
+    final isKeyboardOpen = context.viewInsets.bottom > 50;
+    final usableHeight = context.screenHeight - context.padding.top - context.padding.bottom;
+    final availableHeight = isKeyboardOpen ? (usableHeight - context.viewInsets.bottom) : usableHeight;
+    final stageHeight = isKeyboardOpen
+        ? (availableHeight * 0.28).clamp(90.0, 260.0)
+        : (context.screenWidth * 1.05).clamp(availableHeight * 0.44, availableHeight * 0.53);
     final leftWins = _leftScore >= _rightScore;
+
+    final leftId = 'host_${_left.name.toLowerCase().replaceAll(' ', '_')}';
+    final rightId = 'host_${_right.name.toLowerCase().replaceAll(' ', '_')}';
+    final followMap = ref.watch(followControllerProvider);
+    final leftRel =
+        followMap[leftId] ??
+        ref
+            .read(followControllerProvider.notifier)
+            .getRelationship(
+              leftId,
+              defaultName: _left.name,
+              defaultAvatar: _left.avatarAsset,
+              initialFollowers: 120400,
+            );
+    final rightRel =
+        followMap[rightId] ??
+        ref
+            .read(followControllerProvider.notifier)
+            .getRelationship(
+              rightId,
+              defaultName: _right.name,
+              defaultAvatar: _right.avatarAsset,
+              initialFollowers: 98700,
+            );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -364,93 +688,128 @@ class _PkBattleLiveScreenState extends State<PkBattleLiveScreen> {
         child: FloatingHeartsOverlay(
           key: _floatingHeartsKey,
           alignLeft: true,
-          child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: PkColors.background,
-            body: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [PkColors.backgroundTop, PkColors.background],
+          child: Stack(
+            children: [
+              const Positioned.fill(child: PkBackdrop()),
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 2),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutQuad,
+                      height: stageHeight,
+                      child: PkStage(
+                        showHeader: !isKeyboardOpen,
+                        onBack: widget.onBack,
+                        onEmblemTap: () => PkSheets.showRules(context),
+                        onExplorePk: widget.onExplorePk,
+                        left: _left,
+                        right: _right,
+                        isFollowingLeft: leftRel.isFollowingOrMutual,
+                        isFollowingRight: rightRel.isFollowingOrMutual,
+                        isRequestedLeft: leftRel.isRequested,
+                        isRequestedRight: rightRel.isRequested,
+                        leftScore: _leftScore,
+                        rightScore: _rightScore,
+                        onFollowTap: _handleFollowHost,
+                        onHostTap: _openHostProfile,
+                        arena: LayoutBuilder(
+                          builder: (context, constraints) => PkVideoArena(
+                            key: _arenaKey,
+                            left: _left,
+                            right: _right,
+                            leftGift: _leftGift,
+                            rightGift: _rightGift,
+                            showVs: _showVs,
+                            isPlaying: widget.isActive,
+                            supportLeft: _supportLeft,
+                            onCardTap: _onHostCardTap,
+                            onViewersTap: () => LiveStreamViewersSheet.show(context),
+                            timer: ValueListenableBuilder<int>(
+                              valueListenable: _secondsRemaining,
+                              builder: (context, seconds, _) {
+                                final m = (seconds ~/ 60).toString().padLeft(2, '0');
+                                final s = (seconds % 60).toString().padLeft(2, '0');
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x990A0D28),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 0.9),
+                                        boxShadow: const [
+                                          BoxShadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 2)),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        '$m:$s',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    PkScoreBar(leftScore: _leftScore, rightScore: _rightScore),
+                    if (!isKeyboardOpen) const SizedBox(height: 2),
+                    if (!isKeyboardOpen)
+                      PkTopGiftersRow(
+                        left: _leftGifters.values.toList(),
+                        right: _rightGifters.values.toList(),
+                        onGifterTap: (g) => _openUserProfile(g.name, g.avatar),
+                      ),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: PkLowerSection(
+                        commandList: ListenableBuilder(
+                          listenable: _chat,
+                          builder: (context, _) => PkCommandList(
+                            comments: _chat.comments,
+                            controller: _chat.scroll,
+                            onUserTap: (comment) => _openUserProfile(comment.userName, comment.userAssetPath),
+                            onUserLongPress: _handleHoldComment,
+                          ),
+                        ),
+                        rightColumn: PkRightColumn(onGift: _openGiftSheet),
+                        inputBar: PkInputBar(
+                          accent: pkSideColor(_supportLeft),
+                          hint: 'Cheer for ${pkShortName(_supported.name)}…',
+                          onSend: _sendComment,
+                          onEmojiTap: () => PkSheets.showMessageInput(context, onSend: _sendComment),
+                          onShareTap: () => PkSheets.showShare(context),
+                          onMoreTap: _openLiveTools,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Stack(
-                children: [
-                  SafeArea(
-                    bottom: false,
-                    child: Column(
-                      children: [
-                        PkHeader(
-                          key: _headerKey,
-                          isFollowingLeft: _isFollowingLeft,
-                          isFollowingRight: _isFollowingRight,
-                          onBack: _goBack,
-                          onEmblemTap: _openMatchFlow,
-                          onFollowTap: _toggleFollow,
-                          onHostTap: _openHostProfile,
-                        ),
-                        PkTeamRow(
-                          left: _left,
-                          right: _right,
-                          secondsRemaining: _secondsRemaining,
-                          showCountdown: _settings.countdownDisplay && _settings.showTimerToAudience,
-                          onTeamTap: () => LiveStreamViewersSheet.show(context),
-                          onTimerTap: _openPkSettings,
-                        ),
-                        SizedBox(
-                          height: videoHeight,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) => GestureDetector(
-                              onDoubleTapDown: (d) => _onArenaDoubleTap(d, constraints.maxWidth),
-                              child: PkVideoArena(
-                                left: _left,
-                                right: _right,
-                                leftGift: _leftGift,
-                                rightGift: _rightGift,
-                              ),
-                            ),
-                          ),
-                        ),
-                        PkScoreBar(leftScore: _leftScore, rightScore: _rightScore),
-                        // Full command section on one background down to the screen edge.
-                        Expanded(
-                          child: PkLowerSection(
-                            commandList: ListenableBuilder(
-                              listenable: _chat,
-                              builder: (context, _) => PkCommandList(
-                                comments: _chat.comments,
-                                controller: _chat.scroll,
-                                onLiveTap: _chat.scrollToLatest,
-                              ),
-                            ),
-                            rightColumn: PkRightColumn(
-                              hearts: PkHeartsLane(key: _heartsLaneKey, ambient: !_isBattleEnded),
-                              onGift: _openGiftSheet,
-                              onLike: _onLike,
-                              onShare: () => PkSheets.showShare(context),
-                            ),
-                            inputBar: PkInputBar(
-                              onEmojiTap: () => PkSheets.showMessageInput(context, onSend: _sendComment),
-                              onMessageTap: () => PkSheets.showMessageInput(context, onSend: _sendComment),
-                              onMoreTap: _openLiveTools,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_isBattleEnded)
-                    PkWinnerOverlay(
-                      winner: leftWins ? _left : _right,
-                      winnerScore: leftWins ? _leftScore : _rightScore,
-                      loserScore: leftWins ? _rightScore : _leftScore,
-                      onPlayAgain: _restartBattle,
-                      onBackToLive: _goBack,
-                    ),
-                ],
-              ),
-            ),
+              if (_isBattleEnded)
+                PkWinnerOverlay(
+                  winner: leftWins ? _left : _right,
+                  loser: leftWins ? _right : _left,
+                  isLeftWinner: leftWins,
+                  winnerScore: leftWins ? _leftScore : _rightScore,
+                  loserScore: leftWins ? _rightScore : _leftScore,
+                  onPlayAgain: _restartBattle,
+                  onSkip: widget.onBack,
+                  onBackToLive: widget.onBack,
+                ),
+            ],
           ),
         ),
       ),

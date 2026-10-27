@@ -17,6 +17,13 @@ import '../widgets/live_bottom_input_bar.dart';
 import '../widgets/live_chat_list_view.dart';
 import '../widgets/live_stream_top_bar.dart';
 import '../../../home/presentation/widgets/streamer_id_profile_sheet.dart';
+import '../../../gift/gift_balance_details_dialog.dart';
+import '../../../pk_battle/core/pk_models.dart';
+import '../../../pk_battle/sheets/pk_match_flow.dart';
+import '../../../../core/widgets/tivoo_share_sheet.dart';
+import '../../../profile/presentation/controllers/follow_controller.dart';
+import '../../../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
+import '../widgets/viewer_more_options_sheet.dart';
 
 /// Full-screen live viewer, vertically swipeable between [streams] the way
 /// TikTok/Bigo Live feeds work — each page plays its own video only while
@@ -25,11 +32,13 @@ import '../../../home/presentation/widgets/streamer_id_profile_sheet.dart';
 class LiveStreamScreen extends StatefulWidget {
   final List<LiveStreamCardModel> streams;
   final int initialIndex;
+  final bool isCreator;
 
   const LiveStreamScreen({
     super.key,
     required this.streams,
     required this.initialIndex,
+    this.isCreator = false,
   });
 
   @override
@@ -61,7 +70,10 @@ class _LiveStreamScreenState extends State<LiveStreamScreen> {
         controller: _pageController,
         itemCount: widget.streams.length,
         itemBuilder: (context, index) {
-          return _LiveStreamPage(stream: widget.streams[index]);
+          return _LiveStreamPage(
+            stream: widget.streams[index],
+            isCreator: widget.isCreator,
+          );
         },
       ),
     );
@@ -70,8 +82,12 @@ class _LiveStreamScreenState extends State<LiveStreamScreen> {
 
 class _LiveStreamPage extends ConsumerStatefulWidget {
   final LiveStreamCardModel stream;
+  final bool isCreator;
 
-  const _LiveStreamPage({required this.stream});
+  const _LiveStreamPage({
+    required this.stream,
+    this.isCreator = false,
+  });
 
   @override
   ConsumerState<_LiveStreamPage> createState() => _LiveStreamPageState();
@@ -110,9 +126,34 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
         ref
             .read(liveStreamControllerProvider(widget.stream.id).notifier)
             .addUserComment('sent ${gift.name}! 🌟');
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          if (!mounted) return;
+          GiftBalanceDetailsDialog.show(
+            context: context,
+            gift: gift,
+            quantity: 1,
+            recipient: widget.stream.streamerName,
+            deductedStars: gift.diamonds,
+            onSendMore: () => _handleGiftTap(controller),
+          );
+        });
       } else {
         _triggerHeartAnimation();
-        _activeGiftKey.currentState?.playGift(gift, senderName: 'You');
+        _activeGiftKey.currentState?.playGift(
+          gift,
+          senderName: 'You',
+          onComplete: () {
+            if (!mounted) return;
+            GiftBalanceDetailsDialog.show(
+              context: context,
+              gift: gift,
+              quantity: 1,
+              recipient: widget.stream.streamerName,
+              deductedStars: gift.diamonds,
+              onSendMore: () => _handleGiftTap(controller),
+            );
+          },
+        );
       }
       setState(() {
         _recentGift = gift;
@@ -122,15 +163,20 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
           setState(() => _recentGift = null);
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'You sent ${gift.name} ${gift.icon} to ${widget.stream.streamerName}!',
-          ),
-          duration: const Duration(seconds: 1),
-        ),
-      );
     });
+  }
+
+  void _openPkBattle() {
+    PkMatchFlow(
+      context: context,
+      host: PkHost(
+        name: widget.stream.streamerName,
+        avatarAsset: widget.stream.streamerAssetPath ?? AppAssets.avatarPriya,
+        videoAsset: widget.stream.videoUrl ?? AppAssets.video2,
+        likes: widget.stream.likesCount ?? '12.4K',
+        viewers: widget.stream.viewersCount,
+      ),
+    ).start();
   }
 
   @override
@@ -147,6 +193,11 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
           key: _heartsKey,
           child: GestureDetector(
             onDoubleTap: _triggerHeartAnimation,
+            onTap: () {
+              if (_commentFocusNode.hasFocus) {
+                _commentFocusNode.unfocus();
+              }
+            },
             behavior: HitTestBehavior.opaque,
           child: Stack(
             children: [
@@ -305,101 +356,145 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
 
               // 4. Foreground Live Overlays & Controls
               SafeArea(
+                bottom: false,
                 child: Column(
                   children: [
-                    // Top Bar (LIVE badge, viewers count, close ✕ button)
-                    LiveStreamTopBar(
-                      viewersCount: widget.stream.viewersCount,
-                      onCloseTap: () => Navigator.of(context).pop(),
+                    // Top Bar (Streamer profile, ID, LIVE badge, viewers count, close                     // Top Bar (Streamer profile, ID, LIVE badge, viewers count, close ✕ button)
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final followMap = ref.watch(followControllerProvider);
+                        final relationship = followMap[widget.stream.id] ??
+                            ref.read(followControllerProvider.notifier).getRelationship(
+                                  widget.stream.id,
+                                  defaultName: widget.stream.streamerName,
+                                  defaultAvatar: widget.stream.streamerAssetPath ??
+                                      widget.stream.streamerAvatarUrl ??
+                                      '',
+                                  initialFollowers: 120400,
+                                  initialFollowing: widget.stream.isFollowing,
+                                );
+
+                        return LiveStreamTopBar(
+                          streamerName: widget.stream.streamerName,
+                          streamerId: widget.stream.displayUserId,
+                          streamerAvatarAsset: widget.stream.streamerAssetPath ??
+                              (widget.stream.streamerAvatarUrl == null ? AppAssets.liveCard1 : null),
+                          streamerAvatarUrl: widget.stream.streamerAvatarUrl,
+                          isFollowing: relationship.isFollowingOrMutual,
+                          isRequested: relationship.isRequested,
+                          onFollowTap: _handleFollowStreamer,
+                          onHostProfileTap: () {
+                            StreamerIdProfileSheet.show(
+                              context,
+                              stream: widget.stream,
+                            );
+                          },
+                          viewersCount: widget.stream.viewersCount,
+                          onCloseTap: () => Navigator.of(context).pop(),
+                        );
+                      },
                     ),
 
-                    const Spacer(),
-
                     // Middle / Bottom Interactive Live Area (capped width on tablets)
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: context.isTablet ? 700 : double.infinity,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              // Left Side: Live Comments Feed (Auto-scrolling down side)
-                              Expanded(
-                                child: SizedBox(
-                                  height: 230,
-                                  child: Consumer(
-                                    builder: (context, ref, _) {
-                                      final comments = ref.watch(
-                                        liveStreamControllerProvider(widget.stream.id)
-                                            .select((s) => s.comments),
-                                      );
-                                      return LiveChatListView(
-                                        comments: comments,
-                                      );
-                                    },
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: context.isTablet ? 700 : double.infinity,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Left Side: Live Comments Feed (Smoothly fills down close to input bar)
+                                Expanded(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxHeight: MediaQuery.of(context).viewInsets.bottom > 0 ? 130 : 280,
+                                    ),
+                                    child: Consumer(
+                                      builder: (context, ref, _) {
+                                        final comments = ref.watch(
+                                          liveStreamControllerProvider(widget.stream.id)
+                                              .select((s) => s.comments),
+                                        );
+                                        final controller = ref.read(
+                                          liveStreamControllerProvider(widget.stream.id).notifier,
+                                        );
+                                        return LiveChatListView(
+                                          comments: comments,
+                                          isCreator: widget.isCreator,
+                                          onPauseComments: controller.pauseIncomingComments,
+                                          onResumeComments: controller.resumeIncomingComments,
+                                          onDeleteComment: controller.deleteComment,
+                                          onReportComment: controller.reportComment,
+                                          onBlockUser: controller.blockUser,
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
 
-                              const SizedBox(width: 8),
+                                if (MediaQuery.of(context).viewInsets.bottom == 0) ...[
+                                  const SizedBox(width: 8),
 
-                              // Right Side: Floating Action Controls
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  right: 12,
-                                  bottom: 6,
-                                ),
-                                child: Consumer(
-                                  builder: (context, ref, _) {
-                                    final liveState = ref.watch(
-                                      liveStreamControllerProvider(widget.stream.id),
-                                    );
-                                    return LiveActionBar(
-                                      streamerAvatarAsset:
-                                          widget.stream.streamerAssetPath ??
-                                          (widget.stream.streamerAvatarUrl == null
-                                              ? AppAssets.liveCard1
-                                              : null),
-                                      streamerAvatarUrl:
-                                          widget.stream.streamerAvatarUrl,
-                                      isFollowing: liveState.isFollowing,
-                                      isLiked: liveState.isLiked,
-                                      likesCount: liveState.formattedLikes,
-                                      commentsCount: liveState.formattedComments,
-                                      starsCount: 'Star',
-                                      onFollowTap: () {
-                                        controller.toggleFollow();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              liveState.isFollowing
-                                                  ? 'Unfollowed ${widget.stream.streamerName}'
-                                                  : 'Now following ${widget.stream.streamerName} ❤️',
-                                            ),
-                                            duration: const Duration(seconds: 1),
-                                          ),
+                                  // Right Side: Floating Action Controls
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      right: 12,
+                                      bottom: 6,
+                                    ),
+                                    child: Consumer(
+                                      builder: (context, ref, _) {
+                                        final liveState = ref.watch(
+                                          liveStreamControllerProvider(widget.stream.id),
+                                        );
+                                        final followMap = ref.watch(followControllerProvider);
+                                        final relationship = followMap[widget.stream.id] ??
+                                            ref.read(followControllerProvider.notifier).getRelationship(
+                                                  widget.stream.id,
+                                                  defaultName: widget.stream.streamerName,
+                                                  defaultAvatar: widget.stream.streamerAssetPath ??
+                                                      widget.stream.streamerAvatarUrl ??
+                                                      '',
+                                                  initialFollowers: 120400,
+                                                  initialFollowing: widget.stream.isFollowing,
+                                                );
+
+                                        return LiveActionBar(
+                                          streamerAvatarAsset:
+                                              widget.stream.streamerAssetPath ??
+                                              (widget.stream.streamerAvatarUrl == null
+                                                  ? AppAssets.liveCard1
+                                                  : null),
+                                          streamerAvatarUrl:
+                                              widget.stream.streamerAvatarUrl,
+                                          isFollowing: relationship.isFollowingOrMutual,
+                                          isRequested: relationship.isRequested,
+                                          commentsCount: liveState.formattedComments,
+                                          starsCount: 'Stars',
+                                          isHost: false, // Viewer mode: PK battle hidden for viewers
+                                          onFollowTap: _handleFollowStreamer,
+                                          onCommentTap: () => _commentFocusNode.requestFocus(),
+                                          onGiftTap: () => _handleGiftTap(controller),
+                                          onAvatarTap: () {
+                                            StreamerIdProfileSheet.show(
+                                              context,
+                                              stream: widget.stream,
+                                            );
+                                          },
+                                          onShareTap: _showShareModal,
+                                          onPkTap: _openPkBattle,
+                                          onMoreTap: _showViewerMoreOptions,
                                         );
                                       },
-                                      onLikeTap: () {
-                                        _triggerHeartAnimation();
-                                      },
-                                      onGiftTap: () => _handleGiftTap(controller),
-                                      onAvatarTap: () {
-                                        StreamerIdProfileSheet.show(
-                                          context,
-                                          stream: widget.stream,
-                                        );
-                                      },
-                                      onShareTap: _showShareModal,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -502,134 +597,141 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
                 ],
               ),
               child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.auto_fix_high_rounded, color: Color(0xFFFF80AB), size: 22),
-                            SizedBox(width: 8),
-                            Text(
-                              'Beauty & Video Filters',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.auto_fix_high_rounded, color: Color(0xFFFF80AB), size: 22),
+                              SizedBox(width: 8),
+                              Text(
+                                'Beauty & Video Filters',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(ctx),
+                            child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Filter Intensity Slider
+                      Row(
+                        children: [
+                          const Text('Intensity', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: const Color(0xFFFF80AB),
+                                thumbColor: Colors.white,
+                                inactiveTrackColor: Colors.white24,
+                                trackHeight: 3,
+                              ),
+                              child: Slider(
+                                value: filterIntensity,
+                                min: 0.0,
+                                max: 1.0,
+                                onChanged: (val) {
+                                  setModalState(() => filterIntensity = val);
+                                },
                               ),
                             ),
-                          ],
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(ctx),
-                          child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Filter Intensity Slider
-                    Row(
-                      children: [
-                        const Text('Intensity', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: const Color(0xFFFF80AB),
-                              thumbColor: Colors.white,
-                              inactiveTrackColor: Colors.white24,
-                              trackHeight: 3,
-                            ),
-                            child: Slider(
-                              value: filterIntensity,
-                              min: 0.0,
-                              max: 1.0,
-                              onChanged: (val) {
-                                setModalState(() => filterIntensity = val);
-                              },
-                            ),
                           ),
-                        ),
-                        Text(
-                          '${(filterIntensity * 100).toInt()}%',
-                          style: const TextStyle(color: Color(0xFFFF80AB), fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Filter Presets Horizontal List
-                    SizedBox(
-                      height: 80,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: filters.length,
-                        separatorBuilder: (_, index) => const SizedBox(width: 12),
-                        itemBuilder: (c, idx) {
-                          final f = filters[idx];
-                          final isSel = f['name'] == selectedFilter;
-                          return GestureDetector(
-                            onTap: () {
-                              setModalState(() => selectedFilter = f['name'] as String);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Applied ${f['name']} filter ✨'),
-                                  duration: const Duration(milliseconds: 900),
-                                ),
-                              );
-                            },
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: isSel ? const Color(0x44FF80AB) : const Color(0xFF1B1824),
-                                    border: Border.all(
-                                      color: isSel ? const Color(0xFFFF80AB) : Colors.white12,
-                                      width: isSel ? 2 : 1,
-                                    ),
-                                    boxShadow: isSel
-                                        ? const [
-                                            BoxShadow(color: Color(0x66FF80AB), blurRadius: 10, spreadRadius: 1),
-                                          ]
-                                        : null,
-                                  ),
-                                  child: Center(
-                                    child: Text(f['icon'] as String, style: const TextStyle(fontSize: 22)),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  f['name'] as String,
-                                  style: TextStyle(
-                                    color: isSel ? const Color(0xFFFF80AB) : Colors.white60,
-                                    fontSize: 11,
-                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                          Text(
+                            '${(filterIntensity * 100).toInt()}%',
+                            style: const TextStyle(color: Color(0xFFFF80AB), fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                      const SizedBox(height: 12),
+
+                      // Filter Presets Horizontal List
+                      SizedBox(
+                        height: 92,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: filters.length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 12),
+                          itemBuilder: (c, idx) {
+                            final f = filters[idx];
+                            final isSel = f['name'] == selectedFilter;
+                            return GestureDetector(
+                              onTap: () {
+                                setModalState(() => selectedFilter = f['name'] as String);
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeOutCubic,
+                                    width: isSel ? 52 : 46,
+                                    height: isSel ? 52 : 46,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isSel ? const Color(0x44FF80AB) : const Color(0xFF1B1824),
+                                      border: Border.all(
+                                        color: isSel ? const Color(0xFFFF80AB) : Colors.white12,
+                                        width: isSel ? 2 : 1,
+                                      ),
+                                      boxShadow: isSel
+                                          ? const [
+                                              BoxShadow(color: Color(0x66FF80AB), blurRadius: 10, spreadRadius: 1),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(f['icon'] as String, style: const TextStyle(fontSize: 20)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: 60,
+                                    child: Text(
+                                      f['name'] as String,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isSel ? const Color(0xFFFF80AB) : Colors.white60,
+                                        fontSize: 10.5,
+                                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -640,112 +742,103 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
   }
 
   void _showShareModal() {
-    final shareOptions = [
-      {'name': 'WhatsApp', 'icon': '💬', 'color': Color(0xFF25D366)},
-      {'name': 'Instagram', 'icon': '📸', 'color': Color(0xFFE1306C)},
-      {'name': 'Telegram', 'icon': '✈️', 'color': Color(0xFF0088CC)},
-      {'name': 'Copy Link', 'icon': '🔗', 'color': Color(0xFFFFD600)},
-      {'name': 'Friends', 'icon': '👥', 'color': Color(0xFFBA43F6)},
-    ];
+    final stream = widget.stream;
+    final shareUrl = 'https://tivoo.app/live/${stream.id}';
+    final shareText = 'Watch ${stream.streamerName} live on Tivoo! $shareUrl';
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          decoration: const BoxDecoration(
-            color: Color(0xFF101018),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: Color(0x6600E5FF), width: 1.5)),
-            boxShadow: [
-              BoxShadow(color: Color(0x3300E5FF), blurRadius: 24, spreadRadius: -2),
-            ],
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.share_rounded, color: Color(0xFF00E5FF), size: 22),
-                        SizedBox(width: 8),
-                        Text(
-                          'Share Live Stream',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(ctx),
-                      child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: shareOptions.map((opt) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(opt['name'] == 'Copy Link'
-                                ? '📋 Live link copied to clipboard!'
-                                : 'Shared stream to ${opt['name']}! 🚀'),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF1B1B26),
-                              border: Border.all(color: Colors.white12),
-                            ),
-                            child: Center(
-                              child: Text(opt['icon'] as String, style: const TextStyle(fontSize: 24)),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            opt['name'] as String,
-                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        );
-      },
+    TivooShareSheet.show(
+      context,
+      title: 'Share Live Stream',
+      subtitle: 'Watch ${stream.streamerName} live on Tivoo',
+      shareUrl: shareUrl,
+      shareText: shareText,
     );
+  }
+
+  void _showViewerMoreOptions() {
+    final stream = widget.stream;
+    ViewerMoreOptionsSheet.show(
+      context,
+      streamerName: stream.streamerName,
+      streamerId: stream.id,
+      streamerAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl,
+      category: stream.category,
+      onReport: () {},
+      onBlock: () {},
+      onNotInterested: () {},
+    );
+  }
+
+  void _handleFollowStreamer() {
+    final stream = widget.stream;
+    final followMap = ref.read(followControllerProvider);
+    final rel = followMap[stream.id] ??
+        ref.read(followControllerProvider.notifier).getRelationship(
+              stream.id,
+              defaultName: stream.streamerName,
+              defaultAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+              initialFollowers: 120400,
+              initialFollowing: stream.isFollowing,
+            );
+
+    if (rel.isNotFollowing) {
+      ref.read(followControllerProvider.notifier).sendFollowRequest(
+            stream.id,
+            targetName: stream.streamerName,
+            targetAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+            onStatusNotify: (msg) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(msg),
+                  backgroundColor: const Color(0xFF192233),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          );
+    } else if (rel.isRequested) {
+      InstagramFollowActionsSheet.showRequestedSheet(
+        context,
+        relationship: rel,
+        streamerId: stream.id,
+        onCancelRequest: () {
+          ref.read(followControllerProvider.notifier).cancelFollowRequest(
+                stream.id,
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        },
+      );
+    } else if (rel.isFollowingOrMutual) {
+      InstagramFollowActionsSheet.show(
+        context,
+        relationship: rel,
+        streamerId: stream.id,
+      );
+    } else if (rel.isBlocked) {
+      ref.read(followControllerProvider.notifier).unblockUser(
+            stream.id,
+            onStatusNotify: (msg) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(msg),
+                  backgroundColor: const Color(0xFF192233),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          );
+    }
   }
 }
 

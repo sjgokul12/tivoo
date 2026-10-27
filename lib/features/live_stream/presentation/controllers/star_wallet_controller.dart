@@ -137,18 +137,10 @@ class StarWalletState {
         );
   }
 
-  /// Formatted stars balance (e.g. '1,000K', '250K', or 'No. 0' when 0)
+  /// Formatted stars balance with commas without decimal/K count (e.g. '100,600', or '0' when 0)
   String get formattedBalance {
-    if (starBalance == 0) return 'No. 0';
-    if (starBalance >= 1000000) {
-      final m = starBalance / 1000000;
-      return m % 1 == 0 ? '${m.toInt()}M' : '${m.toStringAsFixed(1)}M';
-    }
-    if (starBalance >= 1000) {
-      final k = starBalance / 1000;
-      return k % 1 == 0 ? '${k.toInt()}K' : '${k.toStringAsFixed(1)}K';
-    }
-    return starBalance.toString();
+    if (starBalance == 0) return '0';
+    return formattedFullBalance;
   }
 
   /// Formatted dollar cash balance (e.g. '$25.00')
@@ -477,15 +469,18 @@ class StarWalletController extends StateNotifier<StarWalletState> {
   }
 
   /// Sends stars if user has enough balance; returns true if successful
-  bool sendStars(int count) {
+  bool sendStars(int count, {String? giftName, String? recipient}) {
+    if (count <= 0) return true;
     if (state.starBalance >= count) {
       final tx = StarTransaction(
         id: 'tx_send_${DateTime.now().millisecondsSinceEpoch}',
-        title: 'Sent $count Star Gift',
+        title: giftName != null ? 'Sent $giftName ($count ⭐)' : 'Sent $count Star Gift',
         starsDelta: -count,
         dollarDelta: 0.0,
         type: StarTransactionType.sendStarGift,
         timestamp: DateTime.now(),
+        counterpartyUserId: recipient,
+        note: recipient != null ? 'Sent to $recipient' : null,
       );
 
       state = state.copyWith(
@@ -495,6 +490,25 @@ class StarWalletController extends StateNotifier<StarWalletState> {
       return true;
     }
     return false;
+  }
+
+  /// Credits stars (e.g. from recharge/purchase or reward)
+  void creditStars(int count, {String? reason}) {
+    if (count <= 0) return;
+    final tx = StarTransaction(
+      id: 'tx_credit_${DateTime.now().millisecondsSinceEpoch}',
+      title: reason ?? 'Recharged $count Stars',
+      starsDelta: count,
+      dollarDelta: 0.0,
+      type: StarTransactionType.purchase,
+      timestamp: DateTime.now(),
+      note: reason,
+    );
+
+    state = state.copyWith(
+      starBalance: state.starBalance + count,
+      transactions: [tx, ...state.transactions],
+    );
   }
 }
 

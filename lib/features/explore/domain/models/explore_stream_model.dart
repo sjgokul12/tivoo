@@ -1,3 +1,5 @@
+import 'package:tivoo/features/explore/domain/models/video_post.dart';
+
 class ExploreStreamModel {
   final String id;
   final String streamerName;
@@ -14,6 +16,9 @@ class ExploreStreamModel {
   final String? videoAssetPath;
   final bool isLiked;
 
+  /// Set when this item is a user-uploaded video rather than a demo live stream.
+  final VideoPost? post;
+
   const ExploreStreamModel({
     required this.id,
     required this.streamerName,
@@ -29,6 +34,7 @@ class ExploreStreamModel {
     this.isLive = true,
     this.isVerified = true,
     this.isLiked = false,
+    this.post,
   });
 
   ExploreStreamModel copyWith({
@@ -62,6 +68,7 @@ class ExploreStreamModel {
       isLive: isLive ?? this.isLive,
       isVerified: isVerified ?? this.isVerified,
       isLiked: isLiked ?? this.isLiked,
+      post: post,
     );
   }
 }

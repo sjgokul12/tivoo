@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../profile/presentation/controllers/profile_controller.dart';
 import '../../data/mock_live_data.dart';
 import '../../domain/models/live_stream_card_model.dart';
 import '../../domain/models/streamer_story.dart';
@@ -43,7 +44,8 @@ class HomeState {
 }
 
 class HomeController extends StateNotifier<HomeState> {
-  HomeController() : super(const HomeState());
+  final Ref? _ref;
+  HomeController([this._ref]) : super(const HomeState());
 
   void selectCategory(int index) {
     if (state.selectedCategoryIndex != index) {
@@ -52,19 +54,25 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   void toggleFollow(String streamId) {
+    bool? nowFollowing;
     final updatedStreams = state.allStreams.map((stream) {
       if (stream.id == streamId) {
-        return stream.copyWith(isFollowing: !stream.isFollowing);
+        nowFollowing = !stream.isFollowing;
+        return stream.copyWith(isFollowing: nowFollowing);
       }
       return stream;
     }).toList();
 
     state = state.copyWith(allStreams: updatedStreams);
+    if (nowFollowing != null && _ref != null) {
+      _ref.read(profileControllerProvider.notifier).modifyFollowing(nowFollowing! ? 1 : -1);
+      _ref.read(profileControllerProvider.notifier).modifyFollowers(nowFollowing! ? 1 : -1);
+    }
   }
 }
 
 final homeControllerProvider = StateNotifierProvider<HomeController, HomeState>((ref) {
-  return HomeController();
+  return HomeController(ref);
 });
 
 // Selected navigation bar tab index provider

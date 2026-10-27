@@ -53,7 +53,10 @@ class ChatSeat {
 
   const ChatSeat({required this.name, required this.avatar, this.isHost = false, this.micOn = true});
 
-  String get status => isHost ? 'Active' : 'Listening';
+  String get status {
+    if (isHost) return micOn ? 'Active' : 'Muted';
+    return micOn ? 'Speaking' : 'Listening';
+  }
 
   ChatSeat copyWith({bool? micOn}) => ChatSeat(name: name, avatar: avatar, isHost: isHost, micOn: micOn ?? this.micOn);
 }
@@ -134,14 +137,14 @@ class ChatRoomData {
 
   /// Seats 1–8 are taken; the ninth (null) is the Invite slot.
   static const List<ChatSeat?> seats = [
-    ChatSeat(name: 'Diya', avatar: AppAssets.avatarDiya, isHost: true),
-    ChatSeat(name: 'Arun', avatar: AppAssets.avatarArun),
-    ChatSeat(name: 'Sneha', avatar: AppAssets.avatarPriya),
-    ChatSeat(name: 'Karthik', avatar: AppAssets.avatarKarthik),
-    ChatSeat(name: 'Neha', avatar: AppAssets.avatarNeha),
-    ChatSeat(name: 'Vicky', avatar: AppAssets.avatarVicky),
-    ChatSeat(name: 'Saran', avatar: AppAssets.avatarSaran),
-    ChatSeat(name: 'Meena', avatar: AppAssets.avatarMeena),
+    ChatSeat(name: 'Diya', avatar: AppAssets.avatarDiya, isHost: true, micOn: true),
+    ChatSeat(name: 'Arun', avatar: AppAssets.avatarArun, micOn: true),
+    ChatSeat(name: 'Sneha', avatar: AppAssets.avatarPriya, micOn: false),
+    ChatSeat(name: 'Karthik', avatar: AppAssets.avatarKarthik, micOn: false),
+    ChatSeat(name: 'Neha', avatar: AppAssets.avatarNeha, micOn: false),
+    ChatSeat(name: 'Vicky', avatar: AppAssets.avatarVicky, micOn: false),
+    ChatSeat(name: 'Saran', avatar: AppAssets.avatarSaran, micOn: false),
+    ChatSeat(name: 'Meena', avatar: AppAssets.avatarMeena, micOn: false),
     null,
   ];
 

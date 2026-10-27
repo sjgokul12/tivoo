@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/luxe_theme.dart';
-
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/widgets/custom_avatar.dart';
+import '../../../profile/domain/models/follow_relationship.dart';
+import '../../../profile/presentation/controllers/follow_controller.dart';
+import '../../../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
 import '../../domain/models/live_stream_card_model.dart';
 import 'home_header.dart';
 
 /// Neon-framed live card: LIVE + viewers, a top-right badge, avatar, name with a
 /// verified tick, heat score, interest tags and a Follow button.
-class HomeGridStreamCard extends StatelessWidget {
+class HomeGridStreamCard extends ConsumerWidget {
   final LiveStreamCardModel stream;
   final VoidCallback? onTap;
   final VoidCallback? onFollowTap;
@@ -29,7 +32,7 @@ class HomeGridStreamCard extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final frame = _frames[index % _frames.length];
     return RepaintBoundary(
       child: GestureDetector(
@@ -73,7 +76,7 @@ class HomeGridStreamCard extends StatelessWidget {
                         top: 8 * u,
                         child: _Badge(label: stream.badge!, u: u),
                       ),
-                    Positioned(left: 8 * u, right: 8 * u, bottom: 8 * u, child: _info(u, frame)),
+                    Positioned(left: 8 * u, right: 8 * u, bottom: 8 * u, child: _info(context, ref, u, frame)),
                   ],
                 );
               },
@@ -84,7 +87,7 @@ class HomeGridStreamCard extends StatelessWidget {
     );
   }
 
-  Widget _info(double u, List<Color> frame) {
+  Widget _info(BuildContext context, WidgetRef ref, double u, List<Color> frame) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +144,7 @@ class HomeGridStreamCard extends StatelessWidget {
                           alignment: Alignment.centerRight,
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: _FollowButton(following: stream.isFollowing, onTap: onFollowTap, u: u),
+                            child: _buildFollowButtonWidget(context, ref, u),
                           ),
                         ),
                       ),
@@ -170,6 +173,61 @@ class HomeGridStreamCard extends StatelessWidget {
         ? stream.streamerAssetPath!
         : AppAssets.status1;
     return Image.asset(path, fit: BoxFit.cover, cacheWidth: 480, filterQuality: FilterQuality.medium);
+  }
+  Widget _buildFollowButtonWidget(BuildContext context, WidgetRef ref, double u) {
+    final followMap = ref.watch(followControllerProvider);
+    final rel = followMap[stream.id] ??
+        ref.read(followControllerProvider.notifier).getRelationship(
+              stream.id,
+              defaultName: stream.streamerName,
+              defaultAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+              initialFollowers: 120400,
+              initialFollowing: stream.isFollowing,
+            );
+
+    return _FollowButton(
+      status: rel.status,
+      u: u,
+      onTap: () {
+        if (rel.isNotFollowing) {
+          ref.read(followControllerProvider.notifier).sendFollowRequest(
+                stream.id,
+                targetName: stream.streamerName,
+                targetAvatar: stream.streamerAssetPath ?? stream.streamerAvatarUrl ?? '',
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        } else if (rel.isRequested) {
+          ref.read(followControllerProvider.notifier).cancelFollowRequest(
+                stream.id,
+                onStatusNotify: (msg) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: const Color(0xFF192233),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+        } else if (rel.isFollowingOrMutual) {
+          InstagramFollowActionsSheet.show(
+            context,
+            relationship: rel,
+            streamerId: stream.id,
+          );
+        }
+      },
+    );
   }
 }
 
@@ -257,33 +315,70 @@ class _Badge extends StatelessWidget {
 }
 
 class _FollowButton extends StatelessWidget {
-  final bool following;
+  final FollowStatus status;
   final VoidCallback? onTap;
   final double u;
-  const _FollowButton({required this.following, required this.onTap, required this.u});
+  const _FollowButton({required this.status, required this.onTap, required this.u});
 
   @override
   Widget build(BuildContext context) {
+    final (label, gradient, color, textColor, border) = switch (status) {
+      FollowStatus.notFollowing => (
+          'Follow',
+          LuxeColors.goldGradient,
+          null,
+          const Color(0xFF241500),
+          null,
+        ),
+      FollowStatus.requested => (
+          'Requested',
+          null,
+          const Color(0xFF1F2839),
+          const Color(0xFFFFDF00),
+          Border.all(color: const Color(0x66FFDF00), width: 1.0),
+        ),
+      FollowStatus.following || FollowStatus.mutual => (
+          'Following',
+          null,
+          const Color(0x99171340),
+          Colors.white,
+          Border.all(color: LuxeColors.violet),
+        ),
+      FollowStatus.blocked => (
+          'Blocked',
+          null,
+          const Color(0x44FF2D55),
+          Colors.redAccent,
+          Border.all(color: Colors.redAccent),
+        ),
+    };
+
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 27 * u,
-        padding: EdgeInsets.symmetric(horizontal: 12 * u),
+        padding: EdgeInsets.symmetric(horizontal: 10 * u),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          gradient: following ? null : LuxeColors.goldGradient,
-          color: following ? const Color(0x99171340) : null,
+          gradient: gradient,
+          color: color,
           borderRadius: BorderRadius.circular(14 * u),
-          border: following ? Border.all(color: LuxeColors.violet) : null,
-          boxShadow: following ? null : const [BoxShadow(color: Color(0x77FFC928), blurRadius: 10)],
+          border: border,
+          boxShadow: status == FollowStatus.notFollowing
+              ? const [BoxShadow(color: Color(0x77FFC928), blurRadius: 10)]
+              : null,
         ),
-        child: Text(
-          following ? 'Following' : 'Follow',
-          style: TextStyle(
-            color: following ? Colors.white : const Color(0xFF241500),
-            fontSize: 11.5 * u,
-            fontWeight: FontWeight.w800,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11.5 * u,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),
