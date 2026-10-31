@@ -21,14 +21,15 @@ class PkRightColumn extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
-        final iconSize = w.clamp(48.0, 54.0);
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (hearts != null) Expanded(child: ClipRect(child: hearts!)),
-            PkGiftOrb(size: iconSize, onTap: onGift),
+            Center(
+              child: PkGiftOrb(size: w, onTap: onGift),
+            ),
           ],
         );
       },
@@ -181,24 +182,22 @@ class _PkGiftOrbState extends State<PkGiftOrb> {
           scale: _isPressed ? 0.90 : 1.0,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutBack,
-          child: Container(
+          child: SizedBox(
             width: size,
             height: size,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(color: Color(0x9900E5FF), blurRadius: 12, spreadRadius: 1.0),
-                BoxShadow(color: Color(0x66FFD700), blurRadius: 8, spreadRadius: 0.5),
-              ],
-            ),
-            child: Image.asset(
-              AppAssets.pkStarPortal,
-              width: size,
-              height: size,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 34),
+            child: Center(
+              child: Transform.scale(
+                scale: 1.25,
+                child: Image.asset(
+                  AppAssets.star,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 38),
+                ),
+              ),
             ),
           ),
         ),

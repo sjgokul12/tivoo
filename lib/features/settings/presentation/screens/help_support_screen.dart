@@ -31,7 +31,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     {
       'q': 'How do I start a live stream broadcast?',
       'a':
-          'Tap the "Go Live" button at the top of the Home screen. (The glowing "+" button in the bottom bar uploads a video.) Make sure camera and microphone permissions are granted on your device. For smooth, lag-free broadcasting, a stable connection of at least 5 Mbps upload speed is recommended.',
+          'Tap the glowing "+" button at the center of the bottom navigation bar and select "Go Live Now". Make sure camera and microphone permissions are granted on your device. For smooth, lag-free broadcasting, a stable connection of at least 5 Mbps upload speed is recommended.',
     },
     {
       'q': 'How do Coins, Virtual Gifts & Diamonds work?',

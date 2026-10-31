@@ -16,7 +16,7 @@ import '../live_stream/presentation/widgets/floating_stars_overlay.dart';
 import '../live_stream/presentation/widgets/gift_bottom_sheet.dart';
 import '../profile/presentation/controllers/follow_controller.dart';
 import '../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
-import '../gift/gift_balance_details_dialog.dart';
+import '../gift/gift_session_summary_dialog.dart';
 import 'data/chat_room_data.dart';
 import 'widgets/chat_room_common.dart';
 import 'widgets/create_room_sheet.dart';
@@ -48,7 +48,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
   late int _stage = widget.initialStage.clamp(1, 5);
   final List<ChatRoom> _rooms = [...ChatRoomData.rooms];
   late ChatRoom _room = _rooms.first;
-  final List<ChatSeat?> _seats = [...ChatRoomData.seats];
+  late final List<ChatSeat?> _seats = [...ChatRoomData.generateSeatsForRoom(_room)];
 
   late bool _isVideo = _room.isVideo;
   bool _micMuted = false;
@@ -63,6 +63,8 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
 
   bool _isCommentsPaused = false;
   Timer? _commentSimulationTimer;
+  int _sessionUserGiftsCount = 0;
+  int _sessionUserStarsSpent = 0;
   int _simulationIndex = 0;
 
   static final List<({String user, String avatar, String msg, bool isGift})> _simulatedRoomComments = [
@@ -80,10 +82,25 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
     (user: 'Chloe', avatar: AppAssets.status2, msg: 'sent a Diamond 💎 x100', isGift: true),
   ];
 
+  late final List<({String name, String avatar, String level})> _audienceMembers = [
+    (name: 'Sneha', avatar: AppAssets.avatarSneha, level: 'Lv.8'),
+    (name: 'Karthik', avatar: AppAssets.avatarKarthik, level: 'Lv.14'),
+    (name: 'Neha', avatar: AppAssets.avatarNeha, level: 'Lv.5'),
+    (name: 'Arun', avatar: AppAssets.avatarArun, level: 'Lv.11'),
+    (name: 'Vicky', avatar: AppAssets.avatarVicky, level: 'Lv.9'),
+    (name: 'Diya', avatar: AppAssets.avatarDiya, level: 'Lv.16'),
+    (name: 'Meena', avatar: AppAssets.avatarMeena, level: 'Lv.7'),
+    (name: 'Lucas', avatar: AppAssets.status3, level: 'Lv.6'),
+    (name: 'Aurora_X', avatar: AppAssets.status4, level: 'Lv.15'),
+    (name: 'Rahul', avatar: AppAssets.avatarKarthik, level: 'Lv.4'),
+    (name: 'Sam_99', avatar: AppAssets.status5, level: 'Lv.10'),
+    (name: 'Chloe', avatar: AppAssets.status2, level: 'Lv.12'),
+  ];
+
   late final List<LiveComment> _messages = [
     _comment('User123', AppAssets.avatarArun, 'So amazing! 👏', ago: 40),
     _comment('Queen', AppAssets.avatarSneha, 'Super all ❤️🔥', ago: 30),
-    _comment('Kavin', AppAssets.avatarKarthik, 'sent a Star ⭐ to Diya', ago: 18, gift: true),
+    _comment('Kavin', AppAssets.avatarKarthik, 'sent a Star ⭐ to Host', ago: 18, gift: true),
     _comment('Anitha', AppAssets.avatarNeha, 'Happy evening everyone! ✨', ago: 8),
   ];
 
@@ -164,6 +181,8 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
       _isCreatedByMe = false;
       _pendingRequests.clear();
       _selectedSeatIndex = 0;
+      _seats.clear();
+      _seats.addAll(ChatRoomData.generateSeatsForRoom(room));
       _stage = 3;
     });
   }
@@ -178,13 +197,10 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
         _isJoined = true;
         _isJoinRequested = false;
         _isCreatedByMe = true;
-        _seats[0] = const ChatSeat(
-          name: 'You',
-          avatar: AppAssets.avatarDiya,
-          isHost: true,
-          micOn: true,
-        );
         _pendingRequests.clear();
+        _selectedSeatIndex = 0;
+        _seats.clear();
+        _seats.addAll(ChatRoomData.generateSeatsForRoom(room));
         _stage = 3;
       });
       showChatToast(context, '🎉 Chat Room Created! You are the Host.');
@@ -335,7 +351,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
     if (seat.isHost) {
       _openHostProfile();
     } else {
-      _openUserProfile(seat.name, seat.avatar);
+      _onSeatLongPress(index);
     }
   }
 
@@ -421,28 +437,40 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
       id: hostId,
       userId: _room.hostName.toLowerCase().replaceAll(' ', '_'),
       streamerName: _room.hostName,
-      streamerBio: '🎙️ Chat Room Host • ${_room.tag} • Good Vibes Only ✨',
+      streamerBio: '👑 Room Host • ${_room.tagline}',
       streamerAssetPath: _room.avatar,
       viewersCount: '${_room.members}',
       diamondsCount: '89.5K',
-      category: _room.tag,
+      category: 'Room Host',
       isFollowing: rel?.isFollowingOrMutual ?? false,
     );
     StreamerIdProfileSheet.show(context, stream: streamModel);
   }
 
   void _openUserProfile(String name, String? avatar) {
+    // Check if this person is the room host to always present the host profile & badge
+    final isHostPerson = name.toLowerCase() == _room.hostName.toLowerCase() ||
+        (name.toLowerCase().startsWith('you') && _isHostWhoCreatedRoom) ||
+        (_seats.isNotEmpty &&
+            _seats.first?.name.toLowerCase() == name.toLowerCase() &&
+            _seats.first?.isHost == true);
+
+    if (isHostPerson) {
+      _openHostProfile();
+      return;
+    }
+
     final userId = 'chatroom_user_${name.toLowerCase().replaceAll(' ', '_')}';
     final rel = ref.read(followControllerProvider)[userId];
     final streamModel = LiveStreamCardModel(
       id: userId,
       userId: name.toLowerCase().replaceAll(' ', '_'),
       streamerName: name,
-      streamerBio: '🎙️ Chat Room Speaker • Good Vibes Only ✨',
+      streamerBio: '🎙️ Audio Speaker • Active Member',
       streamerAssetPath: avatar ?? AppAssets.avatarMeena,
       viewersCount: '1.2K',
       diamondsCount: '45.2K',
-      category: 'Chat Room',
+      category: 'Audio Speaker',
       isFollowing: rel?.isFollowingOrMutual ?? false,
     );
     StreamerIdProfileSheet.show(context, stream: streamModel);
@@ -470,23 +498,193 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
       onStar: () => _openGifts(initialRecipient: seat.name),
       onToggleMic: () => setState(() => _seats[index] = seat.copyWith(micOn: !seat.micOn)),
       onFollow: () => _handleFollowUser(seatId, seat.name, seat.avatar),
-      onViewProfile: () => _openUserProfile(seat.name, seat.avatar),
+      onViewProfile: () => seat.isHost ? _openHostProfile() : _openUserProfile(seat.name, seat.avatar),
       isHostWhoCreated: _isHostWhoCreatedRoom,
-      onRemove: () => _executeRemoval(index, seat),
+      onRemove: () => _removePerson(seat.name, seatIndex: index),
     );
   }
 
-  void _executeRemoval(int index, ChatSeat seat) {
+  /// Host can remove any person in the room (speaker or viewer)
+  void _removePerson(String name, {int? seatIndex}) {
     if (!_isHostWhoCreatedRoom) {
       showChatToast(context, 'Only the host who created the room can remove participants.');
       return;
     }
+    final isSpeaker = seatIndex != null || _seats.any((s) => s != null && s.name.toLowerCase() == name.toLowerCase());
+    showRemovePersonDialog(
+      context,
+      name: name,
+      isSpeaker: isSpeaker,
+      onConfirm: () {
+        setState(() {
+          // 1. Vacate seat if seated
+          if (seatIndex != null && seatIndex >= 0 && seatIndex < _seats.length) {
+            _seats[seatIndex] = null;
+          } else {
+            final idx = _seats.indexWhere((s) => s != null && s.name.toLowerCase() == name.toLowerCase());
+            if (idx != -1) {
+              _seats[idx] = null;
+            }
+          }
+          // 2. Remove from audience list
+          _audienceMembers.removeWhere((a) => a.name.toLowerCase() == name.toLowerCase());
+          // 3. Decrement room count
+          _room = _room.copyWith(members: _seats.where((s) => s != null).length);
+          // 4. System message
+          _messages.add(_comment('System', _room.avatar, '$name was removed from the room by the host'));
+        });
+        showChatToast(context, '$name has been removed from the room');
+      },
+    );
+  }
+
+  void _openRoomMembers() {
+    final List<RoomMemberItem> memberItems = [];
+    memberItems.add(RoomMemberItem(
+      id: 'host_${_room.hostName}',
+      name: _room.hostName,
+      avatar: _room.avatar,
+      role: 'Host',
+      isHost: true,
+      level: 'Lv.25',
+    ));
+    for (var i = 0; i < _seats.length; i++) {
+      final s = _seats[i];
+      if (s != null && !s.isHost && s.name.toLowerCase() != _room.hostName.toLowerCase()) {
+        memberItems.add(RoomMemberItem(
+          id: 'speaker_${s.name}_$i',
+          name: s.name,
+          avatar: s.avatar,
+          role: 'Speaker',
+          isSpeaker: true,
+          seatIndex: i,
+          level: 'Lv.12',
+        ));
+      }
+    }
+    for (final aud in _audienceMembers) {
+      final alreadySeated = _seats.any((s) => s != null && s.name.toLowerCase() == aud.name.toLowerCase());
+      if (!alreadySeated && aud.name.toLowerCase() != _room.hostName.toLowerCase()) {
+        memberItems.add(RoomMemberItem(
+          id: 'viewer_${aud.name}',
+          name: aud.name,
+          avatar: aud.avatar,
+          role: 'Viewer',
+          level: aud.level,
+        ));
+      }
+    }
+
+    showRoomMembersSheet(
+      context,
+      members: memberItems,
+      isHostWhoCreated: _isHostWhoCreatedRoom,
+      onRemoveMember: (item) => _removePerson(item.name, seatIndex: item.seatIndex),
+      onViewProfile: (item) => item.isHost ? _openHostProfile() : _openUserProfile(item.name, item.avatar),
+    );
+  }
+
+  void _leaveRoomAsParticipant() {
     setState(() {
-      _seats[index] = null;
-      _room = _room.copyWith(members: (_room.members - 1).clamp(1, 999));
-      _messages.add(_comment('System', AppAssets.avatarDiya, '${seat.name} was removed from the room by the host'));
+      if (_isJoined) {
+        final userSeatIdx = _seats.indexWhere((s) => s != null && s.name == 'You');
+        if (userSeatIdx != -1) {
+          _seats[userSeatIdx] = null;
+        }
+        _isJoined = false;
+      }
+      _isJoinRequested = false;
+      _hostResponseTimer?.cancel();
+      _room = _room.copyWith(members: _seats.where((s) => s != null).length);
+      _messages.add(_comment('System', _room.avatar, 'You left the chatroom. Conversation carries on.'));
+      _stage = 1;
     });
-    showChatToast(context, '${seat.name} has been removed from the room');
+    showChatToast(context, 'You left the room. Conversation is carrying on 💬');
+    _showGiftSessionSummaryIfNeeded();
+  }
+
+  void _endRoomAsHost() {
+    _hostResponseTimer?.cancel();
+    _commentSimulationTimer?.cancel();
+    _setStage(5);
+    showChatToast(context, 'Chat room ended by host.');
+  }
+
+  void _showHostCommentOptions(LiveComment comment) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return ChatSheetFrame(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF2D55).withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person_remove_rounded, color: Color(0xFFFF2D55), size: 20),
+                ),
+                title: Text(
+                  'Remove ${comment.userName} from Room',
+                  style: const TextStyle(color: Color(0xFFFF2D55), fontSize: 14.5, fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text('Host action: removes user from the chatroom', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removePerson(comment.userName);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person_rounded, color: Colors.white70, size: 20),
+                ),
+                title: const Text('View Profile', style: TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openUserProfile(comment.userName, comment.userAssetPath);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.flag_rounded, color: Colors.white70, size: 20),
+                ),
+                title: const Text('Report Comment', style: TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    final idx = _messages.indexWhere((m) => m.id == comment.id);
+                    if (idx != -1) {
+                      _messages[idx] = _messages[idx].copyWith(
+                        message: 'This comment has been reported',
+                        isReported: true,
+                      );
+                    }
+                  });
+                  showChatToast(context, 'Comment reported');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _onInvite() {
@@ -513,7 +711,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
     final seat = (_selectedSeatIndex >= 0 && _selectedSeatIndex < _seats.length)
         ? _seats[_selectedSeatIndex]
         : null;
-    final recipient = seat?.name ?? _seats.first?.name ?? 'Diya';
+    final recipient = seat?.name ?? _room.hostName;
     _starsKey.currentState?.addStars(3);
     _totalStars += 10;
     _addMessage('sent a Star ⭐ to $recipient', gift: true);
@@ -523,7 +721,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
     final selectedSeat = (_selectedSeatIndex >= 0 && _selectedSeatIndex < _seats.length)
         ? _seats[_selectedSeatIndex]
         : null;
-    final defaultRecipient = initialRecipient ?? selectedSeat?.name ?? (_seats.first?.name ?? 'Diya');
+    final defaultRecipient = initialRecipient ?? selectedSeat?.name ?? _room.hostName;
 
     final activeRecipients = [
       ..._seats.whereType<ChatSeat>().map((s) => s.name),
@@ -551,6 +749,8 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
     }
     final toLeft = seatIndex == -1 ? true : (seatIndex % 3 == 0);
     final totalCost = gift.diamonds * quantity;
+    _sessionUserGiftsCount += quantity;
+    _sessionUserStarsSpent += totalCost;
 
     _giftKey.currentState?.playGift(
       gift,
@@ -559,21 +759,25 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
       toLeft: toLeft,
       recipient: recipient,
       target: targetPosition,
-      onComplete: () {
-        if (!mounted) return;
-        GiftBalanceDetailsDialog.show(
-          context: context,
-          gift: gift,
-          quantity: quantity,
-          recipient: recipient,
-          deductedStars: totalCost,
-          onSendMore: () => _openGifts(initialRecipient: recipient),
-        );
-      },
     );
 
     _addMessage('sent ${gift.name} ${gift.icon} x$quantity to $recipient', gift: true);
     _heartsKey.currentState?.addHeart();
+  }
+
+  void _showGiftSessionSummaryIfNeeded() {
+    if (!mounted || _sessionUserGiftsCount <= 0) return;
+    final count = _sessionUserGiftsCount;
+    final stars = _sessionUserStarsSpent;
+    _sessionUserGiftsCount = 0;
+    _sessionUserStarsSpent = 0;
+    GiftSessionSummaryDialog.show(
+      context: context,
+      title: 'Chat Room Gift Summary',
+      subtitle: 'Thanks for supporting ${_room.hostName}!',
+      totalGiftsSent: count,
+      totalStarsSpent: stars,
+    );
   }
 
   void _openMore() {
@@ -584,6 +788,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
       onReviewRequests: _pendingRequests.isNotEmpty
           ? () => _reviewHostJoinRequest(_pendingRequests.first)
           : null,
+      onShowMembers: _openRoomMembers,
       onShare: () {
         TivooShareSheet.show(
           context,
@@ -593,7 +798,6 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
           shareText: 'Join our room party on Tivoo! https://tivoo.app/chatroom/party',
         );
       },
-      onToggleMode: () => setState(() => _isVideo = !_isVideo),
     );
   }
 
@@ -618,13 +822,21 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
 
     final Widget page = switch (_stage) {
       1 || 2 => RoomListView(rooms: _rooms, onBack: _exit, onJoin: _openRoom, onCreate: _createRoom),
-      5 => RoomEndedView(room: _room, totalStars: _totalStars, onHome: _exit),
+      5 => RoomEndedView(
+            room: _room,
+            totalStars: _totalStars,
+            userGiftsSent: _sessionUserGiftsCount,
+            userStarsSpent: _sessionUserStarsSpent,
+            onHome: _exit,
+          ),
       _ => RoomStageView(
         room: _room,
         seats: _seats,
         seatKeys: _seatKeys,
         messages: _messages,
         isVideo: _isVideo,
+        isHost: _isHostWhoCreatedRoom,
+        onShowMembers: _openRoomMembers,
         micMuted: _micMuted,
         soundMuted: _soundMuted,
         isJoined: _isJoined,
@@ -637,34 +849,40 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
         onHostProfileTap: _openHostProfile,
         onCommentTap: (comment) => _openUserProfile(comment.userName, comment.userAssetPath),
         onCommentLongPress: (comment) {
-          CommentActionSheet.show(
-            context,
-            comment: comment,
-            onPause: () {
-              if (mounted) setState(() => _isCommentsPaused = true);
-            },
-            onResume: () {
-              if (mounted) setState(() => _isCommentsPaused = false);
-            },
-            onReported: () {
-              if (mounted) {
-                setState(() {
-                  final idx = _messages.indexWhere((m) => m.id == comment.id);
-                  if (idx != -1) {
-                    _messages[idx] = _messages[idx].copyWith(
-                      message: 'This comment has been reported',
-                      isReported: true,
-                    );
-                  }
-                });
-              }
-            },
-            onBlocked: () {
-              if (mounted) {
-                setState(() => _messages.removeWhere((m) => m.userName == comment.userName));
-              }
-            },
-          );
+          if (_isHostWhoCreatedRoom &&
+              comment.userName.toLowerCase() != 'you' &&
+              comment.userName.toLowerCase() != _room.hostName.toLowerCase()) {
+            _showHostCommentOptions(comment);
+          } else {
+            CommentActionSheet.show(
+              context,
+              comment: comment,
+              onPause: () {
+                if (mounted) setState(() => _isCommentsPaused = true);
+              },
+              onResume: () {
+                if (mounted) setState(() => _isCommentsPaused = false);
+              },
+              onReported: () {
+                if (mounted) {
+                  setState(() {
+                    final idx = _messages.indexWhere((m) => m.id == comment.id);
+                    if (idx != -1) {
+                      _messages[idx] = _messages[idx].copyWith(
+                        message: 'This comment has been reported',
+                        isReported: true,
+                      );
+                    }
+                  });
+                }
+              },
+              onBlocked: () {
+                if (mounted) {
+                  setState(() => _messages.removeWhere((m) => m.userName == comment.userName));
+                }
+              },
+            );
+          }
         },
         onJoinConversation: _onJoinConversation,
         onCancelJoinRequest: _cancelJoinRequest,
@@ -673,7 +891,7 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
             : null,
         onSeatSelected: _onSeatSelected,
         onSeatLongPress: _onSeatLongPress,
-        onBack: _exit,
+        onBack: () => _setStage(4),
         onLeave: () => _setStage(4),
         onMore: _openMore,
         onSeatTap: _onSeatTap,
@@ -700,7 +918,17 @@ class _ChatRoomPartyScreenState extends ConsumerState<ChatRoomPartyScreen> {
               children: [
                 const LuxeBackdrop(),
                 SafeArea(child: page),
-                if (_stage == 4) EndRoomModal(onEnd: () => _setStage(5), onCancel: () => _setStage(3)),
+                if (_stage == 4)
+                  _isHostWhoCreatedRoom
+                      ? EndRoomModal(
+                          onEnd: _endRoomAsHost,
+                          onCancel: () => _setStage(3),
+                        )
+                      : LeaveRoomModal(
+                          onLeave: _leaveRoomAsParticipant,
+                          onCancel: () => _setStage(3),
+                          wasSpeaker: _isJoined,
+                        ),
               ],
             ),
           ),

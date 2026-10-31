@@ -234,6 +234,8 @@ class ProfileIdentityHeader extends StatelessWidget {
   final String followersCount;
   final String followingCount;
   final String likesCount;
+  final int level;
+  final VoidCallback? onLevelTap;
 
   const ProfileIdentityHeader({
     super.key,
@@ -243,6 +245,8 @@ class ProfileIdentityHeader extends StatelessWidget {
     this.followersCount = '4.7K',
     this.followingCount = '300',
     this.likesCount = '53.1K',
+    this.level = 18,
+    this.onLevelTap,
   });
 
   @override
@@ -274,7 +278,7 @@ class ProfileIdentityHeader extends StatelessWidget {
                     SizedBox(width: 5 * s),
                     Icon(Icons.verified_rounded, color: const Color(0xFF2E9BFF), size: 17 * s),
                     SizedBox(width: 7 * s),
-                    _LevelPill(level: 10, s: s),
+                    _LevelPill(level: level, s: s, onTap: onLevelTap),
                   ],
                 ),
               ),
@@ -470,27 +474,36 @@ class _AvatarRingPainter extends CustomPainter {
 class _LevelPill extends StatelessWidget {
   final int level;
   final double s;
-  const _LevelPill({required this.level, required this.s});
+  final VoidCallback? onTap;
+  const _LevelPill({required this.level, required this.s, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7 * s, vertical: 1.5 * s),
-      decoration: BoxDecoration(
-        color: const Color(0x1FFFC928),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: LuxeColors.gold, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded, color: LuxeColors.gold, size: 12 * s),
-          SizedBox(width: 3 * s),
-          Text(
-            'Lv $level',
-            style: TextStyle(color: Colors.white, fontSize: 10.5 * s, fontWeight: FontWeight.w500),
-          ),
-        ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 7 * s, vertical: 1.5 * s),
+        decoration: BoxDecoration(
+          color: const Color(0x1FFFC928),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: LuxeColors.gold, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_rounded, color: LuxeColors.gold, size: 12 * s),
+            SizedBox(width: 3 * s),
+            Text(
+              'Lv $level',
+              style: TextStyle(color: Colors.white, fontSize: 10.5 * s, fontWeight: FontWeight.w500),
+            ),
+            if (onTap != null) ...[
+              SizedBox(width: 2 * s),
+              Icon(Icons.chevron_right_rounded, color: LuxeColors.gold, size: 11 * s),
+            ],
+          ],
+        ),
       ),
     );
   }

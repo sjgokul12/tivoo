@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_assets.dart';
-import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/custom_avatar.dart';
 import '../../live_stream/domain/models/live_comment.dart';
 import '../core/pk_common_widgets.dart';
@@ -25,11 +24,15 @@ class PkLowerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.sizeOf(context);
-    final viewInsetsBottom = context.viewInsets.bottom;
+    final media = MediaQuery.of(context);
+    final viewInsetsBottom = media.viewInsets.bottom;
     final isKeyboardOpen = viewInsetsBottom > 50;
-    final isSmall = media.width < 376;
-    final effectiveBottom = isKeyboardOpen ? 6.0 : (context.padding.bottom + (isSmall ? 4.0 : 8.0));
+    final isSmall = media.size.width < 376;
+    final isShort = media.size.height < 700;
+    final bottomPadding = media.padding.bottom;
+    final effectiveBottom = isKeyboardOpen
+        ? 4.0
+        : (bottomPadding > 0 ? (bottomPadding + 2.0).clamp(4.0, 24.0) : (isSmall ? 4.0 : 6.0));
     final horizontalPad = isSmall ? 8.0 : 10.0;
 
     return AnimatedPadding(
@@ -40,11 +43,15 @@ class PkLowerSection extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(horizontalPad, 0, horizontalPad, effectiveBottom),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final circle = (constraints.maxWidth / 9.8).clamp(36.0, 42.0);
-            final starSize = (circle * 1.30).clamp(48.0, 56.0);
-            final rightWidth = starSize;
-            final hasEnoughHeight = constraints.maxHeight > 100;
+            final circle = (constraints.maxWidth / 9.8).clamp(34.0, 42.0);
+            final rightWidth = circle;
+            // While typing only the input bar is shown. The input bar must stay
+            // the last child of this same Column in both states: moving it to
+            // another parent rebuilds the TextField and closes the keyboard.
+            final hasEnoughHeight = !isKeyboardOpen && constraints.maxHeight >= (circle + 36.0);
             return Column(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (hasEnoughHeight)
                   Expanded(
@@ -59,8 +66,8 @@ class PkLowerSection extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (hasEnoughHeight) SizedBox(height: isSmall ? 6.0 : 8.0),
-                inputBar,
+                if (hasEnoughHeight) SizedBox(height: isShort ? 4.0 : (isSmall ? 6.0 : 8.0)),
+                KeyedSubtree(key: const ValueKey('pk_input_bar'), child: inputBar),
               ],
             );
           },
@@ -78,7 +85,7 @@ class _GlassCommentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: child);
+    return Padding(padding: const EdgeInsets.fromLTRB(4, 2, 0, 2), child: child);
   }
 }
 
@@ -156,7 +163,12 @@ const List<_NeonStyle> _styles = [
   (border: [Color(0xFF00E5FF), Color(0xFFFF2DC0)], name: Color(0xFFFF82DC)), // cyan/magenta (Meena)
 ];
 
-_NeonStyle _styleFor(String name) => _styles[name.codeUnits.fold<int>(0, (a, b) => a + b) % _styles.length];
+_NeonStyle _styleFor(String name) {
+  if (name == 'System') {
+    return (border: const [Color(0xFFFFD600), Color(0xFFFF2DC0)], name: const Color(0xFFFFD600));
+  }
+  return _styles[name.codeUnits.fold<int>(0, (a, b) => a + b) % _styles.length];
+}
 
 /// Pill with the neon tubular gradient border, glassmorphism fill and top specular gloss.
 class _Pill extends StatelessWidget {
@@ -275,7 +287,13 @@ class _CommentPill extends StatelessWidget {
                   style: TextStyle(color: style.name, fontSize: 12.0, fontWeight: FontWeight.w800, height: 1.15),
                 ),
               ),
-              if (isVip) ...[const SizedBox(width: 3.5), const PkGoldCrown(size: 11)],
+              if (comment.userName == 'System') ...[
+                const SizedBox(width: 3.5),
+                const Icon(Icons.verified_rounded, color: Color(0xFFFFD600), size: 12),
+              ] else if (isVip) ...[
+                const SizedBox(width: 3.5),
+                const PkGoldCrown(size: 11),
+              ],
             ],
           ),
           Text(
@@ -371,10 +389,6 @@ class PkInputBar extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
 
-  /// Colour of the supported host (border, glow, emoji and share button).
-  final Color accent;
-  final String hint;
-
   const PkInputBar({
     super.key,
     required this.onEmojiTap,
@@ -385,8 +399,6 @@ class PkInputBar extends StatefulWidget {
     this.onSend,
     this.controller,
     this.focusNode,
-    this.accent = const Color(0xFF00E5FF),
-    this.hint = 'Type a message…',
   });
 
   @override
@@ -443,22 +455,20 @@ class _PkInputBarState extends State<PkInputBar> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isKeyboard = MediaQuery.viewInsetsOf(context).bottom > 50;
         final circle = (constraints.maxWidth / 9.8).clamp(36.0, 42.0);
-        final emojiColor = widget.accent;
+        const emojiColor = Color(0xFFFFD600);
 
         return Row(
           children: [
             Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+              child: Container(
                 height: circle,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(circle / 2),
-                  border: Border.all(color: _hasText ? const Color(0xFFFFD23F) : widget.accent, width: 1.5),
+                  border: Border.all(color: _hasText ? const Color(0xFFFFD23F) : const Color(0xFF00E5FF), width: 1.5),
                   gradient: const LinearGradient(colors: [Color(0xDD0D113C), Color(0xBB080B28)]),
-                  boxShadow: [
-                    BoxShadow(color: widget.accent.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 0.5),
-                  ],
+                  boxShadow: const [BoxShadow(color: Color(0x5500E5FF), blurRadius: 10, spreadRadius: 0.5)],
                 ),
                 child: Stack(
                   children: [
@@ -492,14 +502,25 @@ class _PkInputBarState extends State<PkInputBar> {
                             controller: _controller,
                             focusNode: _focusNode,
                             cursorColor: const Color(0xFFFFD23F),
+                            cursorWidth: 2.2,
                             textAlignVertical: TextAlignVertical.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                            decoration: InputDecoration(
-                              hintText: widget.hint,
-                              hintStyle: const TextStyle(color: Color(0xFF8E9BCC), fontSize: 13),
+                            keyboardAppearance: Brightness.dark,
+                            textInputAction: TextInputAction.send,
+                            keyboardType: TextInputType.text,
+                            enableSuggestions: true,
+                            autocorrect: true,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                            decoration: const InputDecoration(
+                              hintText: 'Type a message...',
+                              hintStyle: TextStyle(color: Color(0xFF8E9BCC), fontSize: 13.5),
                               border: InputBorder.none,
                               isDense: true,
-                              contentPadding: EdgeInsets.zero,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                             ),
                             onSubmitted: (_) => _send(),
                           ),
@@ -514,17 +535,7 @@ class _PkInputBarState extends State<PkInputBar> {
                                   onTap: _send,
                                   child: const Icon(Icons.send_rounded, color: Color(0xFFFFD23F), size: 18),
                                 )
-                              : _InlineIcon(
-                                  key: const ValueKey('emoji'),
-                                  size: circle - 4,
-                                  label: 'Emoji',
-                                  onTap: widget.onEmojiTap,
-                                  child: Icon(
-                                    Icons.sentiment_satisfied_alt_outlined,
-                                    color: emojiColor,
-                                    size: circle * 0.52,
-                                  ),
-                                ),
+                              : const SizedBox(key: ValueKey('none'), width: 10),
                         ),
                       ],
                     ),
@@ -532,8 +543,28 @@ class _PkInputBarState extends State<PkInputBar> {
                 ),
               ),
             ),
-            SizedBox(width: circle * 0.22),
-            _ShareButton(size: circle, accent: widget.accent, onTap: widget.onShareTap, onLongPress: widget.onMoreTap),
+            if (!isKeyboard) ...[
+              SizedBox(width: circle * 0.14),
+              _LabeledCircle(
+                size: circle,
+                label: 'Share',
+                ring: const Color(0xFF00E5FF),
+                fill: const [Color(0xFF2E6BE0), Color(0xFF102A80)],
+                onTap: widget.onShareTap,
+                icon: Icon(Icons.shortcut_rounded, color: Colors.white, size: circle * 0.44),
+              ),
+              if (widget.onMoreTap != null) ...[
+                SizedBox(width: circle * 0.14),
+                _LabeledCircle(
+                  size: circle,
+                  label: 'More',
+                  ring: const Color(0xFFFFD54F),
+                  fill: const [Color(0xFF38236B), Color(0xFF19103C)],
+                  onTap: widget.onMoreTap,
+                  icon: Icon(Icons.more_horiz_rounded, color: const Color(0xFFFFD54F), size: circle * 0.5),
+                ),
+              ],
+            ],
           ],
         );
       },
@@ -568,60 +599,51 @@ class _InlineIcon extends StatelessWidget {
   }
 }
 
-/// Glossy gradient share button in the supported host's colour (long-press: live tools).
-class _ShareButton extends StatelessWidget {
+/// Round neon button with the icon above a small label (Like / Share / Wallet).
+class _LabeledCircle extends StatelessWidget {
   final double size;
-  final Color accent;
+  final String label;
+  final Color ring;
+  final List<Color> fill;
+  final Widget icon;
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
 
-  const _ShareButton({required this.size, required this.accent, this.onTap, this.onLongPress});
+  const _LabeledCircle({
+    required this.size,
+    required this.label,
+    required this.ring,
+    required this.fill,
+    required this.icon,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final deep = Color.lerp(accent, const Color(0xFF120A3A), 0.55)!;
     return Semantics(
       button: true,
-      label: 'Share',
+      label: label,
       child: GestureDetector(
         onTap: onTap,
-        onLongPress: onLongPress,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+        child: Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent, deep]),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.2),
-            boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.55), blurRadius: 12, offset: const Offset(0, 3))],
+            gradient: RadialGradient(colors: fill),
+            border: Border.all(color: ring, width: 1.6),
+            boxShadow: [BoxShadow(color: ring.withValues(alpha: 0.7), blurRadius: 10)],
           ),
-          child: ClipOval(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Top gloss
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: size * 0.5,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.white.withValues(alpha: 0.35), Colors.transparent],
-                      ),
-                    ),
-                  ),
-                ),
-                Transform.rotate(
-                  angle: -0.35,
-                  child: Icon(Icons.send_rounded, color: Colors.white, size: size * 0.46),
-                ),
-              ],
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              SizedBox(height: size * 0.02),
+              Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(color: Colors.white, fontSize: size * 0.19, fontWeight: FontWeight.w700, height: 1.05),
+              ),
+            ],
           ),
         ),
       ),

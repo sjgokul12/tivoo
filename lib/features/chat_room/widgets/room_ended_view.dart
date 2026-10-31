@@ -1,26 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/luxe_theme.dart';
 import '../../../core/widgets/luxe_tivoo_logo.dart';
+import '../../gift/gift_session_summary_dialog.dart';
+import '../../live_stream/presentation/controllers/star_wallet_controller.dart';
 import '../data/chat_room_data.dart';
 import 'chat_room_common.dart';
 
-/// Step 5: "Chat Room Ended" summary — illustration, host card, four stats and Back to Home.
-class RoomEndedView extends StatefulWidget {
+/// Step 5: "Chat Room Ended" summary — illustration, host card, gift summary, four stats and Back to Home.
+class RoomEndedView extends ConsumerStatefulWidget {
   final ChatRoom room;
   final int totalStars;
+  final int userGiftsSent;
+  final int userStarsSpent;
   final VoidCallback onHome;
 
-  const RoomEndedView({super.key, required this.room, required this.totalStars, required this.onHome});
+  const RoomEndedView({
+    super.key,
+    required this.room,
+    required this.totalStars,
+    this.userGiftsSent = 0,
+    this.userStarsSpent = 0,
+    required this.onHome,
+  });
 
   @override
-  State<RoomEndedView> createState() => _RoomEndedViewState();
+  ConsumerState<RoomEndedView> createState() => _RoomEndedViewState();
 }
 
-class _RoomEndedViewState extends State<RoomEndedView> with SingleTickerProviderStateMixin {
+class _RoomEndedViewState extends ConsumerState<RoomEndedView> with SingleTickerProviderStateMixin {
   late final AnimationController _float = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))
     ..repeat(reverse: true);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.userGiftsSent > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        GiftSessionSummaryDialog.show(
+          context: context,
+          title: 'Chat Room Gift Summary',
+          subtitle: 'Thanks for supporting ${widget.room.hostName}!',
+          totalGiftsSent: widget.userGiftsSent,
+          totalStarsSpent: widget.userStarsSpent,
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -68,6 +97,13 @@ class _RoomEndedViewState extends State<RoomEndedView> with SingleTickerProvider
                         ),
                         const SizedBox(height: 16),
                         _HostCard(room: room),
+                        if (widget.userGiftsSent > 0) ...[
+                          const SizedBox(height: 14),
+                          _UserGiftSummaryCard(
+                            giftsSent: widget.userGiftsSent,
+                            starsSpent: widget.userStarsSpent,
+                          ),
+                        ],
                         const SizedBox(height: 14),
                         GridView.count(
                           crossAxisCount: 2,
@@ -255,8 +291,13 @@ class _HostCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 10.5),
+                const Row(
+                  children: [
+                    Icon(Icons.mic_rounded, color: LuxeColors.gold, size: 13),
+                    SizedBox(width: 4),
+                    Text('Audio Room • 9 Seats', style: TextStyle(color: LuxeColors.gold, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   room.tagline,
@@ -312,6 +353,103 @@ class _StatCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _UserGiftSummaryCard extends ConsumerWidget {
+  final int giftsSent;
+  final int starsSpent;
+
+  const _UserGiftSummaryCard({required this.giftsSent, required this.starsSpent});
+
+  static String _thousands(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallet = ref.watch(starWalletProvider);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2E1C66), Color(0xFF180F3B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFFD54F).withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33FFD54F),
+            blurRadius: 14,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD54F).withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text('🎁', style: TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Your Gift Contribution',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '$giftsSent gifts',
+                style: const TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Spent: -${_thousands(starsSpent)} ⭐',
+                style: const TextStyle(
+                  color: Color(0xFFFF5252),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                'Balance: ${_thousands(wallet.starBalance)} ⭐',
+                style: const TextStyle(
+                  color: Color(0xFFFFD54F),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

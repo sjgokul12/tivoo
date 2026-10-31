@@ -99,7 +99,7 @@ class ChatRoomData {
       hostName: 'Sneha_Live',
       tagline: 'Chill Chat 🥰',
       tag: 'Happy Family',
-      avatar: AppAssets.avatarMeena,
+      avatar: AppAssets.avatarSneha,
       members: 7,
       viewers: 142,
     ),
@@ -111,7 +111,6 @@ class ChatRoomData {
       avatar: AppAssets.avatarVicky,
       members: 5,
       viewers: 88,
-      isVideo: true,
     ),
     ChatRoom(
       id: 'room_5',
@@ -119,7 +118,7 @@ class ChatRoomData {
       tagline: 'Feel Free to Talk 💕',
       tag: 'Sweet Hearts',
       tagIcon: '👥',
-      avatar: AppAssets.avatarNeha,
+      avatar: AppAssets.avatarPriya,
       members: 8,
       viewers: 115,
       isVerified: true,
@@ -135,18 +134,60 @@ class ChatRoomData {
     ),
   ];
 
-  /// Seats 1–8 are taken; the ninth (null) is the Invite slot.
-  static const List<ChatSeat?> seats = [
-    ChatSeat(name: 'Diya', avatar: AppAssets.avatarDiya, isHost: true, micOn: true),
+  /// Pool of available speakers across rooms.
+  static const List<ChatSeat> speakerPool = [
     ChatSeat(name: 'Arun', avatar: AppAssets.avatarArun, micOn: true),
-    ChatSeat(name: 'Sneha', avatar: AppAssets.avatarPriya, micOn: false),
-    ChatSeat(name: 'Karthik', avatar: AppAssets.avatarKarthik, micOn: false),
+    ChatSeat(name: 'Sneha', avatar: AppAssets.avatarSneha, micOn: false),
+    ChatSeat(name: 'Karthik', avatar: AppAssets.avatarKarthik, micOn: true),
     ChatSeat(name: 'Neha', avatar: AppAssets.avatarNeha, micOn: false),
     ChatSeat(name: 'Vicky', avatar: AppAssets.avatarVicky, micOn: false),
+    ChatSeat(name: 'Priya', avatar: AppAssets.avatarPriya, micOn: true),
     ChatSeat(name: 'Saran', avatar: AppAssets.avatarSaran, micOn: false),
     ChatSeat(name: 'Meena', avatar: AppAssets.avatarMeena, micOn: false),
-    null,
+    ChatSeat(name: 'Diya', avatar: AppAssets.avatarDiya, micOn: true),
+    ChatSeat(name: 'Lucas', avatar: AppAssets.status3, micOn: false),
+    ChatSeat(name: 'Aurora', avatar: AppAssets.status4, micOn: true),
+    ChatSeat(name: 'Sam', avatar: AppAssets.status5, micOn: false),
+    ChatSeat(name: 'Chloe', avatar: AppAssets.status2, micOn: true),
   ];
+
+  /// Dynamically generates exactly 9 seat slots matching the room's actual host and member count:
+  /// - Seat 0: Always the room's actual host ([room.hostName] with [room.avatar] and [isHost] = true).
+  /// - Seats 1 to [room.members - 1]: Filled with active speakers from the pool.
+  /// - Remaining seats up to 9: Empty invite slots (null).
+  static List<ChatSeat?> generateSeatsForRoom(ChatRoom room) {
+    final List<ChatSeat?> slots = List<ChatSeat?>.filled(ChatRoom.seatCount, null);
+
+    // Seat 0: The actual host of this room
+    slots[0] = ChatSeat(
+      name: room.hostName,
+      avatar: room.avatar,
+      isHost: true,
+      micOn: true,
+    );
+
+    // Occupied speaker count (capped between 1 and 9)
+    final occupiedCount = room.members.clamp(1, ChatRoom.seatCount);
+
+    // Pool of speakers excluding anyone sharing the host's identity
+    final hostLower = room.hostName.toLowerCase();
+    final available = speakerPool.where((s) {
+      final sLower = s.name.toLowerCase();
+      return !hostLower.contains(sLower) && !sLower.contains(hostLower);
+    }).toList();
+
+    var poolIdx = 0;
+    for (var i = 1; i < occupiedCount; i++) {
+      if (poolIdx < available.length) {
+        slots[i] = available[poolIdx++];
+      }
+    }
+
+    return slots;
+  }
+
+  /// Default seats getter for backward compatibility.
+  static List<ChatSeat?> get seats => generateSeatsForRoom(rooms.first);
 
   static const JoinRequest pendingRequest = JoinRequest(
     name: 'Karthi',

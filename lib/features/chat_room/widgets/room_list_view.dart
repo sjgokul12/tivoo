@@ -51,7 +51,6 @@ class _RoomListViewState extends State<RoomListView> {
               .where(
                 (r) =>
                     r.hostName.toLowerCase().contains(q) ||
-                    r.tag.toLowerCase().contains(q) ||
                     r.tagline.toLowerCase().contains(q),
               )
               .toList();
@@ -229,13 +228,12 @@ class _RoomRow extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Row(
                       children: [
-                        GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 11),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF8A3D), size: 14),
-                        Text(' ${room.viewers}', style: meta.copyWith(color: LuxeColors.goldLight)),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.person_rounded, color: LuxeColors.textDim, size: 14),
+                        const Icon(Icons.people_alt_rounded, color: LuxeColors.textDim, size: 14),
                         Text(' ${room.capacity}', style: meta),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.graphic_eq_rounded, color: LuxeColors.violet, size: 14),
+                        const SizedBox(width: 3),
+                        Text('Audio Room', style: meta.copyWith(color: LuxeColors.violet)),
                       ],
                     ),
                   ),

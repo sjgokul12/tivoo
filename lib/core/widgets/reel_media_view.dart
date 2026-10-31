@@ -67,7 +67,7 @@ class _ReelMediaViewState extends State<ReelMediaView> {
           fit: StackFit.expand,
           children: [
             if (!ready) _cover(),
-            if (ready)
+            if (ready) ...[
               FittedBox(
                 fit: BoxFit.cover,
                 clipBehavior: Clip.hardEdge,
@@ -77,6 +77,38 @@ class _ReelMediaViewState extends State<ReelMediaView> {
                   child: VideoPlayer(controller),
                 ),
               ),
+              if (controller.value.size.width >= 1080 || controller.value.size.height >= 1080)
+                Positioned(
+                  top: 54,
+                  right: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
+                            ? AppColors.primaryYellow
+                            : Colors.cyanAccent.withValues(alpha: 0.7),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
+                          ? '4K UHD'
+                          : '1080p FHD',
+                      style: TextStyle(
+                        color: (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
+                            ? AppColors.primaryYellow
+                            : Colors.cyanAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
             if (widget.isActive && !ready && !_manager.hasError(path))
               Center(
                 child: SizedBox(

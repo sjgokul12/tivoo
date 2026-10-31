@@ -74,20 +74,23 @@ class JoinRoomModal extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 12.5),
-              ),
-              const SizedBox(width: 10),
               const Icon(Icons.people_alt_rounded, color: LuxeColors.textMuted, size: 16),
               const SizedBox(width: 4),
               Text(
                 room.capacity,
                 style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w800),
               ),
+              const SizedBox(width: 12),
+              const Icon(Icons.graphic_eq_rounded, color: LuxeColors.violet, size: 16),
+              const SizedBox(width: 4),
+              const Text(
+                'Audio Room',
+                style: TextStyle(color: LuxeColors.textMuted, fontSize: 13.5, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
           const SizedBox(height: 22),
-          ChatPillButton(label: 'Join', icon: room.isVideo ? Icons.videocam_rounded : Icons.mic_rounded, onTap: onJoin),
+          ChatPillButton(label: 'Join', icon: Icons.mic_rounded, onTap: onJoin),
           const SizedBox(height: 12),
           ChatPillButton(label: 'Cancel', style: ChatButtonStyle.ghost, onTap: onCancel),
         ],
@@ -96,7 +99,7 @@ class JoinRoomModal extends StatelessWidget {
   }
 }
 
-/// Step 4: "End Chat Room?" confirmation.
+/// Step 4: "End Chat Room?" confirmation (Host only).
 class EndRoomModal extends StatelessWidget {
   final VoidCallback onEnd;
   final VoidCallback onCancel;
@@ -105,50 +108,212 @@ class EndRoomModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.sizeOf(context);
     return ChatModalCard(
       onDismiss: onCancel,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 66,
-            height: 66,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: LuxeColors.pink.withValues(alpha: 0.14),
-              border: Border.all(color: LuxeColors.pink, width: 2),
-              boxShadow: const [BoxShadow(color: Color(0x66FF2D78), blurRadius: 18, spreadRadius: 2)],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: media.width * 0.88),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: LuxeColors.pink.withValues(alpha: 0.14),
+                border: Border.all(color: LuxeColors.pink, width: 2),
+                boxShadow: const [BoxShadow(color: Color(0x66FF2D78), blurRadius: 18, spreadRadius: 2)],
+              ),
+              child: const Icon(Icons.power_settings_new_rounded, color: LuxeColors.pink, size: 34),
             ),
-            child: const Icon(Icons.power_settings_new_rounded, color: LuxeColors.pink, size: 34),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'End Chat Room?',
-            style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'All members will be removed\nand the room will end.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: LuxeColors.textMuted, fontSize: 13.5, height: 1.4),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ChatPillButton(label: 'Cancel', style: ChatButtonStyle.ghost, height: 44, onTap: onCancel),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ChatPillButton(label: 'End Room', style: ChatButtonStyle.danger, height: 44, onTap: onEnd),
-              ),
-            ],
-          ),
-        ],
+            const SizedBox(height: 18),
+            const Text(
+              'End Chat Room?',
+              style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'All members will be removed\nand the room will end.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: LuxeColors.textMuted, fontSize: 13.5, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ChatPillButton(label: 'Cancel', style: ChatButtonStyle.ghost, height: 44, onTap: onCancel),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ChatPillButton(label: 'End Room', style: ChatButtonStyle.danger, height: 44, onTap: onEnd),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Leave Room modal for Viewers and Participants: only the user leaves, the room carries on.
+class LeaveRoomModal extends StatelessWidget {
+  final VoidCallback onLeave;
+  final VoidCallback onCancel;
+  final bool wasSpeaker;
+
+  const LeaveRoomModal({
+    super.key,
+    required this.onLeave,
+    required this.onCancel,
+    this.wasSpeaker = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.sizeOf(context);
+    return ChatModalCard(
+      onDismiss: onCancel,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: media.width * 0.88),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6C3CE9).withValues(alpha: 0.16),
+                border: Border.all(color: const Color(0xFF9D65FF), width: 2),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x556C3CE9), blurRadius: 18, spreadRadius: 2),
+                ],
+              ),
+              child: const Icon(Icons.logout_rounded, color: Color(0xFFC49BFB), size: 32),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Leave Chat Room?',
+              style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              wasSpeaker
+                  ? 'You will vacate your speaker seat and exit.\nThe conversation in this room will carry on.'
+                  : 'You will exit the room.\nThe conversation in this room will carry on.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: LuxeColors.textMuted, fontSize: 13.5, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ChatPillButton(label: 'Cancel', style: ChatButtonStyle.ghost, height: 44, onTap: onCancel),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ChatPillButton(
+                    label: 'Leave Room',
+                    style: ChatButtonStyle.danger,
+                    height: 44,
+                    onTap: onLeave,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirmation dialog for the host to remove any person from the room.
+void showRemovePersonDialog(
+  BuildContext context, {
+  required String name,
+  String? avatar,
+  bool isSpeaker = false,
+  required VoidCallback onConfirm,
+}) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      final media = MediaQuery.sizeOf(ctx);
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: media.width * 0.88),
+          child: LuxePanel(
+            radius: 24,
+            borderColors: const [Color(0xFFFF2D55), Color(0xFFC70039)],
+            glow: 20,
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFF2D55).withValues(alpha: 0.15),
+                    border: Border.all(color: const Color(0xFFFF2D55), width: 1.8),
+                    boxShadow: const [BoxShadow(color: Color(0x44FF2D55), blurRadius: 14)],
+                  ),
+                  child: const Icon(Icons.person_remove_rounded, color: Color(0xFFFF2D55), size: 28),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Remove $name?',
+                  style: const TextStyle(color: Colors.white, fontSize: 18.5, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isSpeaker
+                      ? 'Are you sure you want to remove $name from their seat and the chatroom?'
+                      : 'Are you sure you want to remove $name from this chatroom?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: LuxeColors.textMuted, fontSize: 13, height: 1.35),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChatPillButton(
+                        label: 'Cancel',
+                        style: ChatButtonStyle.ghost,
+                        height: 44,
+                        onTap: () => Navigator.pop(ctx),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ChatPillButton(
+                        label: 'Remove',
+                        style: ChatButtonStyle.danger,
+                        height: 44,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onConfirm();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// Host sees a speaker request and can accept (fills the Invite seat) or reject it.
@@ -539,12 +704,12 @@ void showSeatSheet(
                   label: 'View profile',
                   onTap: onViewProfile ??
                       () {
-                        Navigator.of(context).pop();
                         UserProfileBottomSheet.show(
                           context,
                           userName: seat.name,
                           avatarAsset: seat.avatar,
                           userId: 'user_${seat.name.toLowerCase().replaceAll(' ', '_')}',
+                          roleBadge: seat.isHost ? '👑 Room Host' : '🎙️ Audio Speaker',
                         );
                       },
                 ),
@@ -587,14 +752,15 @@ void showSeatSheet(
   );
 }
 
-/// Room "More" menu: share, switch audio / video, rules, and review requests.
+/// Room "More" menu: share, rules, review requests, and room members.
 void showRoomMoreMenu(
   BuildContext context, {
-  required bool isVideo,
+  bool isVideo = false,
   required VoidCallback onShare,
-  required VoidCallback onToggleMode,
+  VoidCallback? onToggleMode,
   int pendingRequestsCount = 0,
   VoidCallback? onReviewRequests,
+  VoidCallback? onShowMembers,
 }) {
   showModalBottomSheet(
     context: context,
@@ -626,12 +792,10 @@ void showRoomMoreMenu(
             children: [
               if (pendingRequestsCount > 0 && onReviewRequests != null)
                 item(Icons.notifications_active_rounded, 'Join Requests ($pendingRequestsCount)', onReviewRequests),
+              if (onShowMembers != null)
+                item(Icons.groups_rounded, 'Room Members', onShowMembers),
               item(Icons.share_rounded, 'Share Room', onShare),
-              item(
-                isVideo ? Icons.mic_rounded : Icons.videocam_rounded,
-                isVideo ? 'Switch to Audio Mode' : 'Switch to Video Mode',
-                onToggleMode,
-              ),
+              item(Icons.graphic_eq_rounded, 'Audio Mode (9 Seats Active)', null),
               item(Icons.rule_rounded, 'Room Rules & Help', null),
             ],
           ),
@@ -639,6 +803,302 @@ void showRoomMoreMenu(
       );
     },
   );
+}
+
+/// Member data item representing anyone in the room (Host, Seated Speaker, or Viewer).
+class RoomMemberItem {
+  final String id;
+  final String name;
+  final String avatar;
+  final String role; // 'Host', 'Speaker', 'Viewer'
+  final bool isHost;
+  final bool isSpeaker;
+  final int? seatIndex;
+  final String level;
+
+  const RoomMemberItem({
+    required this.id,
+    required this.name,
+    required this.avatar,
+    required this.role,
+    this.isHost = false,
+    this.isSpeaker = false,
+    this.seatIndex,
+    this.level = 'Lv.10',
+  });
+}
+
+/// Modal bottom sheet showing all room members with Host control to remove anyone.
+void showRoomMembersSheet(
+  BuildContext context, {
+  required List<RoomMemberItem> members,
+  required bool isHostWhoCreated,
+  required ValueChanged<RoomMemberItem> onRemoveMember,
+  ValueChanged<RoomMemberItem>? onViewProfile,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _RoomMembersSheet(
+      members: members,
+      isHostWhoCreated: isHostWhoCreated,
+      onRemoveMember: onRemoveMember,
+      onViewProfile: onViewProfile,
+    ),
+  );
+}
+
+class _RoomMembersSheet extends StatefulWidget {
+  final List<RoomMemberItem> members;
+  final bool isHostWhoCreated;
+  final ValueChanged<RoomMemberItem> onRemoveMember;
+  final ValueChanged<RoomMemberItem>? onViewProfile;
+
+  const _RoomMembersSheet({
+    required this.members,
+    required this.isHostWhoCreated,
+    required this.onRemoveMember,
+    this.onViewProfile,
+  });
+
+  @override
+  State<_RoomMembersSheet> createState() => _RoomMembersSheetState();
+}
+
+class _RoomMembersSheetState extends State<_RoomMembersSheet> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.sizeOf(context);
+    final query = _searchController.text.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? widget.members
+        : widget.members.where((m) => m.name.toLowerCase().contains(query)).toList();
+
+    return ChatSheetFrame(
+      child: Material(
+        type: MaterialType.transparency,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: media.height * 0.72),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.groups_rounded, color: LuxeColors.gold, size: 24),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Room Members (${widget.members.length})',
+                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          widget.isHostWhoCreated
+                              ? 'Host has control to remove any member'
+                              : 'Active participants in this room',
+                          style: const TextStyle(color: LuxeColors.textDim, fontSize: 11.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _CloseButton(onTap: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, color: LuxeColors.gold, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        cursorColor: LuxeColors.gold,
+                        decoration: const InputDecoration(
+                          hintText: 'Search room members...',
+                          hintStyle: TextStyle(color: LuxeColors.textDim, fontSize: 13),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: filtered.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Text('No members found', style: TextStyle(color: LuxeColors.textDim, fontSize: 13)),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (ctx, i) {
+                          final item = filtered[i];
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: item.isHost
+                                  ? LuxeColors.gold.withValues(alpha: 0.08)
+                                  : Colors.white.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: item.isHost
+                                    ? LuxeColors.gold.withValues(alpha: 0.28)
+                                    : Colors.white.withValues(alpha: 0.06),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                GoldRingAvatar(asset: item.avatar, radius: 18, ring: item.isHost ? 2 : 1),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              item.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(8),
+                                              color: item.isHost
+                                                  ? LuxeColors.gold.withValues(alpha: 0.2)
+                                                  : (item.isSpeaker
+                                                      ? const Color(0xFF6C3CE9).withValues(alpha: 0.25)
+                                                      : Colors.white.withValues(alpha: 0.08)),
+                                            ),
+                                            child: Text(
+                                              item.isHost
+                                                  ? '👑 Host'
+                                                  : (item.isSpeaker ? '🎙️ Speaker' : '👤 Viewer'),
+                                              style: TextStyle(
+                                                color: item.isHost
+                                                    ? LuxeColors.gold
+                                                    : (item.isSpeaker ? const Color(0xFFC49BFB) : LuxeColors.textDim),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.isHost
+                                            ? 'Room Creator'
+                                            : (item.isSpeaker
+                                                ? 'Seat #${(item.seatIndex ?? 0) + 1}'
+                                                : 'Audience Member'),
+                                        style: const TextStyle(color: LuxeColors.textDim, fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (widget.isHostWhoCreated && !item.isHost)
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      widget.onRemoveMember(item);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF2D55).withValues(alpha: 0.16),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFFFF2D55), width: 1.1),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.person_remove_rounded, color: Color(0xFFFF2D55), size: 13),
+                                          SizedBox(width: 3),
+                                          Text(
+                                            'Remove',
+                                            style: TextStyle(
+                                              color: Color(0xFFFF2D55),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                else if (widget.onViewProfile != null)
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      widget.onViewProfile!(item);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Profile',
+                                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CloseButton extends StatelessWidget {

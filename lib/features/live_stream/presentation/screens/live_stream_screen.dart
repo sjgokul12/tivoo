@@ -24,6 +24,7 @@ import '../../../../core/widgets/tivoo_share_sheet.dart';
 import '../../../profile/presentation/controllers/follow_controller.dart';
 import '../../../profile/presentation/widgets/instagram_follow_actions_sheet.dart';
 import '../widgets/viewer_more_options_sheet.dart';
+import '../widgets/creator_more_options_sheet.dart';
 
 /// Full-screen live viewer, vertically swipeable between [streams] the way
 /// TikTok/Bigo Live feeds work — each page plays its own video only while
@@ -474,8 +475,7 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
                                           isFollowing: relationship.isFollowingOrMutual,
                                           isRequested: relationship.isRequested,
                                           commentsCount: liveState.formattedComments,
-                                          starsCount: 'Stars',
-                                          isHost: false, // Viewer mode: PK battle hidden for viewers
+                                          isHost: widget.isCreator || widget.stream.streamerName == 'Me',
                                           onFollowTap: _handleFollowStreamer,
                                           onCommentTap: () => _commentFocusNode.requestFocus(),
                                           onGiftTap: () => _handleGiftTap(controller),
@@ -756,6 +756,16 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
   }
 
   void _showViewerMoreOptions() {
+    if (widget.isCreator || widget.stream.streamerName == 'Me') {
+      CreatorMoreOptionsSheet.show(
+        context,
+        streamTitle: widget.stream.streamerBio.isNotEmpty
+            ? widget.stream.streamerBio
+            : 'My Live Stream',
+        onPkBattleTap: _openPkBattle,
+      );
+      return;
+    }
     final stream = widget.stream;
     ViewerMoreOptionsSheet.show(
       context,

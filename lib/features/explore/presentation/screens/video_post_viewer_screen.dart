@@ -11,7 +11,7 @@ import 'package:tivoo/features/explore/domain/models/video_post.dart';
 import 'package:tivoo/features/explore/presentation/controllers/posts_controller.dart';
 import 'package:tivoo/features/explore/presentation/widgets/comments_sheet.dart';
 
-/// Full-screen vertical player for uploaded video posts.
+/// Full-screen vertical player for uploaded video posts with 4K clarity and mobile responsiveness.
 class VideoPostViewerScreen extends ConsumerStatefulWidget {
   final List<VideoPost> posts;
   final int initialIndex;
@@ -19,8 +19,6 @@ class VideoPostViewerScreen extends ConsumerStatefulWidget {
   const VideoPostViewerScreen({super.key, required this.posts, this.initialIndex = 0});
 
   static Future<void> open(BuildContext context, List<VideoPost> posts, {int initialIndex = 0}) {
-    // Release the Explore players so this screen always gets a free video decoder;
-    // Explore reloads its video when it's shown again.
     ReelVideoManager.instance.disposeAll();
     return Navigator.of(context).push(
       MaterialPageRoute(
@@ -49,16 +47,17 @@ class _VideoPostViewerScreenState extends ConsumerState<VideoPostViewerScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF141927),
-        title: const Text('Delete video?', style: TextStyle(color: Colors.white)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete video?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text(
           'This video will be removed from your profile and Explore.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: Colors.white60))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -85,33 +84,40 @@ class _VideoPostViewerScreenState extends ConsumerState<VideoPostViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final posts = ref.watch(postsControllerProvider);
+    final mq = MediaQuery.of(context);
+    final isTablet = mq.size.width >= 600;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          PageView.builder(
-            controller: _pages,
-            scrollDirection: Axis.vertical,
-            itemCount: _posts.length,
-            onPageChanged: (i) => setState(() => _current = i),
-            itemBuilder: (_, i) => _PostPage(
-              key: ValueKey(_posts[i].id),
-              post: _posts[i],
-              isActive: i == _current,
-              isMine: posts.isMine(_posts[i]),
-              onDelete: () => _delete(_posts[i]),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
-                onPressed: () => Navigator.of(context).pop(),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isTablet ? 480 : double.infinity),
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _pages,
+                scrollDirection: Axis.vertical,
+                itemCount: _posts.length,
+                onPageChanged: (i) => setState(() => _current = i),
+                itemBuilder: (_, i) => _PostPage(
+                  key: ValueKey(_posts[i].id),
+                  post: _posts[i],
+                  isActive: i == _current,
+                  isMine: posts.isMine(_posts[i]),
+                  onDelete: () => _delete(_posts[i]),
+                ),
               ),
-            ),
+              Positioned(
+                top: mq.padding.top + 6,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -136,7 +142,7 @@ class _PostPage extends StatefulWidget {
 }
 
 class _PostPageState extends State<_PostPage> {
-  late final VideoPlayerController _c = videoControllerFor(widget.post.videoUrl);
+  late VideoPlayerController _c;
   bool _ready = false;
   bool _error = false;
   bool _liked = false;
@@ -145,6 +151,11 @@ class _PostPageState extends State<_PostPage> {
   @override
   void initState() {
     super.initState();
+    _initController();
+  }
+
+  void _initController() {
+    _c = videoControllerFor(widget.post.videoUrl);
     _c.addListener(_onTick);
     _c
         .initialize()
@@ -152,11 +163,25 @@ class _PostPageState extends State<_PostPage> {
           if (!mounted) return;
           _c.setLooping(true);
           if (widget.isActive) _c.play();
-          setState(() => _ready = true);
+          setState(() {
+            _ready = true;
+            _error = false;
+          });
         })
-        .catchError((_) {
+        .catchError((err) {
+          debugPrint('VideoPostViewer: playback init error for ${widget.post.videoUrl}: $err');
           if (mounted) setState(() => _error = true);
         });
+  }
+
+  void _retry() {
+    setState(() {
+      _error = false;
+      _ready = false;
+    });
+    _c.removeListener(_onTick);
+    _c.dispose();
+    _initController();
   }
 
   void _onTick() {
@@ -178,14 +203,20 @@ class _PostPageState extends State<_PostPage> {
   }
 
   void _toggleLike() => setState(() {
-    _liked = !_liked;
-    _likes += _liked ? 1 : -1;
-  });
+        _liked = !_liked;
+        _likes += _liked ? 1 : -1;
+      });
 
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
     final value = _c.value;
+    final mq = MediaQuery.of(context);
+    final isSmall = mq.size.width < 360;
+    final bottomInset = mq.padding.bottom + (isSmall ? 18 : 26);
+    final is4K = value.isInitialized && (value.size.width >= 2160 || value.size.height >= 2160);
+    final is1080 = value.isInitialized && (value.size.width >= 1080 || value.size.height >= 1080);
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -198,19 +229,69 @@ class _PostPageState extends State<_PostPage> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (_ready)
+          if (_ready) ...[
             FittedBox(
               fit: value.aspectRatio < 0.75 ? BoxFit.cover : BoxFit.contain,
               child: SizedBox(width: value.size.width, height: value.size.height, child: VideoPlayer(_c)),
-            )
-          else if (_error)
-            const Center(
-              child: Text('Could not play this video', style: TextStyle(color: Colors.white70)),
+            ),
+            if (is1080)
+              Positioned(
+                top: mq.padding.top + 10,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: is4K ? LuxeColors.gold : Colors.cyanAccent.withValues(alpha: 0.8),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.high_quality_rounded,
+                        color: is4K ? LuxeColors.gold : Colors.cyanAccent,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        is4K ? '4K Ultra HD' : '1080p Full HD',
+                        style: TextStyle(
+                          color: is4K ? LuxeColors.gold : Colors.cyanAccent,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ] else if (_error)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.white54, size: 36),
+                  const SizedBox(height: 10),
+                  const Text('Video player initializing...', style: TextStyle(color: Colors.white70, fontSize: 13.5)),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _retry,
+                    style: TextButton.styleFrom(backgroundColor: Colors.white12, foregroundColor: Colors.white),
+                    icon: const Icon(Icons.refresh_rounded, color: LuxeColors.gold, size: 16),
+                    label: const Text('Tap to Retry', style: TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
             )
           else
-            const Center(child: CircularProgressIndicator(color: LuxeColors.gold)),
+            const Center(child: CircularProgressIndicator(color: LuxeColors.gold, strokeWidth: 2.5)),
           if (_ready && !value.isPlaying)
-            const Center(child: Icon(Icons.play_arrow_rounded, color: Colors.white70, size: 84)),
+            const Center(child: Icon(Icons.play_arrow_rounded, color: Colors.white70, size: 76)),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -222,42 +303,42 @@ class _PostPageState extends State<_PostPage> {
             ),
           ),
           Positioned(
-            left: 16,
-            right: 84,
-            bottom: 36 + MediaQuery.paddingOf(context).bottom,
+            left: 14,
+            right: 80,
+            bottom: bottomInset,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    CustomAvatar(radius: 17, imageUrl: post.authorAvatar),
+                    CustomAvatar(radius: isSmall ? 15 : 17, imageUrl: post.authorAvatar),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         '@${post.authorUsername}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: Colors.white, fontSize: isSmall ? 14 : 15, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
                 ),
                 if (post.caption.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     post.caption,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                    style: TextStyle(color: Colors.white, fontSize: isSmall ? 12.5 : 13.5),
                   ),
                 ],
               ],
             ),
           ),
           Positioned(
-            right: 10,
-            bottom: 36 + MediaQuery.paddingOf(context).bottom,
+            right: 8,
+            bottom: bottomInset,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -292,7 +373,7 @@ class _PostPageState extends State<_PostPage> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: MediaQuery.paddingOf(context).bottom,
+              bottom: mq.padding.bottom,
               child: VideoProgressIndicator(
                 _c,
                 allowScrubbing: true,
@@ -316,7 +397,7 @@ class _SideButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 14),
       child: GestureDetector(
         onTap: onTap,
         child: Column(
@@ -324,13 +405,13 @@ class _SideButton extends StatelessWidget {
             Icon(
               icon,
               color: color,
-              size: 32,
+              size: 30,
               shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ],
         ),

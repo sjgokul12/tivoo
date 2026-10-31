@@ -58,8 +58,9 @@ class LocalPostsRepository implements PostsRepository {
     final id = 'post_${DateTime.now().millisecondsSinceEpoch}';
     final dir = (await _postsDir()).path;
     final sep = Platform.pathSeparator;
-    // Keep private copies so posts survive cache cleanup and gallery deletes.
-    final savedVideo = await video.copy('$dir$sep$id.mp4');
+    final rawExt = video.path.split('.').last.toLowerCase();
+    final ext = (rawExt == 'mov' || rawExt == 'm4v' || rawExt == 'webm' || rawExt == 'mkv') ? rawExt : 'mp4';
+    final savedVideo = await video.copy('$dir$sep$id.$ext');
     final savedThumb = thumbnail == null ? null : await thumbnail.copy('$dir$sep$id.jpg');
 
     final post = VideoPost(

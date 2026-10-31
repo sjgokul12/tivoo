@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../theme/app_colors.dart';
-import '../utils/video_source.dart';
 
 class LiveVideoPlayer extends StatefulWidget {
   final String playerId;
@@ -84,7 +83,10 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
     if (_isInitializing || _controller != null) return;
     _isInitializing = true;
     try {
-      final controller = videoControllerFor(widget.videoAssetPath);
+      final controller = VideoPlayerController.asset(
+        widget.videoAssetPath,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
       _controller = controller;
       controller.addListener(_videoListener);
 

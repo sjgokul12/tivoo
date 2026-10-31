@@ -17,6 +17,7 @@ class UserProfileBottomSheet extends ConsumerStatefulWidget {
   final String? avatarUrl;
   final String? userId;
   final VoidCallback? onSendGiftTap;
+  final String? roleBadge;
 
   const UserProfileBottomSheet({
     super.key,
@@ -25,6 +26,7 @@ class UserProfileBottomSheet extends ConsumerStatefulWidget {
     this.avatarUrl,
     this.userId,
     this.onSendGiftTap,
+    this.roleBadge,
   });
 
   static Future<void> show(
@@ -34,6 +36,7 @@ class UserProfileBottomSheet extends ConsumerStatefulWidget {
     String? avatarUrl,
     String? userId,
     VoidCallback? onSendGiftTap,
+    String? roleBadge,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -45,6 +48,7 @@ class UserProfileBottomSheet extends ConsumerStatefulWidget {
         avatarUrl: avatarUrl,
         userId: userId,
         onSendGiftTap: onSendGiftTap,
+        roleBadge: roleBadge,
       ),
     );
   }
@@ -60,12 +64,14 @@ class _UserProfileBottomSheetState extends ConsumerState<UserProfileBottomSheet>
       id: widget.userId ?? 'user_${widget.userName.toLowerCase().replaceAll(' ', '_')}',
       userId: widget.userName.toLowerCase().replaceAll(' ', '_'),
       streamerName: widget.userName,
-      streamerBio: '✨ Creator on Tivoo • Good Vibes Only ✨',
+      streamerBio: widget.roleBadge != null
+          ? '${widget.roleBadge} • Good Vibes Only ✨'
+          : '✨ Creator on Tivoo • Good Vibes Only ✨',
       streamerAssetPath: widget.avatarAsset,
       streamerAvatarUrl: widget.avatarUrl,
       viewersCount: '1.2K',
       diamondsCount: '45.2K',
-      category: 'Creator',
+      category: widget.roleBadge ?? 'Creator',
       isFollowing: false,
     );
     Navigator.of(context).push(
@@ -285,9 +291,9 @@ class _UserProfileBottomSheetState extends ConsumerState<UserProfileBottomSheet>
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'VIP 5',
-                    style: TextStyle(
+                  child: Text(
+                    widget.roleBadge ?? 'VIP 5',
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,

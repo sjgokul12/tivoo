@@ -5,7 +5,7 @@ import '../../../core/theme/luxe_theme.dart';
 import '../data/chat_room_data.dart';
 import 'chat_room_common.dart';
 
-/// Host creates a room: topic, team badge and Audio / Video mode.
+/// Host creates an audio chat room with 9 speaker seats: topic and audio setup.
 class CreateRoomSheet extends StatefulWidget {
   final ValueChanged<ChatRoom> onCreate;
   const CreateRoomSheet({super.key, required this.onCreate});
@@ -25,8 +25,6 @@ class CreateRoomSheet extends StatefulWidget {
 
 class _CreateRoomSheetState extends State<CreateRoomSheet> {
   final _title = TextEditingController(text: 'My Party Room 💕');
-  String _tag = ChatRoomData.tags.first;
-  bool _video = false;
 
   @override
   void dispose() {
@@ -41,12 +39,12 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
         id: 'room_${DateTime.now().millisecondsSinceEpoch}',
         hostName: 'You (Host)',
         tagline: topic.isEmpty ? "Let's party together 💕" : topic,
-        tag: _tag,
+        tag: 'Audio Party',
         avatar: AppAssets.avatarDiya,
         members: 1,
         viewers: 1,
         isVerified: true,
-        isVideo: _video,
+        isVideo: false,
       ),
     );
     Navigator.pop(context);
@@ -54,139 +52,95 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.sizeOf(context);
+    final viewInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.only(bottom: viewInset),
       child: ChatSheetFrame(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: media.height * 0.82),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: LuxeGoldText('Create Chat Room', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: LuxeGoldText('Create Chat Room', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white70),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const ChatFieldLabel('Room Title / Topic'),
-            LuxePanel(
-              radius: 14,
-              glow: 0,
-              child: TextField(
-                controller: _title,
-                cursorColor: LuxeColors.gold,
-                style: const TextStyle(color: Colors.white, fontSize: 14.5),
-                decoration: const InputDecoration(
-                  hintText: 'Enter room topic...',
-                  hintStyle: TextStyle(color: LuxeColors.textDim),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const ChatFieldLabel('Category / Team Badge'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in ChatRoomData.tags)
-                  _Choice(selected: tag == _tag, onTap: () => setState(() => _tag = tag), child: Text('👑 $tag')),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const ChatFieldLabel('Room Mode'),
-            Row(
-              children: [
-                Expanded(
-                  child: _Choice(
-                    selected: !_video,
-                    onTap: () => setState(() => _video = false),
-                    child: const _ModeLabel(icon: Icons.mic_rounded, text: 'Audio (9 Seats)'),
+                const SizedBox(height: 12),
+                const ChatFieldLabel('Room Title / Topic'),
+                LuxePanel(
+                  radius: 14,
+                  glow: 0,
+                  child: TextField(
+                    controller: _title,
+                    cursorColor: LuxeColors.gold,
+                    style: const TextStyle(color: Colors.white, fontSize: 14.5),
+                    decoration: const InputDecoration(
+                      hintText: 'Enter room topic...',
+                      hintStyle: TextStyle(color: LuxeColors.textDim),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _Choice(
-                    selected: _video,
-                    onTap: () => setState(() => _video = true),
-                    child: const _ModeLabel(icon: Icons.videocam_rounded, text: 'Video Party'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1544),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: LuxeColors.violet.withValues(alpha: 0.45)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LuxeColors.goldGradient,
+                        ),
+                        child: const Icon(Icons.mic_rounded, color: kGoldInk, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Audio Room (9 Seats)',
+                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Anyone can join the conversation with 9 active speaker seats',
+                              style: TextStyle(color: LuxeColors.textDim, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 22),
+                ChatPillButton(label: 'Create Room & Go Live', icon: Icons.sensors_rounded, onTap: _create),
               ],
-            ),
-            const SizedBox(height: 22),
-            ChatPillButton(label: 'Create Room & Go Live', icon: Icons.sensors_rounded, onTap: _create),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Selectable chip / tile: gold fill when selected, glass otherwise.
-class _Choice extends StatelessWidget {
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget child;
-
-  const _Choice({required this.selected, required this.onTap, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: selected
-              ? LuxeDecor.goldButton(radius: 14)
-              : BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: LuxeColors.panel,
-                  border: Border.all(color: LuxeColors.purple.withValues(alpha: 0.45)),
-                ),
-          child: DefaultTextStyle.merge(
-            style: TextStyle(
-              color: selected ? kGoldInk : Colors.white,
-              fontSize: 12.5,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            ),
-            child: IconTheme.merge(
-              data: IconThemeData(color: selected ? kGoldInk : LuxeColors.gold, size: 17),
-              child: child,
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ModeLabel extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _ModeLabel({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon),
-        const SizedBox(width: 6),
-        Flexible(
-          child: FittedBox(fit: BoxFit.scaleDown, child: Text(text)),
-        ),
-      ],
     );
   }
 }

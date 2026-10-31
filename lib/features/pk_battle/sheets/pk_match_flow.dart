@@ -185,6 +185,8 @@ class PkMatchFlow {
             rightScore: 9870,
             secondsLeft: durationSeconds,
           ),
+          // The host started this battle, so they get the streamer screen.
+          isCreator: true,
           onBack: () => Navigator.of(context).pop(),
         ),
       ),

@@ -7,8 +7,16 @@ class LiveToolsBottomSheet extends StatelessWidget {
   final VoidCallback? onInviteTap;
   final VoidCallback? onRankingTap;
   final VoidCallback? onGuestsTap;
+  final VoidCallback? onReportTap;
 
-  const LiveToolsBottomSheet({super.key, this.onPkSettingsTap, this.onInviteTap, this.onRankingTap, this.onGuestsTap});
+  const LiveToolsBottomSheet({
+    super.key,
+    this.onPkSettingsTap,
+    this.onInviteTap,
+    this.onRankingTap,
+    this.onGuestsTap,
+    this.onReportTap,
+  });
 
   static Future<void> show(
     BuildContext context, {
@@ -16,6 +24,7 @@ class LiveToolsBottomSheet extends StatelessWidget {
     VoidCallback? onInviteTap,
     VoidCallback? onRankingTap,
     VoidCallback? onGuestsTap,
+    VoidCallback? onReportTap,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -27,6 +36,7 @@ class LiveToolsBottomSheet extends StatelessWidget {
         onInviteTap: onInviteTap,
         onRankingTap: onRankingTap,
         onGuestsTap: onGuestsTap,
+        onReportTap: onReportTap,
       ),
     );
   }
@@ -156,9 +166,13 @@ class LiveToolsBottomSheet extends StatelessWidget {
                   subtitle: 'Report user,\nblock, safety tools',
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('Safety tools & Report panel opened.')));
+                    if (onReportTap != null) {
+                      onReportTap!();
+                    } else {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('Safety tools & Report panel opened.')));
+                    }
                   },
                 ),
               ],

@@ -84,23 +84,6 @@ class GiftSoundService {
     }
   }
 
-  bool _preloaded = false;
-
-  /// Copies the premium tracks into the audio cache ahead of time, so the first
-  /// gift's sound starts exactly with its animation instead of after a load delay.
-  Future<void> preload() async {
-    if (_preloaded) return;
-    _preloaded = true;
-    try {
-      await AudioCache.instance.loadAll([
-        for (final c in const ['lion', 'horse', 'dolphin', 'car', 'rocket', 'yacht', 'wings', 'crown', 'castle'])
-          soundFor(c),
-      ]);
-    } catch (e) {
-      debugPrint('GiftSoundService preload note: $e');
-    }
-  }
-
   /// Plays the authentic sound effect corresponding to the active gift category
   Future<void> playGiftSound(String category) async {
     if (_isMuted) return;

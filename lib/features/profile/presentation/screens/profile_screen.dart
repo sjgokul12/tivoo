@@ -21,6 +21,7 @@ import '../../../../core/widgets/tivoo_share_sheet.dart';
 import 'package:tivoo/features/messages/messages.dart';
 import 'package:tivoo/features/explore/presentation/controllers/posts_controller.dart';
 import 'package:tivoo/features/explore/presentation/screens/video_post_viewer_screen.dart';
+import '../../../gifter_level/presentation/screens/gifter_level_screen.dart';
 
 /// VIP profile in the Luxe style: top bar, identity header, bio, actions, badges,
 /// Videos / Likes bar and the Drafts / Pinned / My Posts content grid.
@@ -561,6 +562,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             followingCount: isViewingStreamer ? '142' : '${profile.followingCount}',
                             likesCount: isViewingStreamer ? '45.2K' : profile.likesCount,
                             onAvatarCamera: isViewingStreamer ? () {} : _showChangeAvatarSheet,
+                            onLevelTap: () => GifterLevelScreen.push(context),
                           ),
                           SizedBox(height: 10 * s),
                           ProfileBio(
@@ -768,10 +770,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             subtitle: 'Coins, Stars',
                           ),
                           item(
-                            Icons.military_tech_outlined,
+                            Icons.military_tech_rounded,
                             LuxeColors.gold,
-                            'My Level & Rewards',
-                            () => _toast('👑 Level 10 host • SVIP badge active'),
+                            'Gifter Level & Rewards',
+                            () => GifterLevelScreen.push(context),
+                            subtitle: 'Milestone frames, badges & perks',
                           ),
                         ],
                       ),

@@ -220,14 +220,19 @@ class PkSheets {
   // ---------------------------------------------------------------------------
   // Share
   // ---------------------------------------------------------------------------
-  static void showShare(BuildContext context) {
+  static void showShare(BuildContext context, {String? hostName, String? rivalName}) {
+    final subtitle = hostName != null && rivalName != null
+        ? 'Clash of Stars • $hostName vs $rivalName'
+        : (hostName != null ? 'Watch $hostName Live' : 'Clash of Stars • Priya vs Anu');
     const shareUrl = 'https://tivoo.app/pk/battle_live';
-    const shareText = 'Watch this intense PK Battle live on Tivoo! https://tivoo.app/pk/battle_live';
+    final shareText = hostName != null
+        ? 'Watch $hostName live in this intense PK Battle on Tivoo! $shareUrl'
+        : 'Watch this intense PK Battle live on Tivoo! $shareUrl';
 
     TivooShareSheet.show(
       context,
       title: 'Share PK Battle',
-      subtitle: 'Clash of Stars • Priya vs Anu',
+      subtitle: subtitle,
       shareUrl: shareUrl,
       shareText: shareText,
     );
@@ -297,30 +302,47 @@ class PkSheets {
     required String message,
     required IconData icon,
     required Color color,
+    String? avatarAsset,
+    String badgeText = 'NOW',
+    bool isBottom = false,
+    Duration? duration,
   }) {
+    final media = MediaQuery.of(context);
+    final bottomInset = media.padding.bottom;
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+
+    final margin = isBottom
+        ? EdgeInsets.only(bottom: (bottomInset + 56.0).clamp(60.0, 88.0), left: 14, right: 14)
+        : EdgeInsets.only(bottom: media.size.height * 0.70, left: 14, right: 14);
+
     messenger.showSnackBar(
       SnackBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: MediaQuery.sizeOf(context).height * 0.78, left: 14, right: 14),
-        duration: const Duration(seconds: 3),
+        margin: margin,
+        duration: duration ?? (isBottom ? const Duration(milliseconds: 2000) : const Duration(seconds: 3)),
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF141220),
+            gradient: const LinearGradient(colors: [Color(0xF5181438), Color(0xF52A1E5C), Color(0xF5181438)]),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color, width: 1.5),
-            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 16, spreadRadius: 1)],
+            border: Border.all(color: color, width: 1.6),
+            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 18, spreadRadius: 1.5)],
           ),
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Icon(icon, color: color, size: 20),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.7), width: 1.2),
+                ),
+                child: avatarAsset != null
+                    ? ClipOval(child: Image.asset(avatarAsset, fit: BoxFit.cover))
+                    : Icon(icon, color: color, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -332,11 +354,30 @@ class PkSheets {
                       title,
                       style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
                     ),
-                    Text(message, style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        color: color == const Color(0xFFFFD600) ? const Color(0xFFFFEA79) : color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Text('Now', style: TextStyle(color: Colors.white38, fontSize: 10)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withValues(alpha: 0.6), width: 1),
+                ),
+                child: Text(
+                  badgeText,
+                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                ),
+              ),
             ],
           ),
         ),

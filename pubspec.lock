@@ -81,14 +81,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.4.1"
-  banuba_sdk:
-    dependency: "direct main"
-    description:
-      name: banuba_sdk
-      sha256: "2622d9cd4f726a08f09688014f69ce8acb1f69dae3048817c4982e540fbf98f2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.7"
   boolean_selector:
     dependency: transitive
     description:

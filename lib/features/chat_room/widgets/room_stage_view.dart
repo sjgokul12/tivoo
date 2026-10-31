@@ -17,6 +17,8 @@ class RoomStageView extends StatelessWidget {
   final List<LiveComment> messages;
   final bool isVideo;
   final bool micMuted;
+  final bool isHost;
+  final VoidCallback? onShowMembers;
   final bool soundMuted;
   final bool isJoined;
   final bool isJoinRequested;
@@ -51,6 +53,8 @@ class RoomStageView extends StatelessWidget {
     required this.seats,
     required this.messages,
     required this.isVideo,
+    this.isHost = false,
+    this.onShowMembers,
     required this.micMuted,
     required this.soundMuted,
     required this.isJoined,
@@ -88,7 +92,10 @@ class RoomStageView extends StatelessWidget {
         const SizedBox(height: 6),
         _RoomHeader(
           room: room,
+          seats: seats,
           isVideo: isVideo,
+          isHost: isHost,
+          onShowMembers: onShowMembers,
           pendingRequestsCount: pendingRequestsCount,
           onReviewRequests: onReviewRequests,
           isHostFollowing: isHostFollowing,
@@ -140,7 +147,10 @@ class RoomStageView extends StatelessWidget {
 
 class _RoomHeader extends StatelessWidget {
   final ChatRoom room;
+  final List<ChatSeat?>? seats;
   final bool isVideo;
+  final bool isHost;
+  final VoidCallback? onShowMembers;
   final int pendingRequestsCount;
   final VoidCallback? onReviewRequests;
   final bool isHostFollowing;
@@ -153,7 +163,10 @@ class _RoomHeader extends StatelessWidget {
 
   const _RoomHeader({
     required this.room,
+    this.seats,
     required this.isVideo,
+    this.isHost = false,
+    this.onShowMembers,
     this.pendingRequestsCount = 0,
     this.onReviewRequests,
     this.isHostFollowing = false,
@@ -167,6 +180,9 @@ class _RoomHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final occupiedCount = seats != null ? seats!.where((s) => s != null).length : room.members;
+    final capacityLabel = '$occupiedCount/${ChatRoom.seatCount}';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
@@ -190,14 +206,12 @@ class _RoomHeader extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                room.hostName,
+                                room.tagline,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.workspace_premium_rounded, color: LuxeColors.gold, size: 15),
                           ],
                         ),
                         const SizedBox(height: 3),
@@ -206,18 +220,38 @@ class _RoomHeader extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: Row(
                             children: [
-                              GoldTagPill(text: room.tag, icon: room.tagIcon, fontSize: 10.5),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.people_alt_rounded, color: LuxeColors.textMuted, size: 12),
-                              Text(
-                                ' ${room.capacity}',
-                                style: const TextStyle(color: LuxeColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                              GestureDetector(
+                                onTap: onShowMembers,
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.people_alt_rounded, color: LuxeColors.gold, size: 12),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        ' $capacityLabel',
+                                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 6),
-                              Icon(
-                                isVideo ? Icons.videocam_rounded : Icons.graphic_eq_rounded,
+                              const Icon(
+                                Icons.graphic_eq_rounded,
                                 color: LuxeColors.violet,
                                 size: 13,
+                              ),
+                              const SizedBox(width: 3),
+                              const Text(
+                                'Audio Room',
+                                style: TextStyle(color: LuxeColors.textMuted, fontSize: 11, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
@@ -229,7 +263,7 @@ class _RoomHeader extends StatelessWidget {
               ),
             ),
           ),
-          if (room.hostName.toLowerCase() != 'you' && onHostFollowTap != null) ...[
+          if (!isHost && !room.hostName.toLowerCase().startsWith('you') && onHostFollowTap != null) ...[
             const SizedBox(width: 6),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -311,26 +345,40 @@ class _RoomHeader extends StatelessWidget {
           ],
           Semantics(
             button: true,
-            label: 'Leave room',
+            label: isHost ? 'End room' : 'Leave room',
             child: GestureDetector(
               onTap: onLeave,
               child: Container(
                 height: 30,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: LuxeColors.pink.withValues(alpha: 0.14),
+                  color: isHost
+                      ? const Color(0xFFFF2D55).withValues(alpha: 0.16)
+                      : const Color(0xFF6C3CE9).withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: LuxeColors.pink, width: 1.3),
-                  boxShadow: const [BoxShadow(color: Color(0x44FF2D78), blurRadius: 6)],
+                  border: Border.all(
+                    color: isHost ? const Color(0xFFFF2D55) : const Color(0xFF9D65FF),
+                    width: 1.3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isHost ? const Color(0x44FF2D55) : const Color(0x336C3CE9),
+                      blurRadius: 6,
+                    ),
+                  ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.logout_rounded, color: LuxeColors.pink, size: 14),
-                    SizedBox(width: 4),
+                    Icon(
+                      isHost ? Icons.power_settings_new_rounded : Icons.logout_rounded,
+                      color: isHost ? const Color(0xFFFF2D55) : const Color(0xFFC49BFB),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      'Leave',
-                      style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                      isHost ? 'End' : 'Leave',
+                      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -412,8 +460,8 @@ class _SeatGridState extends State<_SeatGrid> with SingleTickerProviderStateMixi
         final availableH = c.maxHeight.isFinite ? c.maxHeight : 260.0;
         final cellH = (availableH - gap * 2) / 3;
         // Keep a portrait card shape and clamp min/max so seats never overflow
-        final w = math.min(cellW, math.max(cellH * 0.88, 64.0)).clamp(64.0, 110.0);
-        final h = (w / 0.72).clamp(70.0, 138.0);
+        final w = math.min(cellW, math.max(cellH * 0.80, 50.0)).clamp(50.0, 110.0);
+        final h = math.min(cellH, w / 0.72).clamp(56.0, 138.0);
 
         return Center(
           child: SingleChildScrollView(

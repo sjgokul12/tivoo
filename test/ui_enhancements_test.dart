@@ -7,9 +7,13 @@ import 'package:tivoo/core/widgets/reel_media_view.dart';
 import 'package:tivoo/features/auth/presentation/screens/login_screen.dart';
 import 'package:tivoo/features/home/presentation/screens/home_screen.dart';
 import 'package:tivoo/features/home/presentation/widgets/home_header.dart';
+import 'package:tivoo/features/home/presentation/widgets/home_reel_card.dart';
 import 'package:tivoo/features/live_stream/domain/models/gift_item.dart';
 import 'package:tivoo/features/live_stream/presentation/widgets/gift_bottom_sheet.dart';
+import 'package:tivoo/features/home/domain/models/live_stream_card_model.dart';
+import 'package:tivoo/features/home/presentation/widgets/streamer_id_profile_sheet.dart';
 import 'package:tivoo/features/onboarding/presentation/screens/splash_screen.dart';
+import 'package:tivoo/features/onboarding/presentation/widgets/page_indicator.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
@@ -33,6 +37,8 @@ void main() {
     // Verify Get Started button is present
     expect(find.text('Get Started'), findsOneWidget);
 
+    // Verify PageIndicator dots are removed
+    expect(find.byType(PageIndicator), findsNothing);
   });
 
   testWidgets('LoginScreen smoke test - verify uploaded logo assets and social buttons', (WidgetTester tester) async {
@@ -187,4 +193,53 @@ void main() {
     await tester.pump();
     expect(selectedGift?.name, equals('Flowers'));
   });
+
+  testWidgets('HomeReelCard smoke test - verify streamer name/bio are removed from live stream and tap opens StreamerIdProfileSheet with User ID', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    const testStream = LiveStreamCardModel(
+      id: 'stream_1',
+      userId: 'UID-928410',
+      streamerName: 'Lena Rivers',
+      streamerBio: 'Music & lifestyle streamer',
+      viewersCount: '100M',
+      diamondsCount: '24.2K',
+    );
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: HomeReelCard(
+              stream: testStream,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify creator name, bio, and ID text are NOT rendered on the live stream video overlay
+    expect(find.text('Lena Rivers'), findsNothing);
+    expect(find.text('Music & lifestyle streamer'), findsNothing);
+    expect(find.text('UID-928410'), findsNothing);
+
+    // Tap that person's circular avatar on the live video
+    final avatarButton = find.byKey(const Key('streamer_avatar_button'));
+    expect(avatarButton, findsOneWidget);
+    await tester.tap(avatarButton);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Verify StreamerIdProfileSheet opens with User ID and full creator details
+    expect(find.byType(StreamerIdProfileSheet), findsOneWidget);
+    expect(find.text('User ID: UID-928410'), findsOneWidget);
+    expect(find.text('Lena Rivers'), findsOneWidget);
+    expect(find.text('Music & lifestyle streamer'), findsOneWidget);
+    expect(find.text('Follow'), findsOneWidget);
+    expect(find.text('Send Stars'), findsOneWidget);
+  });
 }
+

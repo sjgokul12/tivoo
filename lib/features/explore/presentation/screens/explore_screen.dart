@@ -11,6 +11,7 @@ import '../controllers/explore_controller.dart';
 import '../controllers/posts_controller.dart';
 import '../widgets/explore_header.dart';
 import '../widgets/explore_reel_card.dart';
+import '../widgets/upload_video_sheet.dart';
 
 ExploreStreamModel _postToExploreModel(VideoPost post) {
   final avatarIsAsset = post.authorAvatar.startsWith('assets/');
@@ -131,6 +132,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: ExploreHeader(
                 onBackTap: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
                 onSearchTap: _showSearch,
+                onUploadTap: () => UploadVideoSheet.show(context),
               ),
             ),
           ),

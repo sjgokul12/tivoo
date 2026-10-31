@@ -63,7 +63,6 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
     super.initState();
     _timeline = AnimationController(vsync: this)..addStatusListener(_onTimelineStatus);
     _combo = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-    GiftSoundService.instance.preload();
   }
 
   @override
@@ -216,9 +215,6 @@ enum _Tier {
 /// Where the gift enters the 3D scene from.
 enum _Arrival { depth, left, right, below, above, spin }
 
-/// Gift-specific effects timed to the gift's sound (see tools/generate_animal_gift_sounds.py).
-enum _Signature { none, lion, horse, dolphin }
-
 /// Particle shapes that fill the 3D scene.
 enum _MoteKind { sparkle, petal, heart, bubble, feather, ember, star, confetti, shard }
 
@@ -240,8 +236,6 @@ class _Look {
   /// Cut-out rocket with an animated flame that orbits the stage.
   final _RocketRig? rocket;
 
-  final _Signature signature;
-
   const _Look(
     this.sound,
     this.tier,
@@ -251,7 +245,6 @@ class _Look {
     this.fireworks = false,
     this.wings,
     this.rocket,
-    this.signature = _Signature.none,
   });
 
   static const _gold = [Color(0xFFFFC400), Color(0xFFFF8F00), Color(0xFFFFF8E1)];
@@ -280,14 +273,7 @@ class _Look {
       _MoteKind.feather,
       _MoteKind.sparkle,
     ], _heaven),
-    'p3d_golden_horse': _Look(
-      'horse',
-      _Tier.premium,
-      _Arrival.left,
-      [_MoteKind.ember, _MoteKind.sparkle],
-      _gold,
-      signature: _Signature.horse,
-    ),
+    'p3d_golden_horse': _Look('horse', _Tier.premium, _Arrival.left, [_MoteKind.ember, _MoteKind.sparkle], _gold),
     'p3d_luxury_car': _Look(
       'car',
       _Tier.premium,
@@ -321,14 +307,7 @@ class _Look {
       wings: _WingRig.diamond,
     ),
     'p3d_flower_chariot': _Look('flowers', _Tier.premium, _Arrival.left, [_MoteKind.petal, _MoteKind.sparkle], _pink),
-    'p3d_ocean_whale': _Look(
-      'whale',
-      _Tier.premium,
-      _Arrival.right,
-      [_MoteKind.bubble, _MoteKind.sparkle],
-      _blue,
-      signature: _Signature.dolphin,
-    ),
+    'p3d_ocean_whale': _Look('whale', _Tier.premium, _Arrival.right, [_MoteKind.bubble, _MoteKind.sparkle], _blue),
     'p3d_meteor_shower': _Look(
       'diamond',
       _Tier.premium,
@@ -344,14 +323,7 @@ class _Look {
       _MoteKind.feather,
       _MoteKind.sparkle,
     ], _heaven),
-    'gift_ani2_horse': _Look(
-      'horse',
-      _Tier.premium,
-      _Arrival.left,
-      [_MoteKind.ember, _MoteKind.sparkle],
-      _gold,
-      signature: _Signature.horse,
-    ),
+    'gift_ani2_horse': _Look('horse', _Tier.premium, _Arrival.left, [_MoteKind.ember, _MoteKind.sparkle], _gold),
     'gift_ani5_castle': _Look(
       'castle',
       _Tier.premium,
@@ -375,7 +347,6 @@ class _Look {
       [_MoteKind.ember, _MoteKind.sparkle],
       _gold,
       fireworks: true,
-      signature: _Signature.lion,
     ),
     'gift_ani6_car': _Look(
       'car',
@@ -405,14 +376,7 @@ class _Look {
     ),
     'gift_ani4_throne': _Look('throne', _Tier.premium, _Arrival.above, [_MoteKind.star, _MoteKind.sparkle], _gold),
     'gift_ani10_roses': _Look('roses', _Tier.premium, _Arrival.depth, [_MoteKind.petal, _MoteKind.sparkle], _rose),
-    'gift_ani1_whale': _Look(
-      'whale',
-      _Tier.premium,
-      _Arrival.right,
-      [_MoteKind.bubble, _MoteKind.sparkle],
-      _blue,
-      signature: _Signature.dolphin,
-    ),
+    'gift_ani1_whale': _Look('whale', _Tier.premium, _Arrival.right, [_MoteKind.bubble, _MoteKind.sparkle], _blue),
     'gift_rose': _Look('rose', _Tier.medium, _Arrival.depth, [_MoteKind.petal], _rose),
     'gift_love': _Look('love', _Tier.medium, _Arrival.depth, [_MoteKind.heart, _MoteKind.sparkle], _rose),
     'gift_diamond': _Look('diamond', _Tier.medium, _Arrival.spin, [_MoteKind.sparkle], _ice),
@@ -432,21 +396,13 @@ class _Look {
         [_MoteKind.ember, _MoteKind.sparkle],
         _gold,
         fireworks: true,
-        signature: _Signature.lion,
       );
     }
     if (has('throne')) {
       return const _Look('throne', _Tier.premium, _Arrival.above, [_MoteKind.star, _MoteKind.sparkle], _gold);
     }
     if (has('dolphin')) {
-      return const _Look(
-        'dolphin',
-        _Tier.premium,
-        _Arrival.right,
-        [_MoteKind.bubble, _MoteKind.sparkle],
-        _blue,
-        signature: _Signature.dolphin,
-      );
+      return const _Look('dolphin', _Tier.premium, _Arrival.right, [_MoteKind.bubble, _MoteKind.sparkle], _blue);
     }
     if (has('roses')) {
       return const _Look('roses', _Tier.premium, _Arrival.depth, [_MoteKind.petal, _MoteKind.sparkle], _rose);
@@ -473,9 +429,7 @@ class _Look {
     if (has('world') || has('tour')) {
       return const _Look('world_tour', _Tier.premium, _Arrival.spin, [_MoteKind.star, _MoteKind.sparkle], _cosmic);
     }
-    if (has('horse')) {
-      return const _Look('horse', _Tier.premium, _Arrival.left, [_MoteKind.ember], _gold, signature: _Signature.horse);
-    }
+    if (has('horse')) return const _Look('horse', _Tier.premium, _Arrival.left, [_MoteKind.ember], _gold);
     if (has('wing')) {
       return const _Look(
         'wings',
@@ -513,63 +467,6 @@ double _envelope(double t) {
   if (t < 0.08) return Curves.easeOut.transform(t / 0.08);
   if (t > 0.86) return 1 - Curves.easeIn.transform(_interval(t, 0.86, 1.0));
   return 1;
-}
-
-// ---------------------------------------------------------------- sound sync
-// Timings mirror tools/generate_animal_gift_sounds.py so the picture hits with the audio.
-
-/// Same envelope as `env_adsr` in the sound generator.
-double _adsr(double s, double start, double attack, double hold, double release) {
-  var t = s - start;
-  if (t < 0) return 0;
-  if (t < attack) return sin(0.5 * pi * t / attack);
-  t -= attack;
-  if (t < hold) return 1;
-  t -= hold;
-  if (t < release) return pow(1 - t / release, 2).toDouble();
-  return 0;
-}
-
-const _lionGrunts = [3.25, 3.85, 4.38, 4.86, 5.30, 5.72, 6.12];
-
-/// Lion roar onsets (main roar + grunts), in seconds.
-const _lionOnsets = [0.4, ..._lionGrunts];
-
-/// Loudness of the lion's roar at [s] seconds (0 – 1).
-double _roarLevel(double s) {
-  var v = _adsr(s, 0.35, 0.28, 1.5, 0.7);
-  for (var k = 0; k < _lionGrunts.length; k++) {
-    final length = 0.34 - k * 0.012;
-    v = max(v, 0.85 * pow(0.86, k) * _adsr(s, _lionGrunts[k], 0.05, length * 0.35, length * 0.6));
-  }
-  return v;
-}
-
-/// Horse gallop: one stride every 0.5 s, four hoof beats per stride.
-const _horseStride = 0.5;
-const _horseBeats = [0.0, 0.075, 0.16, 0.23];
-
-/// Hoof impact strength at [s] (sharp attack, quick decay after every beat).
-double _hoofLevel(double s) {
-  final inStride = s % _horseStride;
-  var v = 0.0;
-  for (var k = 0; k < _horseBeats.length; k++) {
-    final dt = inStride - _horseBeats[k];
-    if (dt >= 0) v = max(v, (k == 0 ? 1.0 : 0.75) * exp(-dt * 28));
-  }
-  return v;
-}
-
-/// How far the horse rears up during its whinny (1.7 – 3.3 s).
-double _rearLevel(double s) => _adsr(s, 1.7, 0.25, 0.8, 0.55);
-
-/// Dolphin breach splashes (seconds, strength).
-const _dolphinSplashes = [(1.55, 1.0), (4.4, 0.6)];
-
-/// Small random-looking camera shake that follows [level] (0 – 1).
-Offset _shake(double s, double level, double amount) {
-  if (level <= 0.01) return Offset.zero;
-  return Offset(sin(s * 71) + 0.6 * sin(s * 133 + 1.7), cos(s * 59) + 0.6 * sin(s * 117 + 0.4)) * (amount * level);
 }
 
 /// Screen-space exit curve from the stage to the receiving host.
@@ -730,7 +627,7 @@ class _Mote {
     final count = switch (look.tier) {
       _Tier.small => 70,
       _Tier.medium => 100,
-      _Tier.premium => 190,
+      _Tier.premium => 140,
     };
     return List.generate(count, (i) {
       // Mostly the gift's own particle; a few generic sparkles for richness.
@@ -860,22 +757,8 @@ class _GiftStage extends StatelessWidget {
         }
 
         final flight = flightAt(t);
-
-        // Signature moves, in sync with the gift's sound. Faded out while the gift exits.
-        final sigOn = 1 - exit;
-        final roar = look.signature == _Signature.lion ? _roarLevel(seconds) * sigOn : 0.0;
-        final hoofs = look.signature == _Signature.horse ? _hoofLevel(seconds) * sigOn : 0.0;
-        final rear = look.signature == _Signature.horse ? _rearLevel(seconds) * sigOn : 0.0;
-        // Gallop: the horse bounces with every stride (less while rearing).
-        final gallopBob = look.signature == _Signature.horse
-            ? -sin(pi * (seconds % _horseStride) / _horseStride).abs() * heroH * 0.035 * (1 - rear) * sigOn
-            : 0.0;
-        final shake =
-            _shake(seconds, roar, size.shortestSide * 0.011) + _shake(seconds, hoofs * 0.5, size.shortestSide * 0.005);
-
-        final heroCenter = centerAt(t) + Offset(0, gallopBob - rear * heroH * 0.06);
-        // The roar punches the lion towards the camera.
-        final heroScale = restScale * (1 - 0.88 * exit) * flight.scale * (1 + 0.07 * roar + 0.05 * rear);
+        final heroCenter = centerAt(t);
+        final heroScale = restScale * (1 - 0.88 * exit) * flight.scale;
 
         // Rocket: point the nose along its path (up while launching, around the orbit,
         // then straight at the receiving host).
@@ -909,11 +792,8 @@ class _GiftStage extends StatelessWidget {
                     return stage + Offset(f.dx, f.dy);
                   }(),
               ];
-        final heroOpacity =
-            (min(1.0, _interval(t, 0.0, 0.06) * 1.5) * (exit > 0.96 ? 1 - _interval(exit, 0.96, 1.0) : 1)).clamp(
-              0.0,
-              1.0,
-            );
+        final heroOpacity = (min(1.0, _interval(t, 0.0, 0.06) * 1.5) * (exit > 0.96 ? 1 - _interval(exit, 0.96, 1.0) : 1))
+            .clamp(0.0, 1.0);
         final floorY = stage.dy + heroH * 0.5 * restScale + 10;
         final caption = t < 0.30 ? 0.0 : min(_interval(t, 0.30, 0.38), 1 - _interval(t, 0.68, 0.74));
 
@@ -931,15 +811,7 @@ class _GiftStage extends StatelessWidget {
           trail: rocket != null ? rocketTrail : trail,
           trailKind: rocket != null ? 2 : (wings != null ? 1 : 0),
           floor: rocket == null,
-          heroH: heroH * heroScale,
-          sigOn: sigOn,
         );
-        // Cinematic letterbox for premium gifts: bars slide in with the gift and out at the end.
-        final letterbox = look.tier == _Tier.premium
-            ? Curves.easeOutCubic.transform(_interval(t, 0.0, 0.1)) *
-                  (1 - Curves.easeInCubic.transform(_interval(t, 0.86, 0.97)))
-            : 0.0;
-        final barH = size.height * 0.055 * letterbox;
 
         return Stack(
           clipBehavior: Clip.none,
@@ -961,120 +833,102 @@ class _GiftStage extends StatelessWidget {
                 ),
               ),
             ),
-            // 2 – 6 move together with the camera shake.
+            // 2. Back layer: nebula, light rays, floor, particles behind the gift.
             Positioned.fill(
-              child: Transform.translate(
-                offset: shake,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // 2. Back layer: nebula, light rays, floor, particles behind the gift.
-                    Positioned.fill(
-                      child: RepaintBoundary(
-                        child: CustomPaint(
-                          painter: _StagePainter(args: painterArgs, look: look, motes: motes, front: false),
-                        ),
-                      ),
-                    ),
-                    // 3. Floor reflection of the gift.
-                    if (exit == 0 && heroScale > 0 && rocket == null)
-                      Positioned(
-                        left: heroCenter.dx - heroW * heroScale / 2,
-                        top: floorY,
-                        width: heroW * heroScale,
-                        height: heroH * heroScale * 0.55,
-                        child: _Reflection(
-                          opacity: 0.28 * env * heroOpacity,
-                          aspectRatio: heroW / heroH,
-                          child: wings != null
-                              ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
-                              : _artFor(gift),
-                        ),
-                      ),
-                    // 4. The gift.
-                    if (t < 0.93 && heroScale > 0)
-                      Positioned(
-                        left: heroCenter.dx - heroW / 2,
-                        top: heroCenter.dy - heroH / 2,
-                        width: heroW,
-                        height: heroH,
-                        child: Opacity(
-                          opacity: heroOpacity,
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.0014)
-                              ..rotateY(
-                                -camera.yaw * (rocket != null ? 0.5 : 0.9) + world.spin + flight.turn + flight.spin,
-                              )
-                              ..rotateX(sin(seconds * 1.2) * 0.05)
-                              ..rotateZ(rocket != null ? rocketTilt : exit * 0.5 + flight.bank - rear * 0.11)
-                              ..scaleByDouble(heroScale, heroScale, 1, 1),
-                            child: _Hero3D(
-                              look: look,
-                              t: t,
-                              seconds: seconds,
-                              width: heroW,
-                              height: heroH,
-                              sheen: rocket == null,
-                              art: rocket != null
-                                  ? _RocketArt(
-                                      rig: rocket,
-                                      t: t,
-                                      seconds: seconds,
-                                      roll: flight.roll,
-                                      width: heroW,
-                                      height: heroH,
-                                    )
-                                  : wings != null
-                                  ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
-                                  : _artFor(gift),
-                            ),
-                          ),
-                        ),
-                      ),
-                    // 5. Front layer: particles in front of the gift, flash, lens flare, trails.
-                    Positioned.fill(
-                      child: RepaintBoundary(
-                        child: CustomPaint(
-                          painter: _StagePainter(args: painterArgs, look: look, motes: motes, front: true),
-                        ),
-                      ),
-                    ),
-                    // 6. Combo counter + caption.
-                    if (caption > 0)
-                      Positioned(
-                        left: min(stage.dx + heroW * 0.26, size.width - 96),
-                        top: stage.dy - heroH * 0.5 - 34,
-                        child: Opacity(
-                          opacity: caption,
-                          child: _ComboCounter(count: count, entry: _interval(t, 0.30, 0.40), punch: combo.value),
-                        ),
-                      ),
-                    if (caption > 0)
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        top: min(floorY + heroH * 0.18, size.height - 120),
-                        child: Opacity(
-                          opacity: caption,
-                          child: Transform.translate(
-                            offset: Offset(0, (1 - caption) * 12),
-                            child: Center(
-                              child: _Caption(sender: sender, recipient: recipient, gift: gift, look: look),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _StagePainter(args: painterArgs, look: look, motes: motes, front: false),
                 ),
               ),
             ),
-            // Letterbox bars.
-            if (barH > 0.5) ...[
-              Positioned(left: 0, right: 0, top: 0, height: barH, child: const _LetterboxBar(top: true)),
-              Positioned(left: 0, right: 0, bottom: 0, height: barH, child: const _LetterboxBar(top: false)),
-            ],
+            // 3. Floor reflection of the gift.
+            if (exit == 0 && heroScale > 0 && rocket == null)
+              Positioned(
+                left: heroCenter.dx - heroW * heroScale / 2,
+                top: floorY,
+                width: heroW * heroScale,
+                height: heroH * heroScale * 0.55,
+                child: _Reflection(
+                  opacity: 0.28 * env * heroOpacity,
+                  aspectRatio: heroW / heroH,
+                  child: wings != null
+                      ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
+                      : _artFor(gift),
+                ),
+              ),
+            // 4. The gift.
+            if (t < 0.93 && heroScale > 0)
+              Positioned(
+                left: heroCenter.dx - heroW / 2,
+                top: heroCenter.dy - heroH / 2,
+                width: heroW,
+                height: heroH,
+                child: Opacity(
+                  opacity: heroOpacity,
+                  child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0014)
+                      ..rotateY(-camera.yaw * (rocket != null ? 0.5 : 0.9) + world.spin + flight.turn + flight.spin)
+                      ..rotateX(sin(seconds * 1.2) * 0.05)
+                      ..rotateZ(rocket != null ? rocketTilt : exit * 0.5 + flight.bank)
+                      ..scaleByDouble(heroScale, heroScale, 1, 1),
+                    child: _Hero3D(
+                      look: look,
+                      t: t,
+                      seconds: seconds,
+                      width: heroW,
+                      height: heroH,
+                      sheen: rocket == null,
+                      art: rocket != null
+                          ? _RocketArt(
+                              rig: rocket,
+                              t: t,
+                              seconds: seconds,
+                              roll: flight.roll,
+                              width: heroW,
+                              height: heroH,
+                            )
+                          : wings != null
+                          ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
+                          : _artFor(gift),
+                    ),
+                  ),
+                ),
+              ),
+            // 5. Front layer: particles in front of the gift, flash, lens flare, trails.
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _StagePainter(args: painterArgs, look: look, motes: motes, front: true),
+                ),
+              ),
+            ),
+            // 6. Combo counter + caption.
+            if (caption > 0)
+              Positioned(
+                left: min(stage.dx + heroW * 0.26, size.width - 96),
+                top: stage.dy - heroH * 0.5 - 34,
+                child: Opacity(
+                  opacity: caption,
+                  child: _ComboCounter(count: count, entry: _interval(t, 0.30, 0.40), punch: combo.value),
+                ),
+              ),
+            if (caption > 0)
+              Positioned(
+                left: 16,
+                right: 16,
+                top: min(floorY + heroH * 0.18, size.height - 120),
+                child: Opacity(
+                  opacity: caption,
+                  child: Transform.translate(
+                    offset: Offset(0, (1 - caption) * 12),
+                    child: Center(
+                      child: _Caption(sender: sender, recipient: recipient, gift: gift, look: look),
+                    ),
+                  ),
+                ),
+              ),
             // 7. Optional top banner.
             if (showBanner)
               Positioned(
@@ -1086,26 +940,6 @@ class _GiftStage extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// Black cinema bar with a thin gold edge facing the picture.
-class _LetterboxBar extends StatelessWidget {
-  final bool top;
-  const _LetterboxBar({required this.top});
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: top ? Alignment.topCenter : Alignment.bottomCenter,
-          end: top ? Alignment.bottomCenter : Alignment.topCenter,
-          colors: const [Colors.black, Color(0xF0000000), Color(0x33FFC400)],
-          stops: const [0, 0.92, 1],
-        ),
-      ),
     );
   }
 }
@@ -1581,7 +1415,12 @@ class _Caption extends StatelessWidget {
   final GiftItem gift;
   final _Look look;
 
-  const _Caption({required this.sender, this.recipient = '', required this.gift, required this.look});
+  const _Caption({
+    required this.sender,
+    this.recipient = '',
+    required this.gift,
+    required this.look,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1738,10 +1577,6 @@ typedef _StageArgs = ({
   /// 0 = none, 1 = wing-tip sparkles, 2 = rocket exhaust.
   int trailKind,
   bool floor,
-  double heroH,
-
-  /// 1 while signature effects run, fading to 0 as the gift exits.
-  double sigOn,
 });
 
 /// Draws the 3D scene. The back pass paints everything behind the gift (nebula, light
@@ -1779,13 +1614,10 @@ class _StagePainter extends CustomPainter {
       _lightRays(canvas, size);
       if (args.floor) _floor(canvas);
       if (args.trailKind == 2) _exhaustTrail(canvas);
-      if (look.signature == _Signature.horse) _gallopFx(canvas, size);
     }
     _drawMotes(canvas);
     if (look.fireworks) _fireworks(canvas);
     if (front) {
-      if (look.signature == _Signature.lion) _roarFx(canvas, size);
-      if (look.signature == _Signature.dolphin) _splashFx(canvas);
       _impactFlash(canvas);
       _lensFlare(canvas, size);
       _arrivalStreak(canvas);
@@ -2061,154 +1893,6 @@ class _StagePainter extends CustomPainter {
             ..strokeWidth = 2.2
             ..strokeCap = StrokeCap.round,
         );
-      }
-    }
-  }
-
-  // ------------------------------------------------------------- signature effects
-
-  /// Lion: a sound shockwave rolls out of the lion with every roar / grunt, the light
-  /// flares with the roar's loudness and a hot gold breath glows at its mouth.
-  void _roarFx(Canvas canvas, Size size) {
-    final s = args.seconds;
-    final on = args.sigOn * env;
-    if (on <= 0) return;
-    final c = args.heroCenter;
-    final level = _roarLevel(s);
-
-    // Roar-driven bloom behind the mane.
-    canvas.drawCircle(
-      c,
-      args.heroW * (0.45 + 0.25 * level),
-      _glow(look.palette[0].withValues(alpha: 0.32 * level * on), 40),
-    );
-
-    for (var k = 0; k < _lionOnsets.length; k++) {
-      final strength = k == 0 ? 1.0 : 0.8 * pow(0.86, k - 1);
-      for (var ring = 0; ring < (k == 0 ? 4 : 2); ring++) {
-        final age = s - _lionOnsets[k] - ring * 0.16;
-        if (age <= 0 || age > 1.1) continue;
-        final p = age / 1.1;
-        final r = args.heroW * (0.35 + Curves.easeOutCubic.transform(p) * 1.6);
-        final a = (1 - p) * strength * on;
-        // Slightly squashed: the wave rolls across the ground plane towards the viewer.
-        final rect = Rect.fromCenter(center: c, width: r * 2, height: r * 1.45);
-        canvas.drawOval(
-          rect,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = (14 * (1 - p) + 1.5) * (args.heroW / 300).clamp(0.6, 1.6)
-            ..color = look.palette[ring.isEven ? 2 : 0].withValues(alpha: 0.55 * a)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 + 10 * p),
-        );
-        canvas.drawOval(
-          rect,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.4
-            ..color = Colors.white.withValues(alpha: 0.6 * a),
-        );
-      }
-    }
-
-    // Breath: glowing embers blown out towards the camera while roaring.
-    if (level > 0.05) {
-      for (var j = 0; j < 22; j++) {
-        final p = (s * (0.9 + (j % 5) * 0.17) + j * 0.137) % 1.0;
-        final ang = (j * 2.399) % (2 * pi);
-        final d = Offset(cos(ang), sin(ang) * 0.6) * (args.heroW * (0.1 + p * 0.9));
-        canvas.drawCircle(
-          c + d,
-          (2 + 5 * p) * (args.heroW / 300).clamp(0.6, 1.6),
-          _glow((j.isEven ? look.palette[0] : look.palette[2]).withValues(alpha: (1 - p) * level * on), 4 + p * 4),
-        );
-      }
-    }
-  }
-
-  /// Horse: speed lines while it charges in, and a dust cloud kicked up by every stride.
-  void _gallopFx(Canvas canvas, Size size) {
-    final s = args.seconds;
-    final on = args.sigOn * env;
-    if (on <= 0) return;
-    final unit = (args.heroW / 300).clamp(0.6, 1.6);
-
-    // Speed lines streaming past during the charge in from the left.
-    final charge = 1 - _interval(t, 0.04, 0.3);
-    if (charge > 0) {
-      for (var j = 0; j < 14; j++) {
-        final y = args.heroCenter.dy + (j / 13 - 0.5) * args.heroH * 1.3;
-        final len = size.width * (0.18 + (j * 37 % 10) / 30);
-        final x = ((s * 2.6 + j * 0.31) % 1.0) * (size.width + len) - len;
-        final rect = Rect.fromLTWH(size.width - x - len, y, len, 2.2 * unit);
-        canvas.drawRect(
-          rect,
-          Paint()
-            ..shader = LinearGradient(
-              colors: [
-                Colors.transparent,
-                look.palette[2].withValues(alpha: 0.55 * charge * on),
-                Colors.transparent,
-              ],
-            ).createShader(rect),
-        );
-      }
-    }
-
-    // Dust puffs at the hooves: born on each stride, drift back and fade.
-    final floorY = args.floorY - 4;
-    final firstStride = max(0, ((s - 0.9) / _horseStride).floor());
-    for (var k = firstStride; k * _horseStride <= s; k++) {
-      final age = s - k * _horseStride;
-      if (age < 0 || age > 0.9) continue;
-      final p = age / 0.9;
-      for (var j = 0; j < 4; j++) {
-        final seed = (k * 7 + j * 13) % 17 / 17;
-        final x = args.heroCenter.dx + args.heroW * (-0.3 + j * 0.2 + seed * 0.1) - p * args.heroW * 0.35;
-        final y = floorY - p * args.heroH * (0.08 + seed * 0.12);
-        final r = (10 + 26 * p + seed * 8) * unit;
-        canvas.drawCircle(
-          Offset(x, y),
-          r,
-          _glow(
-            Color.lerp(const Color(0xFFC8A165), look.palette[0], 0.25)!.withValues(alpha: 0.32 * (1 - p) * on),
-            r * 0.6,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Dolphin: water droplets thrown up on each breach, plus ripples on the floor.
-  void _splashFx(Canvas canvas) {
-    final s = args.seconds;
-    final on = args.sigOn * env;
-    if (on <= 0) return;
-    final unit = (args.heroW / 300).clamp(0.6, 1.6);
-    final base = Offset(args.floorX, args.floorY);
-    for (final (at, strength) in _dolphinSplashes) {
-      final age = s - at;
-      if (age < 0 || age > 1.3) continue;
-      final p = age / 1.3;
-      for (var r = 0; r < 3; r++) {
-        final rp = (age - r * 0.12) / 1.1;
-        if (rp <= 0 || rp >= 1) continue;
-        final w = args.heroW * (0.3 + rp * 1.3);
-        canvas.drawOval(
-          Rect.fromCenter(center: base, width: w, height: w * 0.2),
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 3 * (1 - rp) + 0.8
-            ..color = const Color(0xFFB3E5FC).withValues(alpha: 0.8 * (1 - rp) * strength * on),
-        );
-      }
-      for (var j = 0; j < 36; j++) {
-        final ang = -pi / 2 + (j / 35 - 0.5) * pi * 0.9;
-        final speed = args.heroH * (1.1 + (j * 29 % 13) / 13) * strength;
-        final pos = base + Offset(cos(ang) * speed * age * 0.8, sin(ang) * speed * age + 2.2 * args.heroH * age * age);
-        final a = (1 - p) * strength * on;
-        canvas.drawCircle(pos, (2.4 + (j % 4)) * unit, _glow(const Color(0xFFE1F5FE).withValues(alpha: 0.75 * a), 2));
-        canvas.drawCircle(pos, 1.2 * unit, Paint()..color = Colors.white.withValues(alpha: a));
       }
     }
   }

@@ -20,11 +20,8 @@ class PkVideoArena extends StatefulWidget {
   final PkGiftEvent? rightGift;
   final bool showVs;
   final VoidCallback? onViewersTap;
+  final VoidCallback? onRightVideoTap;
   final Widget? timer;
-
-  /// Which host the viewer supports (gets a badge); tapping a card reports its side.
-  final bool supportLeft;
-  final ValueChanged<bool>? onCardTap;
 
   const PkVideoArena({
     super.key,
@@ -34,10 +31,9 @@ class PkVideoArena extends StatefulWidget {
     this.rightGift,
     this.showVs = true,
     this.onViewersTap,
+    this.onRightVideoTap,
     this.timer,
     this.isPlaying = true,
-    this.supportLeft = true,
-    this.onCardTap,
   });
 
   final bool isPlaying;
@@ -80,8 +76,6 @@ class _PkVideoArenaState extends State<PkVideoArena> with SingleTickerProviderSt
                       gift: widget.leftGift ?? PkDemoData.leftGift,
                       onViewersTap: widget.onViewersTap,
                       isPlaying: widget.isPlaying,
-                      isSupported: widget.supportLeft,
-                      onTap: () => widget.onCardTap?.call(true),
                     ),
                   ),
                   const SizedBox(width: gap),
@@ -92,9 +86,8 @@ class _PkVideoArenaState extends State<PkVideoArena> with SingleTickerProviderSt
                       energy: _energy,
                       gift: widget.rightGift ?? PkDemoData.rightGift,
                       onViewersTap: widget.onViewersTap,
+                      onTap: widget.onRightVideoTap,
                       isPlaying: widget.isPlaying,
-                      isSupported: !widget.supportLeft,
-                      onTap: () => widget.onCardTap?.call(false),
                     ),
                   ),
                 ],
@@ -129,9 +122,8 @@ class _LiveCard extends StatelessWidget {
   final Animation<double> energy;
   final PkGiftEvent gift;
   final VoidCallback? onViewersTap;
-  final bool isPlaying;
-  final bool isSupported;
   final VoidCallback? onTap;
+  final bool isPlaying;
 
   const _LiveCard({
     required this.host,
@@ -139,9 +131,8 @@ class _LiveCard extends StatelessWidget {
     required this.energy,
     required this.gift,
     this.onViewersTap,
-    this.isPlaying = true,
-    this.isSupported = false,
     this.onTap,
+    this.isPlaying = true,
   });
 
   @override
@@ -154,23 +145,23 @@ class _LiveCard extends StatelessWidget {
     const cardRadius = BorderRadius.all(Radius.circular(20.0));
     const clipRadius = BorderRadius.all(Radius.circular(17.5));
 
-    return AnimatedBuilder(
-      animation: energy,
-      builder: (context, child) {
-        final pulse = 0.7 + 0.25 * sin(energy.value * 2 * pi);
-        return Container(
-          padding: const EdgeInsets.all(2.5),
-          decoration: BoxDecoration(
-            borderRadius: cardRadius,
-            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: borderColors),
-            boxShadow: [BoxShadow(color: glow.withValues(alpha: pulse), blurRadius: 14, spreadRadius: 0.5)],
-          ),
-          child: child,
-        );
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: energy,
+        builder: (context, child) {
+          final pulse = 0.7 + 0.25 * sin(energy.value * 2 * pi);
+          return Container(
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              borderRadius: cardRadius,
+              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: borderColors),
+              boxShadow: [BoxShadow(color: glow.withValues(alpha: pulse), blurRadius: 14, spreadRadius: 0.5)],
+            ),
+            child: child,
+          );
+        },
         child: ClipRRect(
           borderRadius: clipRadius,
           child: LayoutBuilder(
@@ -222,15 +213,6 @@ class _LiveCard extends StatelessWidget {
                     right: 6,
                     bottom: 8,
                     child: _GiftPillInCard(gift: gift, isLeft: isLeft),
-                  ),
-                  // Below LIVE: badge on the host this viewer supports.
-                  Positioned(
-                    top: 8 + pill + 5,
-                    left: 8,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      child: isSupported ? _SupportingBadge(color: glow) : const SizedBox.shrink(),
-                    ),
                   ),
                 ],
               );
@@ -497,33 +479,4 @@ class _BoltPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// "♥ Supporting" chip on the supported host's video.
-class _SupportingBadge extends StatelessWidget {
-  final Color color;
-  const _SupportingBadge({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)],
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.favorite_rounded, color: Colors.white, size: 10),
-          SizedBox(width: 3),
-          Text(
-            'Supporting',
-            style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
 }

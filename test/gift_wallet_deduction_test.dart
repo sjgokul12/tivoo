@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tivoo/features/gift/gift_options.dart';
 import 'package:tivoo/features/gift/gift_sheet_screen.dart';
 import 'package:tivoo/features/gift/gift_balance_details_dialog.dart';
+import 'package:tivoo/features/gift/realistic_3d_coin.dart';
 import 'package:tivoo/features/live_stream/domain/models/gift_item.dart' as domain;
 import 'package:tivoo/features/live_stream/presentation/controllers/star_wallet_controller.dart';
 import 'package:tivoo/features/live_stream/presentation/widgets/active_gift_animation_overlay.dart';
@@ -318,4 +319,85 @@ void main() {
     });
   });
 
+  group('2-Column Buy Coins/Stars Panel & Realistic3DCoin Tests', () {
+    testWidgets('Realistic3DCoin renders CustomPaint and shadows gracefully', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Realistic3DCoin(size: 48),
+            ),
+          ),
+        ),
+      );
+      expect(find.byType(Realistic3DCoin), findsOneWidget);
+      expect(find.byType(CustomPaint), findsWidgets);
+    });
+
+    testWidgets('Buy Coins sheet opens with 2-column grid and Picture 2 amounts', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(420 * 2, 900 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: GiftBottomSheet(
+                recipients: const ['Host'],
+                onGiftSelected: (gift) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap the top balance indicator chip with 3D coin to open Buy Coins
+      final coinIndicator = find.byType(Realistic3DCoin).first;
+      expect(coinIndicator, findsOneWidget);
+      await tester.tap(coinIndicator);
+      await tester.pumpAndSettle();
+
+      // Verify Buy Stars sheet header and 1 Star = ₹0.20 rate hint
+      expect(find.text('Buy Stars'), findsOneWidget);
+      expect(find.textContaining('1 Star = ₹0.20'), findsOneWidget);
+
+      // Verify Picture 2 packages are shown in the 2-column grid
+      expect(find.text('100 Stars'), findsOneWidget);
+      expect(find.text('₹20'), findsOneWidget);
+
+      expect(find.text('300 Stars'), findsOneWidget);
+      expect(find.text('₹60'), findsOneWidget);
+
+      expect(find.text('500 Stars'), findsOneWidget);
+      expect(find.text('₹100'), findsOneWidget);
+
+      expect(find.text('1,000 Stars'), findsOneWidget);
+      expect(find.text('₹200'), findsOneWidget);
+      expect(find.text('Popular'), findsWidgets);
+
+      expect(find.text('5,000 Stars'), findsOneWidget);
+      expect(find.text('₹1,000'), findsOneWidget);
+      expect(find.text('Best Value'), findsOneWidget);
+
+      // Verify Realistic3DCoin icons are present
+      expect(find.byType(Realistic3DCoin), findsWidgets);
+
+      // Tap on a package (e.g. ₹200) to open payment method sheet
+      await tester.tap(find.text('₹200'));
+      await tester.pumpAndSettle();
+
+      // Verify payment methods sheet opened
+      expect(find.text('Top Up Coins'), findsOneWidget);
+      expect(find.text('Google Pay'), findsOneWidget);
+      expect(find.text('PhonePe'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
+    });
+  });
 }

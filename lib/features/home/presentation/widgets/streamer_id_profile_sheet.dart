@@ -230,6 +230,59 @@ class _StreamerIdProfileSheetState extends ConsumerState<StreamerIdProfileSheet>
               ],
             ),
 
+            // Room Host or Audio Speaker Role Pill Badge
+            if (stream.category == 'Room Host' ||
+                stream.category == 'Chat Room Host' ||
+                stream.category == 'Audio Speaker') ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                decoration: BoxDecoration(
+                  gradient: (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                      ? const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA000)])
+                      : LinearGradient(colors: [
+                          const Color(0xFF8B5CF6).withValues(alpha: 0.35),
+                          const Color(0xFF3B82F6).withValues(alpha: 0.35),
+                        ]),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                        ? const Color(0xFFFFE082)
+                        : Colors.white24,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                          ? Icons.workspace_premium_rounded
+                          : Icons.mic_rounded,
+                      color: (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                          ? const Color(0xFF1E1035)
+                          : Colors.white,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                          ? '👑 Room Host'
+                          : '🎙️ Audio Speaker',
+                      style: TextStyle(
+                        color: (stream.category == 'Room Host' || stream.category == 'Chat Room Host')
+                            ? const Color(0xFF1E1035)
+                            : Colors.white,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Mutual / Follows You Indicator (Instagram style)
             if (relationship.theyFollowMe) ...[
               const SizedBox(height: 6),

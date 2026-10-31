@@ -5,12 +5,12 @@ class AppAssets {
   static const String liveCard1 = 'assets/Image1.png';
   static const String liveCard2 = 'assets/Image2.jpg';
   static const String loginBg = 'assets/Login.png';
-  static const String video1 = 'assets/videos/video1.mp4';
-  static const String video2 = 'assets/videos/video2.mp4';
-  static const String video3 = 'assets/videos/video3.mp4';
-  static const String video4 = 'assets/videos/video4.mp4';
-  static const String video5 = 'assets/videos/video5.mp4';
-  static const String video6 = 'assets/videos/video6.mp4';
+  static const String video1 = 'assets/Video1.mp4';
+  static const String video2 = 'assets/Video2.mp4';
+  static const String video3 = 'assets/Video3.mp4';
+  static const String video4 = 'assets/Video4.mp4';
+  static const String video5 = 'assets/Video5.mp4';
+  static const String video6 = 'assets/video6.mp4';
 
   static const String status1 = 'assets/status1.jpg';
   static const String status2 = 'assets/status2.jpg';
@@ -61,6 +61,7 @@ class AppAssets {
   static const String giftBoxBlue = 'assets/gift_box_blue.png';
   static const String goldStar3D = 'assets/gold_star_3d.png';
   static const String glossyStar = 'assets/glossy_star.png';
+  static const String star = 'assets/star.png';
   static const String pkStarPortal = 'assets/pk_star_portal.png';
   static const String goldenStar = 'assets/glossy_star.png';
   static const String goldenstar = 'assets/glossy_star.png';
@@ -76,6 +77,8 @@ class AppAssets {
   // PK battle header banner (Neha · PK BATTLE · Arun) and VS emblem
   static const String pkTopBanner = 'assets/PKtop.png';
   static const String pkVsEmblem = 'assets/VS.png';
+  // Boxing-gloves clash shown when a PK battle restarts (Rewatch / Rebattle)
+  static const String pkBoxer = 'assets/boxer.png';
 
   // PK Lobby / Battle covers
   static const String pkBannerBg = 'assets/banners/banner_pk.jpg';

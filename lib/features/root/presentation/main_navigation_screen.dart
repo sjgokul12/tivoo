@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/reel_video_manager.dart';
 import '../../../../core/widgets/luxury_atmosphere_background.dart';
 import '../../activity/presentation/screens/activity_screen.dart';
+import '../../broadcast/presentation/screens/go_live_broadcast_screen.dart';
 import '../../explore/presentation/screens/explore_screen.dart';
+import '../../explore/presentation/widgets/upload_video_sheet.dart';
 import '../../home/presentation/controllers/home_controller.dart';
 import '../../home/presentation/screens/home_screen.dart';
 import '../../home/presentation/widgets/floating_bottom_nav_bar.dart';
-import 'package:tivoo/features/explore/presentation/widgets/upload_video_sheet.dart';
 import '../../profile/presentation/screens/profile_screen.dart';
 
 class MainNavigationScreen extends ConsumerWidget {
@@ -53,13 +54,192 @@ class MainNavigationScreen extends ConsumerWidget {
                 }
                 ref.read(bottomNavIndexProvider.notifier).state = index;
               },
-              onGoLiveTap: () {
-                ReelVideoManager.instance.pauseAll();
-                UploadVideoSheet.show(context);
-              },
+              onGoLiveTap: () => _showCreationChoiceSheet(context),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCreationChoiceSheet(BuildContext context) {
+    ReelVideoManager.instance.pauseAll();
+    final mq = MediaQuery.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF131522),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: const Color(0x3300E5FF), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black87,
+              blurRadius: 32,
+              offset: Offset(0, -6),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + mq.padding.bottom),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Create & Broadcast',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Go live, host PK battles or upload high-res video posts',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              // Option 1: Go Live Broadcast & PK Battle
+              _ChoiceTile(
+                icon: Icons.sensors_rounded,
+                gradient: const [Color(0xFFFF2D55), Color(0xFFFF8F00)],
+                glowColor: const Color(0x55FF2D55),
+                title: 'Go Live Broadcast',
+                subtitle: 'Stream live, use AR filters & host 1v1 PK Battles',
+                badge: 'HOST PK',
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const GoLiveBroadcastScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              // Option 2: Upload Video Post
+              _ChoiceTile(
+                icon: Icons.video_library_rounded,
+                gradient: const [Color(0xFF00E5FF), Color(0xFF7000FF)],
+                glowColor: const Color(0x5500E5FF),
+                title: 'Upload Video Post',
+                subtitle: 'Publish 4K & high-clarity video reels to Explore',
+                badge: '4K REELS',
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  UploadVideoSheet.show(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceTile extends StatelessWidget {
+  final IconData icon;
+  final List<Color> gradient;
+  final Color glowColor;
+  final String title;
+  final String subtitle;
+  final String badge;
+  final VoidCallback onTap;
+
+  const _ChoiceTile({
+    required this.icon,
+    required this.gradient,
+    required this.glowColor,
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B1E30),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white12, width: 1.0),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: gradient),
+                boxShadow: [
+                  BoxShadow(color: glowColor, blurRadius: 14, offset: const Offset(0, 3)),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: gradient),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          badge,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white60, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
+          ],
+        ),
       ),
     );
   }

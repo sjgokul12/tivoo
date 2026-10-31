@@ -7,17 +7,20 @@ import 'live_stream_viewers_sheet.dart';
 class CreatorMoreOptionsSheet extends StatelessWidget {
   final String streamTitle;
   final VoidCallback? onSettingsChanged;
+  final VoidCallback? onPkBattleTap;
 
   const CreatorMoreOptionsSheet({
     super.key,
     this.streamTitle = 'My Live Stream',
     this.onSettingsChanged,
+    this.onPkBattleTap,
   });
 
   static Future<void> show(
     BuildContext context, {
     String streamTitle = 'My Live Stream',
     VoidCallback? onSettingsChanged,
+    VoidCallback? onPkBattleTap,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -26,6 +29,7 @@ class CreatorMoreOptionsSheet extends StatelessWidget {
       builder: (_) => CreatorMoreOptionsSheet(
         streamTitle: streamTitle,
         onSettingsChanged: onSettingsChanged,
+        onPkBattleTap: onPkBattleTap,
       ),
     );
   }
@@ -116,7 +120,92 @@ class CreatorMoreOptionsSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
+
+            // Host PK Battle Action Card
+            if (onPkBattleTap != null) ...[
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onPkBattleTap!();
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2A1138), Color(0xFF1B1D36)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFF2D55), width: 1.2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x33FF2D55),
+                        blurRadius: 16,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFF2D55), Color(0xFFFF8F00)],
+                          ),
+                        ),
+                        child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Host PK Battle',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Match & challenge a rival streamer 1v1',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF2D55), Color(0xFFFF6D00)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'HOST',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Icon Grid (Comment Settings, Viewer List, LIVE Quality, Mute User)
             GridView.count(

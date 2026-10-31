@@ -16,22 +16,26 @@ class PkScoreBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = leftScore + rightScore;
-    // Guarantee minimum colored space on each side so that even with 0 points/stars,
-    // the score always sits comfortably within its own color without colliding.
-    const double minRatio = 0.24;
-    const double maxRatio = 0.76;
+    // Dynamic tug-of-war lead formula:
+    // Instead of a static flat percentage where large base numbers drown out
+    // incremental star gains, the score differential drives visible, responsive movement.
     final double ratio;
     if (total == 0) {
       ratio = 0.5;
     } else {
-      final normalized = (leftScore / total).clamp(0.0, 1.0);
-      ratio = minRatio + (maxRatio - minRatio) * normalized;
+      final double diff = (leftScore - rightScore).toDouble();
+      // Dynamic sensitivity scale adapts to battle magnitude so every gift produces visible motion
+      final double scale = (total * 0.35).clamp(250.0, 2500.0);
+      final double shift = (diff / scale).clamp(-1.0, 1.0) * 0.28;
+      // Keep ratio within 0.22 to 0.78 so scores sit comfortably inside their color
+      ratio = (0.50 + shift).clamp(0.22, 0.78);
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isKeyboard = MediaQuery.viewInsetsOf(context).bottom > 50;
         final width = constraints.maxWidth - 20;
-        final barH = (width * 0.10).clamp(34.0, 48.0);
+        final barH = isKeyboard ? (width * 0.08).clamp(30.0, 36.0) : (width * 0.10).clamp(34.0, 48.0);
         final scoreStyle = TextStyle(
           color: Colors.white,
           fontSize: barH * 0.5,
@@ -41,7 +45,7 @@ class PkScoreBar extends StatelessWidget {
         );
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: isKeyboard ? 1.5 : 3),
           child: SizedBox(
             width: double.infinity,
             height: barH,
