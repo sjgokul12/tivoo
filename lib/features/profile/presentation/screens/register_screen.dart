@@ -882,18 +882,10 @@ class _OtpVerificationDialogState extends ConsumerState<_OtpVerificationDialog> 
               ),
             ],
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.35), width: 0.8),
-              ),
-              child: const Text(
-                'Dev Test Code: 123456 or 154545 (or real code from backend terminal)',
-                style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
+            Text(
+              'Please check your inbox or spam folder for your 6-digit code',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11.5),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             GradientButton(
