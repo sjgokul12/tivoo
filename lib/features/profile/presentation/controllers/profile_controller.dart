@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import '../../../../core/config/api_config.dart';
 import '../../data/mock_profile_data.dart';
 import '../../domain/models/user_profile_model.dart';
 
@@ -36,7 +39,30 @@ class ProfileState {
 }
 
 class ProfileController extends StateNotifier<ProfileState> {
-  ProfileController() : super(ProfileState(profile: MockProfileData.defaultProfile));
+  ProfileController() : super(ProfileState(profile: MockProfileData.emptyProfile));
+
+  void setProfile(UserProfileModel profile) {
+    state = state.copyWith(profile: profile);
+  }
+
+  Future<void> fetchMyProfile({String? token}) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/profiles/me');
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final res = await http.get(url, headers: headers);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          state = state.copyWith(
+            profile: UserProfileModel.fromJson(data, posts: state.profile.posts),
+          );
+        }
+      }
+    } catch (_) {}
+  }
 
   void selectTab(int index) {
     if (state.selectedTab != index) {

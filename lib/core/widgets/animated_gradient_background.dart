@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../constants/app_assets.dart';
 import '../theme/app_colors.dart';
+import 'live_video_player.dart';
 
 /// A dark canvas with a few slow-drifting, soft-edged gradient blobs behind
 /// [child]. Used to give screens like Splash/Login/LiveStream/Profile real
@@ -14,11 +16,18 @@ class AnimatedGradientBackground extends StatelessWidget {
   /// layering the blobs as an ambient glow over existing photo content).
   final Color? backgroundColor;
 
+  final String? videoAssetPath;
+  final bool showVideo;
+  final double videoOpacity;
+
   const AnimatedGradientBackground({
     super.key,
     this.child,
     this.colors = const [AppColors.primaryPink, AppColors.primaryPurple, AppColors.primaryCyan],
     this.backgroundColor = AppColors.background,
+    this.videoAssetPath = AppAssets.giftVideoFox,
+    this.showVideo = false,
+    this.videoOpacity = 0.35,
   });
 
   @override
@@ -27,6 +36,19 @@ class AnimatedGradientBackground extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         if (backgroundColor != null) Container(color: backgroundColor),
+        if (showVideo && videoAssetPath != null)
+          Positioned.fill(
+            child: Opacity(
+              opacity: videoOpacity.clamp(0.0, 1.0),
+              child: LiveVideoPlayer(
+                playerId: 'animated_bg_video',
+                videoAssetPath: videoAssetPath!,
+                autoPlay: true,
+                isMuted: true,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
         Positioned(
           top: -80,
           left: -60,

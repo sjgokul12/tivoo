@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:tivoo/core/constants/app_assets.dart';
+import 'package:tivoo/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:tivoo/features/profile/domain/models/user_profile_model.dart';
 import 'package:tivoo/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:tivoo/features/explore/data/posts_repository.dart';
 import 'package:tivoo/features/explore/data/video_processor.dart';
@@ -67,28 +69,65 @@ class PostsController extends StateNotifier<PostsState> {
   Future<VideoPost> upload(
     File video, {
     File? thumbnail,
+    Uint8List? videoBytes,
+    Uint8List? thumbnailBytes,
     String caption = '',
     void Function(UploadStep step, double progress)? onProgress,
   }) async {
-    final playable = await VideoProcessor.makePlayable(
-      video.path,
-      onProgress: (p) => onProgress?.call(UploadStep.converting, p),
-    );
-    thumbnail ??= await VideoProcessor.thumbnail(playable.path);
+    final playable = kIsWeb
+        ? video
+        : await VideoProcessor.makePlayable(
+            video.path,
+            onProgress: (p) => onProgress?.call(UploadStep.converting, p),
+          );
+    if (!kIsWeb) {
+      thumbnail ??= await VideoProcessor.thumbnail(playable.path);
+    }
+    final authState = _ref.read(authControllerProvider);
     final profile = _ref.read(profileControllerProvider).profile;
-    final id = state.myId ?? await _repo.deviceId();
+    final currentUser = authState.currentUser;
+
+    final id = (currentUser != null && currentUser.id.isNotEmpty)
+        ? currentUser.id
+        : (profile.id.isNotEmpty ? profile.id : (state.myId ?? await _repo.deviceId()));
+    final name = (currentUser != null && currentUser.name.isNotEmpty)
+        ? currentUser.name
+        : (profile.name.isNotEmpty ? profile.name : 'Creator');
+    final username = (currentUser != null && currentUser.username.isNotEmpty)
+        ? currentUser.username
+        : (profile.username.isNotEmpty ? profile.username : 'creator');
+    final avatar = (currentUser != null && currentUser.avatarUrl.isNotEmpty)
+        ? currentUser.avatarUrl
+        : profile.avatarUrl;
+
     final post = await _repo.uploadVideo(
       video: playable,
       thumbnail: thumbnail,
+      videoBytes: videoBytes,
+      thumbnailBytes: thumbnailBytes,
+      token: authState.accessToken,
       caption: caption,
       onProgress: (p) => onProgress?.call(UploadStep.uploading, p),
       author: PostAuthor(
         id: id,
-        name: profile.name,
-        username: profile.username,
-        avatar: profile.avatarUrl.isNotEmpty ? profile.avatarUrl : AppAssets.status5,
+        name: name,
+        username: username,
+        avatar: avatar.startsWith('http') ? avatar : '',
       ),
     );
+    try {
+      final thumb = post.thumbnailUrl;
+      final effectiveMedia = post.videoUrl.isNotEmpty
+          ? post.videoUrl
+          : ((thumb != null && thumb.isNotEmpty) ? thumb : post.id);
+
+      _ref.read(profileControllerProvider.notifier).addPost(
+        type: ProfileMediaType.video,
+        title: caption.isNotEmpty ? caption : 'New Reel',
+        mediaUrl: effectiveMedia,
+        duration: '00:15',
+      );
+    } catch (_) {}
     if (mounted) state = state.copyWith(myId: id, posts: [post, ...state.posts.where((p) => p.id != post.id)]);
     return post;
   }

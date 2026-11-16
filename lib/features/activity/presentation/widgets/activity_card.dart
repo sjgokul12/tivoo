@@ -23,6 +23,79 @@ class ActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Dedicated full-width layout for Family Join Requests so wordings are 100% visible
+    if (activity.type == ActivityType.familyJoinRequest) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          color: isDark ? const Color(0x9913131E) : Colors.white,
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 0.8,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAvatarWithBadge(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: AppTextStyles.streamerName.copyWith(fontSize: 14),
+                          children: [
+                            TextSpan(
+                              text: '${activity.userName} ',
+                              style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white),
+                            ),
+                            const TextSpan(
+                              text: 'requested to join family',
+                              style: TextStyle(
+                                color: Color(0xFFFFC928),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${activity.applicantId ?? ""} • Team: ${activity.familyName ?? "Tivoo Angels ✨"}',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        activity.timeAgo,
+                        style: const TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildFamilyActionButtons(),
+          ],
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -125,7 +198,7 @@ class ActivityCard extends StatelessWidget {
     switch (activity.type) {
       case ActivityType.familyJoinRequest:
         badgeIcon = Icons.group_add_rounded;
-        badgeColor = const Color(0xFF00E676);
+        badgeColor = const Color(0xFFFFC928);
         break;
       case ActivityType.liveNow:
         badgeIcon = Icons.podcasts_rounded;
@@ -209,123 +282,138 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRightActionOrPreview() {
-    if (activity.type == ActivityType.familyJoinRequest) {
-      return Consumer(
-        builder: (context, ref, child) {
-          final familyState = ref.watch(familyControllerProvider);
-          final hasAlreadyJoined = familyState.currentFamily.members
-              .any((m) => m.tikiId.contains(activity.applicantId ?? '---'));
-          final isPending = familyState.currentFamily.pendingRequests
-              .any((r) => r.id == activity.requestId);
+  Widget _buildFamilyActionButtons() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final familyState = ref.watch(familyControllerProvider);
+        final hasAlreadyJoined = familyState.currentFamily.members
+            .any((m) => m.tikiId.contains(activity.applicantId ?? '---') || m.name == activity.userName);
+        final isPending = familyState.currentFamily.pendingRequests
+            .any((r) => r.id == activity.requestId || r.userName == activity.userName);
 
-          if (hasAlreadyJoined) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0x3300E676),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF00E676), width: 0.8),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle_rounded, color: Color(0xFF00E676), size: 13),
-                  SizedBox(width: 4),
-                  Text(
-                    'Joined',
-                    style: TextStyle(
-                      color: Color(0xFF00E676),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+        if (hasAlreadyJoined) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0x33FFC928),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFFC928), width: 0.8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle_rounded, color: Color(0xFFFFC928), size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Joined Family ✓',
+                  style: TextStyle(
+                    color: Color(0xFFFFC928),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-            );
-          }
+                ),
+              ],
+            ),
+          );
+        }
 
-          if (!isPending) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              child: const Text(
-                'Processed',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
-              ),
-            );
-          }
+        if (!isPending) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Text(
+              'Declined',
+              style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          );
+        }
 
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  ref
-                      .read(familyControllerProvider.notifier)
-                      .acceptJoinRequest(activity.requestId ?? 'req_1');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Accepted ${activity.userName} into ${activity.familyName ?? "Family"}! 🎉'),
-                      backgroundColor: const Color(0xFF00E676),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00E676), Color(0xFF00B0FF)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x5500E676), blurRadius: 6),
-                    ],
+        return Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFC928),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
-                  child: const Text(
+                  onPressed: () {
+                    ref
+                        .read(familyControllerProvider.notifier)
+                        .acceptJoinRequest(activity.requestId ?? 'req_1');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Color(0xFFFFC928), size: 18),
+                            const SizedBox(width: 8),
+                            Text('Accepted ${activity.userName} into ${activity.familyName ?? "Family"}! 🎉'),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFF1B1638),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.check_rounded, size: 17, color: Colors.black),
+                  label: const Text(
                     'Accept',
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: 11.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () {
-                  ref
-                      .read(familyControllerProvider.notifier)
-                      .declineJoinRequest(activity.requestId ?? 'req_1');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Declined request from ${activity.userName}'),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(12),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 36,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white24, width: 1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text(
+                  onPressed: () {
+                    ref
+                        .read(familyControllerProvider.notifier)
+                        .declineJoinRequest(activity.requestId ?? 'req_1');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Declined request from ${activity.userName}'),
+                        backgroundColor: const Color(0xFF1B1638),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white60),
+                  label: const Text(
                     'Decline',
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 11,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      );
-    }
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRightActionOrPreview() {
 
     if (activity.type == ActivityType.follow) {
       return GestureDetector(

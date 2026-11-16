@@ -11,7 +11,7 @@ import '../data/chat_room_data.dart';
 import 'chat_room_common.dart';
 
 /// Step 3: inside the room — header, tagline, 3×3 seats, recent chat and the action dock.
-class RoomStageView extends StatelessWidget {
+class RoomStageView extends StatefulWidget {
   final ChatRoom room;
   final List<ChatSeat?> seats;
   final List<LiveComment> messages;
@@ -86,61 +86,102 @@ class RoomStageView extends StatelessWidget {
   });
 
   @override
+  State<RoomStageView> createState() => _RoomStageViewState();
+}
+
+class _RoomStageViewState extends State<RoomStageView> {
+  bool _isCommentInputOpen = false;
+
+  void _openCommentInput() {
+    setState(() => _isCommentInputOpen = true);
+  }
+
+  void _closeCommentInput() {
+    FocusScope.of(context).unfocus();
+    setState(() => _isCommentInputOpen = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 6),
-        _RoomHeader(
-          room: room,
-          seats: seats,
-          isVideo: isVideo,
-          isHost: isHost,
-          onShowMembers: onShowMembers,
-          pendingRequestsCount: pendingRequestsCount,
-          onReviewRequests: onReviewRequests,
-          isHostFollowing: isHostFollowing,
-          isHostRequested: isHostRequested,
-          onHostFollowTap: onHostFollowTap,
-          onHostProfileTap: onHostProfileTap,
-          onBack: onBack,
-          onLeave: onLeave,
-          onMore: onMore,
-        ),
-        const _TaglineBanner(),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            child: _SeatGrid(
-              seats: seats,
-              selectedSeatIndex: selectedSeatIndex,
-              onSeatSelected: onSeatSelected,
-              onSeatLongPress: onSeatLongPress,
-              onSeatTap: onSeatTap,
-              onInvite: onInvite,
-              seatKeys: seatKeys,
+    final viewInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isTyping = _isCommentInputOpen || viewInset > 50;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: isTyping ? _closeCommentInput : null,
+      child: Column(
+        children: [
+          const SizedBox(height: 6),
+          _RoomHeader(
+            room: widget.room,
+            seats: widget.seats,
+            isVideo: widget.isVideo,
+            isHost: widget.isHost,
+            onShowMembers: widget.onShowMembers,
+            pendingRequestsCount: widget.pendingRequestsCount,
+            onReviewRequests: widget.onReviewRequests,
+            isHostFollowing: widget.isHostFollowing,
+            isHostRequested: widget.isHostRequested,
+            onHostFollowTap: widget.onHostFollowTap,
+            onHostProfileTap: widget.onHostProfileTap,
+            onBack: widget.onBack,
+            onLeave: widget.onLeave,
+            onMore: widget.onMore,
+          ),
+          if (!isTyping) const _TaglineBanner(),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: _SeatGrid(
+                seats: widget.seats,
+                selectedSeatIndex: widget.selectedSeatIndex,
+                onSeatSelected: widget.onSeatSelected,
+                onSeatLongPress: widget.onSeatLongPress,
+                onSeatTap: widget.onSeatTap,
+                onInvite: widget.onInvite,
+                seatKeys: widget.seatKeys,
+              ),
             ),
           ),
-        ),
-        _ChatFeed(
-          messages: messages,
-          onCommentTap: onCommentTap,
-          onCommentLongPress: onCommentLongPress,
-        ),
-        _RoomDock(
-          isJoined: isJoined,
-          isJoinRequested: isJoinRequested,
-          micMuted: micMuted,
-          soundMuted: soundMuted,
-          onJoin: onJoinConversation,
-          onCancelJoinRequest: onCancelJoinRequest,
-          onMic: onMic,
-          onSound: onSound,
-          onGift: onGift,
-          onStar: onStar,
-          onMore: onMore,
-          onSend: onSend,
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                _ChatFeed(
+                  messages: widget.messages,
+                  hasJoinButton: !widget.isJoined && !isTyping,
+                  isCompact: isTyping,
+                  onCommentTap: widget.onCommentTap,
+                  onCommentLongPress: widget.onCommentLongPress,
+                ),
+                if (!widget.isJoined && !isTyping)
+                  Positioned(
+                    right: 14,
+                    bottom: 6,
+                    child: _JoinFloatingButton(
+                      isJoinRequested: widget.isJoinRequested,
+                      onTap: widget.onJoinConversation,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _RoomDock(
+            micMuted: widget.micMuted,
+            soundMuted: widget.soundMuted,
+            isTyping: isTyping,
+            onOpenCommentInput: _openCommentInput,
+            onCloseCommentInput: _closeCommentInput,
+            onMic: widget.onMic,
+            onSound: widget.onSound,
+            onGift: widget.onGift,
+            onStar: widget.onStar,
+            onMore: widget.onMore,
+            onSend: widget.onSend,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -263,58 +304,6 @@ class _RoomHeader extends StatelessWidget {
               ),
             ),
           ),
-          if (!isHost && !room.hostName.toLowerCase().startsWith('you') && onHostFollowTap != null) ...[
-            const SizedBox(width: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onHostFollowTap,
-              child: isHostFollowing
-                  ? Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF1E2840),
-                        border: Border.all(color: const Color(0xFFFFD700), width: 1.2),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x33FFD700), blurRadius: 6),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.check, color: Color(0xFFFFD700), size: 15),
-                      ),
-                    )
-                  : isHostRequested
-                      ? Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF1E2840),
-                            border: Border.all(color: const Color(0xFFFFD700), width: 1.2),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.schedule_rounded, color: Color(0xFFFFD700), size: 14),
-                          ),
-                        )
-                      : Container(
-                          width: 28,
-                          height: 28,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(color: Color(0x66FFD700), blurRadius: 6),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.add, color: Color(0xFF0F0E17), size: 17),
-                          ),
-                        ),
-            ),
-          ],
           const SizedBox(width: 6),
           if (pendingRequestsCount > 0 && onReviewRequests != null) ...[
             GestureDetector(
@@ -763,11 +752,15 @@ class _InviteSeat extends StatelessWidget {
 /// Glassmorphic continuous live chat feed, streaming upwards like PK and Live Streaming.
 class _ChatFeed extends StatefulWidget {
   final List<LiveComment> messages;
+  final bool hasJoinButton;
+  final bool isCompact;
   final ValueChanged<LiveComment>? onCommentTap;
   final ValueChanged<LiveComment>? onCommentLongPress;
 
   const _ChatFeed({
     required this.messages,
+    this.hasJoinButton = false,
+    this.isCompact = false,
     this.onCommentTap,
     this.onCommentLongPress,
   });
@@ -803,11 +796,17 @@ class _ChatFeedState extends State<_ChatFeed> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.messages.isEmpty) return const SizedBox.shrink();
+    if (widget.messages.isEmpty) {
+      return widget.hasJoinButton
+          ? const SizedBox(height: 48, width: double.infinity)
+          : const SizedBox.shrink();
+    }
 
     // Media query responsive height adapting gracefully to small & large phone viewports
     final screenH = MediaQuery.sizeOf(context).height;
-    final feedHeight = (screenH * 0.155).clamp(105.0, 140.0);
+    final feedHeight = widget.isCompact
+        ? 44.0
+        : (screenH * 0.155).clamp(105.0, 140.0);
 
     return SizedBox(
       height: feedHeight,
@@ -828,7 +827,7 @@ class _ChatFeedState extends State<_ChatFeed> {
           controller: _scrollController,
           reverse: true, // Anchor to bottom, streaming upwards!
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          padding: EdgeInsets.fromLTRB(14, 2, widget.hasJoinButton ? 115 : 14, 2),
           itemCount: widget.messages.length,
           itemBuilder: (context, index) {
             final itemIndex = widget.messages.length - 1 - index;
@@ -1022,14 +1021,103 @@ class _ChatLine extends StatelessWidget {
   }
 }
 
-/// Dock: Mic / Sound / Stars / More plus the Join button (or Chat input when joined).
-class _RoomDock extends StatefulWidget {
-  final bool isJoined;
+/// Floating Join button positioned above the bottom dock near the streaming live comments.
+class _JoinFloatingButton extends StatelessWidget {
   final bool isJoinRequested;
+  final VoidCallback onTap;
+
+  const _JoinFloatingButton({
+    required this.isJoinRequested,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 38,
+        padding: EdgeInsets.symmetric(horizontal: isJoinRequested ? 12 : 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(19),
+          gradient: isJoinRequested
+              ? const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
+                )
+              : const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFFFF2A85), Color(0xFFC2185B)],
+                ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isJoinRequested
+                      ? const Color(0xFFFF9800)
+                      : const Color(0xFFFF2A85))
+                  .withValues(alpha: 0.5),
+              blurRadius: 12,
+              spreadRadius: 1,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: isJoinRequested
+              ? const [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Requested',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ]
+              : const [
+                  Icon(Icons.groups_rounded, color: Colors.white, size: 17),
+                  SizedBox(width: 5),
+                  Text(
+                    'Join',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dock: Mic / Sound / Stars / Comments / Share (evenly spaced bottom panel).
+class _RoomDock extends StatefulWidget {
   final bool micMuted;
   final bool soundMuted;
-  final VoidCallback onJoin;
-  final VoidCallback? onCancelJoinRequest;
+  final bool isTyping;
+  final VoidCallback onOpenCommentInput;
+  final VoidCallback onCloseCommentInput;
   final VoidCallback onMic;
   final VoidCallback onSound;
   final VoidCallback onGift;
@@ -1038,12 +1126,11 @@ class _RoomDock extends StatefulWidget {
   final ValueChanged<String> onSend;
 
   const _RoomDock({
-    required this.isJoined,
-    this.isJoinRequested = false,
     required this.micMuted,
     required this.soundMuted,
-    required this.onJoin,
-    this.onCancelJoinRequest,
+    required this.isTyping,
+    required this.onOpenCommentInput,
+    required this.onCloseCommentInput,
     required this.onMic,
     required this.onSound,
     required this.onGift,
@@ -1058,13 +1145,26 @@ class _RoomDock extends StatefulWidget {
 
 class _RoomDockState extends State<_RoomDock> {
   final _input = TextEditingController();
-  bool _showInput = false;
+  final _focusNode = FocusNode();
   bool _showEmojiPicker = false;
 
   static const List<String> _quickEmojis = [
     '❤️', '😍', '🔥', '👏', '⭐', '🎉', '🌹', '💯', '😂', '✨',
     '🙌', '🥰', '🥳', '😎', '💖', '🤩', '👍', '🎁', '👑', '💃',
   ];
+
+  @override
+  void didUpdateWidget(covariant _RoomDock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isTyping && !oldWidget.isTyping) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    } else if (!widget.isTyping && oldWidget.isTyping) {
+      _focusNode.unfocus();
+      setState(() => _showEmojiPicker = false);
+    }
+  }
 
   void _insertEmoji(String emoji) {
     final text = _input.text;
@@ -1084,6 +1184,7 @@ class _RoomDockState extends State<_RoomDock> {
   @override
   void dispose() {
     _input.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -1093,20 +1194,25 @@ class _RoomDockState extends State<_RoomDock> {
     widget.onSend(text);
     _input.clear();
     setState(() => _showEmojiPicker = false);
+    widget.onCloseCommentInput();
   }
 
   @override
   Widget build(BuildContext context) {
     final viewInset = MediaQuery.viewInsetsOf(context).bottom;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 375;
+    final iconSize = isCompact ? 38.0 : 42.0;
+
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      padding: EdgeInsets.fromLTRB(14, 2, 14, 10 + (viewInset > 0 ? viewInset : bottomInset)),
+      padding: EdgeInsets.fromLTRB(14, 2, 14, 8 + (viewInset > 0 ? viewInset : bottomInset)),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xEE0E0B2A),
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(widget.isTyping ? 24 : 30),
           border: Border.all(
             color: const Color(0xFF6C3CE9).withValues(alpha: 0.65),
             width: 1.5,
@@ -1119,263 +1225,162 @@ class _RoomDockState extends State<_RoomDock> {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                _DockIconButton(
-                  icon: Icons.mic_rounded,
-                  label: 'Mic',
-                  isStriked: widget.micMuted,
-                  onTap: widget.onMic,
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  icon: Icons.volume_up_rounded,
-                  label: 'Sound',
-                  isStriked: widget.soundMuted,
-                  onTap: widget.onSound,
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  label: 'Stars',
-                  onTap: widget.onGift,
-                  child: Image.asset(
-                    AppAssets.goldenStar,
-                    width: 22,
-                    height: 22,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFD700),
-                      size: 22,
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 10 : 12,
+          vertical: widget.isTyping ? 6 : 8,
+        ),
+        child: widget.isTyping
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_showEmojiPicker) ...[
+                    SizedBox(
+                      height: 36,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _quickEmojis.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 6),
+                        itemBuilder: (context, index) {
+                          final emoji = _quickEmojis[index];
+                          return GestureDetector(
+                            onTap: () => _insertEmoji(emoji),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  icon: Icons.share_rounded,
-                  label: 'Share',
-                  onTap: () {
-                    TivooShareSheet.show(
-                      context,
-                      title: 'Share Chat Room',
-                      subtitle: 'Invite friends to the room party',
-                      shareUrl: 'https://tivoo.app/chatroom/party',
-                      shareText: 'Join our live room party on Tivoo! https://tivoo.app/chatroom/party',
-                    );
-                  },
-                ),
-                const Spacer(),
-                if (!widget.isJoined)
+                    const SizedBox(height: 6),
+                  ],
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
-                        onTap: widget.onJoin,
+                        onTap: () => setState(() => _showEmojiPicker = !_showEmojiPicker),
+                        behavior: HitTestBehavior.opaque,
+                        child: Icon(
+                          _showEmojiPicker ? Icons.keyboard_rounded : Icons.sentiment_satisfied_alt_rounded,
+                          color: LuxeColors.gold,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _input,
+                          focusNode: _focusNode,
+                          autofocus: true,
+                          cursorColor: LuxeColors.gold,
+                          cursorWidth: 2,
+                          keyboardType: TextInputType.text,
+                          enableSuggestions: true,
+                          autocorrect: true,
+                          style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
+                          decoration: const InputDecoration(
+                            hintText: 'Type a message to the room...',
+                            hintStyle: TextStyle(color: Color(0xFF9E9EAF), fontSize: 13),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          onSubmitted: (_) => _send(),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          _input.clear();
+                          widget.onCloseCommentInput();
+                        },
+                        behavior: HitTestBehavior.opaque,
                         child: Container(
-                          height: 42,
-                          padding: EdgeInsets.symmetric(horizontal: widget.isJoinRequested ? 13 : 16),
+                          width: 26,
+                          height: 26,
+                          margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(21),
-                            gradient: widget.isJoinRequested
-                                ? const LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
-                                  )
-                                : const LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [Color(0xFFFF2A85), Color(0xFFC2185B)],
-                                  ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: widget.isJoinRequested
-                                    ? const Color(0x66FF9800)
-                                    : const Color(0x66FF2A85),
-                                blurRadius: 14,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.1),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: widget.isJoinRequested
-                                ? const [
-                                    SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Requested',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ]
-                                : const [
-                                    Icon(Icons.groups_rounded, color: Colors.white, size: 19),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Join',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ],
-                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white60, size: 15),
                         ),
                       ),
-                      if (!widget.isJoinRequested) ...[
-                        const SizedBox(width: 4),
-                        const CustomPaint(
-                          size: Size(10, 24),
-                          painter: _SparkleTicksPainter(),
+                      GestureDetector(
+                        onTap: _send,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: LuxeDecor.goldButton(radius: 17),
+                          child: const Icon(Icons.send_rounded, color: kGoldInk, size: 16),
                         ),
-                      ],
+                      ),
                     ],
-                  )
-                else
-                  GestureDetector(
-                    onTap: () => setState(() => _showInput = !_showInput),
-                    child: Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(21),
-                        gradient: LinearGradient(
-                          colors: _showInput
-                              ? [const Color(0xFF6C3CE9), const Color(0xFF4A148C)]
-                              : [const Color(0xFF00E676), const Color(0xFF00B0FF)],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x4400E676),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _showInput ? Icons.keyboard_hide_rounded : Icons.chat_bubble_rounded,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            _showInput ? 'Hide' : 'Chat',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _DockIconButton(
+                    size: iconSize,
+                    icon: Icons.mic_rounded,
+                    label: 'Mic',
+                    isStriked: widget.micMuted,
+                    onTap: widget.onMic,
+                  ),
+                  _DockIconButton(
+                    size: iconSize,
+                    icon: Icons.volume_up_rounded,
+                    label: 'Sound',
+                    isStriked: widget.soundMuted,
+                    onTap: widget.onSound,
+                  ),
+                  _DockIconButton(
+                    size: iconSize,
+                    label: 'Stars',
+                    onTap: widget.onGift,
+                    child: Image.asset(
+                      AppAssets.goldenStar,
+                      width: iconSize * 0.52,
+                      height: iconSize * 0.52,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.star_rounded,
+                        color: const Color(0xFFFFD700),
+                        size: iconSize * 0.52,
                       ),
                     ),
                   ),
-              ],
-            ),
-            if (widget.isJoined && _showInput) ...[
-              const SizedBox(height: 10),
-              if (_showEmojiPicker) ...[
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: _quickEmojis.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 6),
-                    itemBuilder: (context, index) {
-                      final emoji = _quickEmojis[index];
-                      return GestureDetector(
-                        onTap: () => _insertEmoji(emoji),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(emoji, style: const TextStyle(fontSize: 18)),
-                          ),
-                        ),
+                  _DockIconButton(
+                    size: iconSize,
+                    icon: Icons.chat_bubble_rounded,
+                    label: 'Comments',
+                    onTap: widget.onOpenCommentInput,
+                  ),
+                  _DockIconButton(
+                    size: iconSize,
+                    icon: Icons.share_rounded,
+                    label: 'Share',
+                    onTap: () {
+                      TivooShareSheet.show(
+                        context,
+                        title: 'Share Chat Room',
+                        subtitle: 'Invite friends to the room party',
+                        shareUrl: 'https://tivoo.app/chatroom/party',
+                        shareText: 'Join our live room party on Tivoo! https://tivoo.app/chatroom/party',
                       );
                     },
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              Container(
-                height: 44,
-                padding: const EdgeInsets.only(left: 12, right: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0E0B2C),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: LuxeColors.purple.withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _showEmojiPicker = !_showEmojiPicker),
-                      child: Icon(
-                        _showEmojiPicker ? Icons.keyboard_rounded : Icons.sentiment_satisfied_alt_rounded,
-                        color: LuxeColors.gold,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _input,
-                        autofocus: true,
-                        cursorColor: LuxeColors.gold,
-                        cursorWidth: 2,
-                        keyboardType: TextInputType.text,
-                        enableSuggestions: true,
-                        autocorrect: true,
-                        style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600),
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message to the room...',
-                          hintStyle: TextStyle(color: Color(0xFF9E9EAF), fontSize: 13),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        onSubmitted: (_) => _send(),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _send,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: LuxeDecor.goldButton(radius: 17),
-                        child: const Icon(Icons.send_rounded, color: kGoldInk, size: 16),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ],
-          ],
-        ),
       ),
     );
   }
@@ -1387,6 +1392,7 @@ class _DockIconButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool isStriked;
+  final double size;
 
   const _DockIconButton({
     this.icon,
@@ -1394,6 +1400,7 @@ class _DockIconButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.isStriked = false,
+    this.size = 42.0,
   });
 
   @override
@@ -1405,8 +1412,8 @@ class _DockIconButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0x551E1848),
@@ -1466,41 +1473,6 @@ class _RedStrikePainter extends CustomPainter {
     canvas.drawLine(
       Offset(size.width * 0.15, size.height * 0.15),
       Offset(size.width * 0.85, size.height * 0.85),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SparkleTicksPainter extends CustomPainter {
-  const _SparkleTicksPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFFF6EB4)
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round;
-
-    final centerY = size.height / 2;
-    // Top tick
-    canvas.drawLine(
-      Offset(1, centerY - 6),
-      Offset(size.width - 1, centerY - 12),
-      paint,
-    );
-    // Middle tick
-    canvas.drawLine(
-      Offset(2, centerY),
-      Offset(size.width, centerY),
-      paint,
-    );
-    // Bottom tick
-    canvas.drawLine(
-      Offset(1, centerY + 6),
-      Offset(size.width - 1, centerY + 12),
       paint,
     );
   }

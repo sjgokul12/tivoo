@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:tivoo/core/config/api_config.dart';
 import 'package:tivoo/features/explore/domain/models/video_post.dart';
@@ -16,6 +17,9 @@ abstract class PostsRepository {
   Future<VideoPost> uploadVideo({
     required File video,
     File? thumbnail,
+    Uint8List? videoBytes,
+    Uint8List? thumbnailBytes,
+    String? token,
     required PostAuthor author,
     String caption = '',
     void Function(double progress)? onProgress,

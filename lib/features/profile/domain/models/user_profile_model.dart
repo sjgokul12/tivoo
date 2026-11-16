@@ -126,4 +126,51 @@ class UserProfileModel {
       posts: posts ?? this.posts,
     );
   }
+
+  factory UserProfileModel.fromJson(
+    Map<String, dynamic> json, {
+    List<ProfileMediaPost> posts = const [],
+  }) {
+    return UserProfileModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'User',
+      username: json['username']?.toString() ?? '',
+      bio: json['bio']?.toString() ?? '',
+      aboutMe: json['aboutMe']?.toString() ?? '',
+      avatarUrl: json['avatarUrl']?.toString() ?? '',
+      coverBackgroundUrl: json['coverBackgroundUrl']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      phoneNumber: json['phoneNumber']?.toString() ?? '',
+      roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          const ['Creator'],
+      isVerified: json['isVerified'] == true,
+      isOnline: json['isOnline'] != false,
+      followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
+      followersCount: json['followersCount']?.toString() ?? '0',
+      likesCount: json['likesCount']?.toString() ?? '0',
+      liveStreamsCount: (json['liveStreamsCount'] as num?)?.toInt() ?? 0,
+      totalViews: json['totalViews']?.toString() ?? '0',
+      posts: posts,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'username': username,
+    'bio': bio,
+    'aboutMe': aboutMe,
+    'avatarUrl': avatarUrl,
+    'coverBackgroundUrl': coverBackgroundUrl,
+    'email': email,
+    'phoneNumber': phoneNumber,
+    'roles': roles,
+    'isVerified': isVerified,
+    'isOnline': isOnline,
+    'followingCount': followingCount,
+    'followersCount': followersCount,
+    'likesCount': likesCount,
+    'liveStreamsCount': liveStreamsCount,
+    'totalViews': totalViews,
+  };
 }

@@ -15,6 +15,7 @@ class ExploreStreamModel {
   final bool isVerified;
   final String? videoAssetPath;
   final bool isLiked;
+  final bool allowDownloads;
 
   /// Set when this item is a user-uploaded video rather than a demo live stream.
   final VideoPost? post;
@@ -34,6 +35,7 @@ class ExploreStreamModel {
     this.isLive = true,
     this.isVerified = true,
     this.isLiked = false,
+    this.allowDownloads = true,
     this.post,
   });
 
@@ -52,6 +54,8 @@ class ExploreStreamModel {
     bool? isLive,
     bool? isVerified,
     bool? isLiked,
+    bool? allowDownloads,
+    VideoPost? post,
   }) {
     return ExploreStreamModel(
       id: id ?? this.id,
@@ -68,7 +72,8 @@ class ExploreStreamModel {
       isLive: isLive ?? this.isLive,
       isVerified: isVerified ?? this.isVerified,
       isLiked: isLiked ?? this.isLiked,
-      post: post,
+      allowDownloads: allowDownloads ?? this.allowDownloads,
+      post: post ?? this.post,
     );
   }
 }

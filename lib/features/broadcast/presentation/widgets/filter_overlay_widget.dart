@@ -92,6 +92,15 @@ class _FilterPainter extends CustomPainter {
       case FilterOverlayType.cyberGlasses:
         _drawCyberGlasses(canvas, size);
         break;
+      case FilterOverlayType.goldenCrown:
+        _drawGoldenCrown(canvas, size);
+        break;
+      case FilterOverlayType.devilHorns:
+        _drawDevilHorns(canvas, size);
+        break;
+      case FilterOverlayType.flowerCrown:
+        _drawFlowerCrown(canvas, size);
+        break;
       case FilterOverlayType.none:
         break;
     }
@@ -608,6 +617,180 @@ class _FilterPainter extends CustomPainter {
 
     // Bridge
     canvas.drawLine(Offset(eyeCenterX - glassW * 0.1, eyeCenterY), Offset(eyeCenterX + glassW * 0.1, eyeCenterY), cyanNeon);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 11. Golden Crown (Snapchat Lens Studio: Empress Golden Crown)
+  // ---------------------------------------------------------------------------
+  void _drawGoldenCrown(Canvas canvas, Size size) {
+    final headCenterX = size.width * 0.5;
+    final floatY = size.height * 0.13 + math.sin(progress * 2 * math.pi) * 5;
+    final crownW = size.width * 0.44;
+    final crownH = size.height * 0.11;
+
+    // Glowing aura
+    final aura = Paint()
+      ..color = const Color(0x66FFD700)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+    canvas.drawOval(Rect.fromCenter(center: Offset(headCenterX, floatY + crownH * 0.4), width: crownW * 1.1, height: crownH), aura);
+
+    final crownPath = Path()
+      ..moveTo(headCenterX - crownW * 0.5, floatY + crownH * 0.5)
+      ..lineTo(headCenterX - crownW * 0.45, floatY - crownH * 0.2) // left peak
+      ..lineTo(headCenterX - crownW * 0.22, floatY + crownH * 0.2)
+      ..lineTo(headCenterX, floatY - crownH * 0.6) // center tallest peak
+      ..lineTo(headCenterX + crownW * 0.22, floatY + crownH * 0.2)
+      ..lineTo(headCenterX + crownW * 0.45, floatY - crownH * 0.2) // right peak
+      ..lineTo(headCenterX + crownW * 0.5, floatY + crownH * 0.5)
+      ..quadraticBezierTo(headCenterX, floatY + crownH * 0.7, headCenterX - crownW * 0.5, floatY + crownH * 0.5)
+      ..close();
+
+    final goldGradient = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFFF7C2), Color(0xFFFFD700), Color(0xFFFF9100)],
+    ).createShader(Rect.fromCenter(center: Offset(headCenterX, floatY), width: crownW, height: crownH));
+
+    final crownPaint = Paint()
+      ..shader = goldGradient
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = const Color(0xFFFFFEE0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    canvas.drawPath(crownPath, crownPaint);
+    canvas.drawPath(crownPath, strokePaint);
+
+    // Jewel gems on peaks
+    final rubyPaint = Paint()..color = const Color(0xFFFF1744);
+    final gemGlow = Paint()
+      ..color = const Color(0xFFFF1744).withValues(alpha: 0.8)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    final peakOffsets = [
+      Offset(headCenterX - crownW * 0.45, floatY - crownH * 0.2),
+      Offset(headCenterX, floatY - crownH * 0.6),
+      Offset(headCenterX + crownW * 0.45, floatY - crownH * 0.2),
+    ];
+
+    for (final peak in peakOffsets) {
+      canvas.drawCircle(peak, 5.0, gemGlow);
+      canvas.drawCircle(peak, 4.0, rubyPaint);
+      canvas.drawCircle(Offset(peak.dx - 1, peak.dy - 1), 1.5, Paint()..color = Colors.white);
+      _drawSparkle(canvas, Offset(peak.dx, peak.dy - 6), 6 + math.sin(progress * 6 * math.pi) * 3, const Color(0xFFFFFDE7));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 12. Devil Horns (Snapchat Lens Studio: Neon Devil Horns)
+  // ---------------------------------------------------------------------------
+  void _drawDevilHorns(Canvas canvas, Size size) {
+    final headCenterX = size.width * 0.5;
+    final headTopY = size.height * 0.19;
+    final hornW = size.width * 0.12;
+    final hornH = size.height * 0.14;
+    final emberPulse = math.sin(progress * 6 * math.pi) * 0.2 + 0.8;
+
+    void paintHorn(bool isLeft) {
+      final sign = isLeft ? -1.0 : 1.0;
+      final base = Offset(headCenterX + sign * size.width * 0.20, headTopY);
+
+      canvas.save();
+      canvas.translate(base.dx, base.dy);
+      canvas.scale(sign, 1.0);
+
+      final hornPath = Path()
+        ..moveTo(0, 0)
+        ..cubicTo(hornW * 0.3, -hornH * 0.4, hornW * 0.9, -hornH * 0.8, hornW * 0.6, -hornH)
+        ..cubicTo(hornW * 0.1, -hornH * 0.7, -hornW * 0.2, -hornH * 0.3, -hornW * 0.35, 0)
+        ..close();
+
+      final glow = Paint()
+        ..color = const Color(0xFFFF1744).withValues(alpha: 0.6 * emberPulse)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+      canvas.drawPath(hornPath, glow);
+
+      final hornPaint = Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0xFF7F0000), Color(0xFFFF1744), Color(0xFFFF8A80)],
+        ).createShader(Rect.fromLTWH(-hornW * 0.5, -hornH, hornW * 1.5, hornH));
+      canvas.drawPath(hornPath, hornPaint);
+
+      final stroke = Paint()
+        ..color = const Color(0xFFFF8A80)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      canvas.drawPath(hornPath, stroke);
+
+      // Fiery spark from horn tip
+      _drawSparkle(canvas, Offset(hornW * 0.6, -hornH), 5 * emberPulse, const Color(0xFFFFD54F));
+
+      canvas.restore();
+    }
+
+    paintHorn(true);
+    paintHorn(false);
+
+    // Subtle dark red vignette
+    final redVignette = Paint()
+      ..shader = RadialGradient(
+        radius: 0.9,
+        colors: [Colors.transparent, const Color(0x33FF1744)],
+        stops: const [0.70, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), redVignette);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 13. Flower Crown (Snapchat Lens Studio: Pastel Blooms)
+  // ---------------------------------------------------------------------------
+  void _drawFlowerCrown(Canvas canvas, Size size) {
+    final headCenterX = size.width * 0.5;
+    final crownY = size.height * 0.18 + math.sin(progress * 2 * math.pi) * 3;
+    final count = 7;
+    final colors = [
+      const Color(0xFFFF80AB),
+      const Color(0xFFFFD180),
+      const Color(0xFFEA80FC),
+      const Color(0xFF80D8FF),
+      const Color(0xFFFF80AB),
+      const Color(0xFFFFD180),
+      const Color(0xFFB9F6CA),
+    ];
+
+    // Arc of flowers
+    for (int i = 0; i < count; i++) {
+      final t = (i / (count - 1)) * 2 - 1; // -1 to +1
+      final x = headCenterX + t * size.width * 0.28;
+      final y = crownY + (1 - t * t) * (-size.height * 0.04);
+      final flowerSize = (i == 3 ? 14.0 : 11.0);
+
+      // Petals
+      final flowerPaint = Paint()..color = colors[i % colors.length];
+      for (int p = 0; p < 5; p++) {
+        final angle = (p * 2 * math.pi / 5) + progress * 0.5;
+        final px = x + math.cos(angle) * (flowerSize * 0.6);
+        final py = y + math.sin(angle) * (flowerSize * 0.6);
+        canvas.drawCircle(Offset(px, py), flowerSize * 0.45, flowerPaint);
+      }
+      // Center
+      canvas.drawCircle(Offset(x, y), flowerSize * 0.35, Paint()..color = const Color(0xFFFFF9C4));
+    }
+
+    // Drifting pastel falling petals
+    for (int p = 0; p < 6; p++) {
+      final petT = (progress + p / 6) % 1.0;
+      final petY = size.height * (0.2 + petT * 0.7);
+      final petX = size.width * (0.15 + (p * 0.14) + math.sin(petT * 3 * math.pi + p) * 0.04);
+      final petalAlpha = (math.sin(petT * math.pi) * 200).toInt().clamp(0, 255);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(petX, petY), width: 9, height: 14),
+        Paint()..color = const Color(0xFFFF80AB).withAlpha(petalAlpha),
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------

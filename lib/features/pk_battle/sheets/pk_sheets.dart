@@ -325,10 +325,14 @@ class PkSheets {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xF5181438), Color(0xF52A1E5C), Color(0xF5181438)]),
+            gradient: const LinearGradient(
+              colors: [Color(0xF5181438), Color(0xF52A1E5C), Color(0xF5181438)],
+            ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: color, width: 1.6),
-            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 18, spreadRadius: 1.5)],
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 18, spreadRadius: 1.5),
+            ],
           ),
           child: Row(
             children: [
@@ -352,7 +356,11 @@ class PkSheets {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -375,7 +383,12 @@ class PkSheets {
                 ),
                 child: Text(
                   badgeText,
-                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
@@ -469,10 +482,17 @@ class _MessageInputSheetState extends State<_MessageInputSheet> {
                         cursorColor: _gold,
                         cursorWidth: 2.2,
                         textInputAction: TextInputAction.send,
-                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                         decoration: const InputDecoration(
                           hintText: 'Type a message...',
-                          hintStyle: TextStyle(color: Color(0xFF9E9EAF), fontSize: 14),
+                          hintStyle: TextStyle(
+                            color: Color(0xFF9E9EAF),
+                            fontSize: 14,
+                          ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(vertical: 10),
                         ),
@@ -547,7 +567,12 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           const SizedBox(height: 12),
           Row(
             children: [
-              for (final (label, secs) in const [('3 min', 180), ('5 min', 300), ('10 min', 600), ('15 min', 900)]) ...[
+              for (final (label, secs) in const [
+                ('3 min', 180),
+                ('5 min', 300),
+                ('10 min', 600),
+                ('15 min', 900),
+              ]) ...[
                 if (secs != 180) const SizedBox(width: 8),
                 _durationPill(label, secs),
               ],

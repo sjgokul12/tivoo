@@ -159,7 +159,12 @@ class _Header extends StatelessWidget {
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             ),
           ),
-          Image.asset(AppAssets.pkTopBanner, height: 46, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
+          Image.asset(
+            AppAssets.pkTopBanner,
+            height: 46,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+          ),
         ],
       ),
     );
@@ -212,7 +217,11 @@ class _PkBanner extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
-                      colors: [Color(0xE608071A), Color(0xB308071A), Color(0x3308071A)],
+                      colors: [
+                        Color(0xE608071A),
+                        Color(0xB308071A),
+                        Color(0x3308071A),
+                      ],
                       stops: [0.0, 0.55, 1.0],
                     ),
                   ),
@@ -354,7 +363,9 @@ class _FilterTabs extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                       gradient: entry.key == selected ? LuxeColors.goldGradient : null,
                       color: entry.key == selected ? null : Colors.white.withValues(alpha: 0.06),
-                      border: entry.key == selected ? null : Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                      border: entry.key == selected
+                          ? null
+                          : Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       boxShadow: entry.key == selected
                           ? const [BoxShadow(color: Color(0x66FFC928), blurRadius: 10)]
                           : null,

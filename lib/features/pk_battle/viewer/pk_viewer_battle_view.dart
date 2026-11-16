@@ -10,7 +10,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/luxe_theme.dart';
 import '../../profile/presentation/controllers/follow_controller.dart';
 import '../battle/pk_battle_view_base.dart';
 import '../core/pk_battle_session.dart';
@@ -111,109 +110,14 @@ class _PkViewerBattleViewState extends PkBattleViewState<PkViewerBattleView> {
   }
 
   @override
-  void onRightVideoTap() => _confirmSwitchActiveProfile();
-
-  @override
   void openMoreOptions() {
     PkMoreOptionsSheet.show(
       context,
       leftHost: left,
       rightHost: right,
-      onSwitchHost: _confirmSwitchActiveProfile,
+      onSwitchHost: confirmSwitchActiveProfile,
       onBlock: () => ref.read(followControllerProvider.notifier).blockUser(hostIdFor(right), onStatusNotify: showSnack),
       onHelp: () => PkSheets.showRules(context),
-    );
-  }
-
-  Future<void> _confirmSwitchActiveProfile() async {
-    final shouldSwitch = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1B1638),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: LuxeColors.purple, width: 1.2),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.swap_horiz_rounded, color: LuxeColors.gold, size: 24),
-            SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                'Switch active profile?',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Make ${right.name} the active host profile? All profile-related actions, gifts, and comments will target ${right.name}.',
-          style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white60, fontWeight: FontWeight.bold),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: LuxeColors.gold,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldSwitch == true && mounted) _switchActiveProfiles();
-  }
-
-  void _switchActiveProfiles() {
-    setState(() {
-      final tempHost = left;
-      left = right;
-      right = tempHost;
-
-      final tempScore = leftScore;
-      leftScore = rightScore;
-      rightScore = tempScore;
-
-      final tempGift = leftGift;
-      leftGift = rightGift;
-      rightGift = tempGift;
-
-      final tempGifters = Map.of(leftGifters);
-      leftGifters
-        ..clear()
-        ..addAll(rightGifters);
-      rightGifters
-        ..clear()
-        ..addAll(tempGifters);
-    });
-
-    chat.add(
-      userName: 'System',
-      avatar: left.avatarAsset,
-      message: 'Active profile switched to ${left.name}',
-      isGift: false,
-    );
-
-    PkSheets.showBanner(
-      context,
-      title: 'Active Profile Switched',
-      message: '${left.name} is now your active host!',
-      icon: Icons.swap_horiz_rounded,
-      color: const Color(0xFFFFD600),
-      avatarAsset: left.avatarAsset,
-      badgeText: 'ACTIVE',
-      isBottom: true,
     );
   }
 }

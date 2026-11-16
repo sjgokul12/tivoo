@@ -19,6 +19,8 @@ class PkMoreOptionsSheet extends StatelessWidget {
   final VoidCallback? onSwitchHost;
   final VoidCallback? onBlock;
   final VoidCallback? onHelp;
+  final VoidCallback? onSettings;
+  final VoidCallback? onInvite;
 
   const PkMoreOptionsSheet({
     super.key,
@@ -27,6 +29,8 @@ class PkMoreOptionsSheet extends StatelessWidget {
     this.onSwitchHost,
     this.onBlock,
     this.onHelp,
+    this.onSettings,
+    this.onInvite,
   });
 
   static Future<void> show(
@@ -36,6 +40,8 @@ class PkMoreOptionsSheet extends StatelessWidget {
     VoidCallback? onSwitchHost,
     VoidCallback? onBlock,
     VoidCallback? onHelp,
+    VoidCallback? onSettings,
+    VoidCallback? onInvite,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -47,6 +53,8 @@ class PkMoreOptionsSheet extends StatelessWidget {
         onSwitchHost: onSwitchHost,
         onBlock: onBlock,
         onHelp: onHelp,
+        onSettings: onSettings,
+        onInvite: onInvite,
       ),
     );
   }
@@ -61,8 +69,17 @@ class PkMoreOptionsSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF13151F),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: const Color(0x33448AFF), width: 1.2),
-        boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 36, offset: Offset(0, -6))],
+        border: Border.all(
+          color: const Color(0x33448AFF),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black87,
+            blurRadius: 36,
+            offset: Offset(0, -6),
+          ),
+        ],
       ),
       padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + bottomInset),
       child: SafeArea(
@@ -104,7 +121,11 @@ class PkMoreOptionsSheet extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${leftHost.name}  ⚔️  ${rightHost.name}',
-                        style: const TextStyle(color: LuxeColors.textDim, fontSize: 12, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          color: LuxeColors.textDim,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -113,8 +134,15 @@ class PkMoreOptionsSheet extends StatelessWidget {
                     child: Container(
                       width: 32,
                       height: 32,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.1)),
-                      child: const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ],
@@ -200,6 +228,32 @@ class PkMoreOptionsSheet extends StatelessWidget {
                       onSwitchHost?.call();
                     },
                   ),
+
+                  // 6. PK Battle Settings
+                  if (onSettings != null)
+                    _PkOptionItem(
+                      icon: Icons.settings_rounded,
+                      label: 'PK\nSettings',
+                      gradient: const [Color(0xFF9C27B0), Color(0xFF673AB7)],
+                      glowColor: const Color(0x559C27B0),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onSettings!();
+                      },
+                    ),
+
+                  // 8. Match / Invite Rival Streamer
+                  if (onInvite != null)
+                    _PkOptionItem(
+                      icon: Icons.person_add_rounded,
+                      label: 'Match\nRival',
+                      gradient: const [Color(0xFF00E676), Color(0xFF00B0FF)],
+                      glowColor: const Color(0x5500E676),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onInvite!();
+                      },
+                    ),
                 ],
               ),
             ],
@@ -287,16 +341,34 @@ class _PkOptionItem extends StatelessWidget {
             height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
-              boxShadow: [BoxShadow(color: glowColor, blurRadius: 14, spreadRadius: 1, offset: const Offset(0, 3))],
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor,
+                  blurRadius: 14,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: Center(child: Icon(icon, color: Colors.white, size: 24)),
+            child: Center(
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
           ),
           const SizedBox(height: 7),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.2),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -345,13 +417,20 @@ class _ReportBattleSheetState extends State<_ReportBattleSheet> {
               child: Container(
                 width: 38,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 14),
             const Text(
               'Report Battle',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -409,3 +488,4 @@ class _ReportBattleSheetState extends State<_ReportBattleSheet> {
     );
   }
 }
+

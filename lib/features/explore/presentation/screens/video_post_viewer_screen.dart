@@ -214,8 +214,6 @@ class _PostPageState extends State<_PostPage> {
     final mq = MediaQuery.of(context);
     final isSmall = mq.size.width < 360;
     final bottomInset = mq.padding.bottom + (isSmall ? 18 : 26);
-    final is4K = value.isInitialized && (value.size.width >= 2160 || value.size.height >= 2160);
-    final is1080 = value.isInitialized && (value.size.width >= 1080 || value.size.height >= 1080);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -232,44 +230,12 @@ class _PostPageState extends State<_PostPage> {
           if (_ready) ...[
             FittedBox(
               fit: value.aspectRatio < 0.75 ? BoxFit.cover : BoxFit.contain,
-              child: SizedBox(width: value.size.width, height: value.size.height, child: VideoPlayer(_c)),
-            ),
-            if (is1080)
-              Positioned(
-                top: mq.padding.top + 10,
-                right: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: is4K ? LuxeColors.gold : Colors.cyanAccent.withValues(alpha: 0.8),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.high_quality_rounded,
-                        color: is4K ? LuxeColors.gold : Colors.cyanAccent,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        is4K ? '4K Ultra HD' : '1080p Full HD',
-                        style: TextStyle(
-                          color: is4K ? LuxeColors.gold : Colors.cyanAccent,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: SizedBox(
+                width: value.size.width > 0 ? value.size.width : 360.0,
+                height: value.size.height > 0 ? value.size.height : 640.0,
+                child: VideoPlayer(_c),
               ),
+            ),
           ] else if (_error)
             Center(
               child: Column(
@@ -362,6 +328,9 @@ class _PostPageState extends State<_PostPage> {
                     subtitle: '@${post.authorUsername}',
                     shareUrl: isNetworkVideo(post.videoUrl) ? post.videoUrl : 'https://tivoo.app/video/${post.id}',
                     shareText: 'Watch @${post.authorUsername} on Tivoo!',
+                    canDownload: true,
+                    allowDownload: post.allowDownloads,
+                    videoAuthor: post.authorUsername,
                   ),
                 ),
                 if (widget.isMine)

@@ -6,6 +6,8 @@ class FamilyMemberModel {
   final String joinedDate;
   final int contributionStars;
   final String tikiId;
+  final bool isFollowing;
+  final bool isRequested;
 
   const FamilyMemberModel({
     required this.id,
@@ -15,7 +17,33 @@ class FamilyMemberModel {
     required this.joinedDate,
     this.contributionStars = 0,
     required this.tikiId,
+    this.isFollowing = false,
+    this.isRequested = false,
   });
+
+  FamilyMemberModel copyWith({
+    String? id,
+    String? name,
+    String? avatar,
+    String? role,
+    String? joinedDate,
+    int? contributionStars,
+    String? tikiId,
+    bool? isFollowing,
+    bool? isRequested,
+  }) {
+    return FamilyMemberModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      avatar: avatar ?? this.avatar,
+      role: role ?? this.role,
+      joinedDate: joinedDate ?? this.joinedDate,
+      contributionStars: contributionStars ?? this.contributionStars,
+      tikiId: tikiId ?? this.tikiId,
+      isFollowing: isFollowing ?? this.isFollowing,
+      isRequested: isRequested ?? this.isRequested,
+    );
+  }
 }
 
 class FamilyJoinRequestModel {
@@ -69,6 +97,10 @@ class FamilyTeamModel {
   final List<FamilyMemberModel> members;
   final List<FamilyJoinRequestModel> pendingRequests;
   final String badgeIcon;
+  final String region;
+  final String language;
+
+  int get totalFamilyStars => members.fold<int>(0, (sum, m) => sum + m.contributionStars);
 
   const FamilyTeamModel({
     required this.id,
@@ -83,6 +115,8 @@ class FamilyTeamModel {
     required this.members,
     this.pendingRequests = const [],
     this.badgeIcon = '🛡️',
+    this.region = 'India',
+    this.language = 'Tamil',
   });
 
   FamilyTeamModel copyWith({
@@ -94,6 +128,8 @@ class FamilyTeamModel {
     List<FamilyMemberModel>? members,
     List<FamilyJoinRequestModel>? pendingRequests,
     String? badgeIcon,
+    String? region,
+    String? language,
   }) {
     return FamilyTeamModel(
       id: id,
@@ -108,6 +144,8 @@ class FamilyTeamModel {
       members: members ?? this.members,
       pendingRequests: pendingRequests ?? this.pendingRequests,
       badgeIcon: badgeIcon ?? this.badgeIcon,
+      region: region ?? this.region,
+      language: language ?? this.language,
     );
   }
 }

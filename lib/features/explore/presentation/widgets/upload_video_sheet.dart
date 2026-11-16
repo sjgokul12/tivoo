@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,7 @@ import 'package:tivoo/core/config/api_config.dart';
 import 'package:tivoo/features/explore/data/video_processor.dart';
 import 'package:tivoo/features/explore/presentation/controllers/posts_controller.dart';
 import 'package:tivoo/features/home/presentation/controllers/home_controller.dart';
+import 'package:tivoo/features/video_creator/presentation/screens/video_camera_screen.dart';
 
 const _gold = Color(0xFFFFC928);
 const _goldDeep = Color(0xFFFF9500);
@@ -77,7 +79,12 @@ class _UploadVideoSheetState extends ConsumerState<UploadVideoSheet> {
   }
 
   Future<void> _use(File file) async {
-    final bytes = await file.length();
+    int bytes = 0;
+    try {
+      if (!kIsWeb) {
+        bytes = await file.length();
+      }
+    } catch (_) {}
     if (bytes > ApiConfig.maxUploadBytes) return _fail('This video is larger than 2 GB');
     setState(() {
       _file = file;
@@ -338,7 +345,13 @@ class _UploadVideoSheetState extends ConsumerState<UploadVideoSheet> {
             runSpacing: 6,
             alignment: WrapAlignment.center,
             children: [
-              source(Icons.videocam_rounded, 'Record', () => _pickWithImagePicker(ImageSource.camera)),
+              source(Icons.videocam_rounded, 'Camera Studio', () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const VideoCameraScreen()),
+                );
+              }),
+              source(Icons.photo_library_rounded, 'Gallery', () => _pickWithImagePicker(ImageSource.gallery)),
               source(Icons.folder_open_rounded, 'Files', _pickFromFiles),
             ],
           ),
@@ -364,7 +377,7 @@ class _UploadVideoSheetState extends ConsumerState<UploadVideoSheet> {
               width: thumbW,
               height: thumbH,
               color: const Color(0xFF1B1B26),
-              child: _thumb != null
+              child: (_thumb != null && !kIsWeb)
                   ? Stack(
                       fit: StackFit.expand,
                       children: [

@@ -2,7 +2,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
+import 'package:video_player/video_player.dart';
+import '../../core/services/gift_video_pool.dart';
 import '../../core/utils/responsive.dart';
+import '../../core/widgets/live_video_player.dart';
 import '../live_stream/presentation/controllers/star_wallet_controller.dart';
 import 'gift_options.dart';
 import 'realistic_3d_star.dart';
@@ -41,6 +45,7 @@ class GiftBottomSheet extends ConsumerStatefulWidget {
     Function(GiftItem gift, int quantity, String recipient)? onGiftWithRecipientSelected,
     bool dismissOnSend = true,
   }) {
+    GiftVideoPool.instance.warmUp();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -75,11 +80,18 @@ class _GiftBottomSheetState extends ConsumerState<GiftBottomSheet> {
   @override
   void initState() {
     super.initState();
+    GiftVideoPool.instance.warmUp();
     _selectedGift = GiftCatalog.virtualGifts.first;
     _selectedRecipient = widget.initialRecipient ??
         (widget.recipients != null && widget.recipients!.isNotEmpty
             ? widget.recipients!.first
             : 'Host');
+  }
+
+  @override
+  void dispose() {
+    GiftVideoPool.instance.pauseAll();
+    super.dispose();
   }
 
   List<GiftItem> _getFilteredGifts() {
@@ -93,6 +105,10 @@ class _GiftBottomSheetState extends ConsumerState<GiftBottomSheet> {
       _deductionFeedbackMessage = null;
       _lastDeductedAmount = null;
     });
+    if (gift.isVideo && gift.effectiveVideoPath != null) {
+      GiftVideoPool.instance.pauseAll();
+      GiftVideoPool.instance.play(gift.effectiveVideoPath!, isMuted: true);
+    }
   }
 
   void _sendSelectedGift() {
@@ -1320,17 +1336,26 @@ class _InteractiveGiftGridCardState extends State<_InteractiveGiftGridCard> {
                     children: [
                       Expanded(
                         child: Center(
-                          child: widget.gift.imageAssetPath != null
-                              ? Image.asset(
-                                  widget.gift.imageAssetPath!,
+                          child: widget.gift.isLottie && widget.gift.effectiveLottiePath != null
+                              ? Lottie.asset(
+                                  widget.gift.effectiveLottiePath!,
                                   width: 76,
                                   height: 76,
                                   fit: BoxFit.contain,
-                                  filterQuality: FilterQuality.medium,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Text(widget.gift.icon, style: const TextStyle(fontSize: 40)),
                                 )
-                              : Text(widget.gift.icon, style: const TextStyle(fontSize: 40)),
+                              : (widget.gift.imageAssetPath != null
+                                  ? Image.asset(
+                                      widget.gift.imageAssetPath!,
+                                      width: 76,
+                                      height: 76,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.medium,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Text(widget.gift.icon, style: const TextStyle(fontSize: 40)),
+                                    )
+                                  : Text(widget.gift.icon, style: const TextStyle(fontSize: 40))),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1368,6 +1393,59 @@ class _InteractiveGiftGridCardState extends State<_InteractiveGiftGridCard> {
                     ],
                   ),
                 ),
+                if (widget.gift.isVideo)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF2D78), Color(0xFFFF8E3C)],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.play_arrow_rounded, color: Colors.white, size: 10),
+                          SizedBox(width: 1),
+                          Text(
+                            'VIDEO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (widget.gift.isLottie)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '3D',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ),
                 if (widget.isSelected)
                   Positioned(
                     top: 6,
@@ -1497,6 +1575,10 @@ class _GiftInteractivePreviewPopState extends State<_GiftInteractivePreviewPop>
     _floatOffset = Tween<double>(begin: -6.0, end: 6.0).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOutSine),
     );
+
+    if (widget.gift.isVideo && widget.gift.effectiveVideoPath != null) {
+      GiftVideoPool.instance.play(widget.gift.effectiveVideoPath!, isMuted: true);
+    }
   }
 
   @override
@@ -1504,11 +1586,16 @@ class _GiftInteractivePreviewPopState extends State<_GiftInteractivePreviewPop>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.gift.id != widget.gift.id) {
       _entryController.forward(from: 0.0);
+      if (widget.gift.isVideo && widget.gift.effectiveVideoPath != null) {
+        GiftVideoPool.instance.pauseAll();
+        GiftVideoPool.instance.play(widget.gift.effectiveVideoPath!, isMuted: true);
+      }
     }
   }
 
   @override
   void dispose() {
+    GiftVideoPool.instance.pauseAll();
     _entryController.dispose();
     _popController.dispose();
     _floatController.dispose();
@@ -1521,6 +1608,41 @@ class _GiftInteractivePreviewPopState extends State<_GiftInteractivePreviewPop>
     setState(() => _popCount++);
     _popController.forward(from: 0.0);
     _burstController.forward(from: 0.0);
+  }
+
+  Widget _buildVideoPreview(String videoPath, String? placeholderPath) {
+    final poolCtrl = GiftVideoPool.instance.getController(videoPath);
+    if (poolCtrl != null && poolCtrl.value.isInitialized) {
+      poolCtrl.setLooping(true);
+      try {
+        poolCtrl.setVolume(0.0);
+      } catch (_) {}
+      if (!poolCtrl.value.isPlaying) {
+        poolCtrl.play();
+      }
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: poolCtrl.value.size.width > 0 ? poolCtrl.value.size.width : 720,
+            height: poolCtrl.value.size.height > 0 ? poolCtrl.value.size.height : 1280,
+            child: VideoPlayer(poolCtrl),
+          ),
+        ),
+      );
+    }
+
+    return LiveVideoPlayer(
+      key: ValueKey('sheet_preview_${widget.gift.id}_$videoPath'),
+      playerId: 'sheet_preview_${widget.gift.id}',
+      videoAssetPath: videoPath,
+      placeholderAssetPath: placeholderPath,
+      autoPlay: true,
+      isMuted: true,
+      fit: BoxFit.cover,
+      enableVisibilityDetection: false,
+    );
   }
 
   @override
@@ -1596,21 +1718,44 @@ class _GiftInteractivePreviewPopState extends State<_GiftInteractivePreviewPop>
                   ),
                 );
               },
-              child: widget.gift.imageAssetPath != null
-                  ? Image.asset(
-                      widget.gift.imageAssetPath!,
-                      width: 105,
-                      height: 105,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => Text(
-                        widget.gift.icon,
-                        style: const TextStyle(fontSize: 72),
+              child: widget.gift.isVideo && widget.gift.effectiveVideoPath != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        width: 105,
+                        height: 105,
+                        child: _buildVideoPreview(
+                          widget.gift.effectiveVideoPath!,
+                          widget.gift.imageAssetPath,
+                        ),
                       ),
                     )
-                  : Text(
-                      widget.gift.icon,
-                      style: const TextStyle(fontSize: 72),
-                    ),
+                  : widget.gift.isLottie && widget.gift.effectiveLottiePath != null
+                      ? Lottie.asset(
+                          widget.gift.effectiveLottiePath!,
+                          width: 105,
+                          height: 105,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => Text(
+                            widget.gift.icon,
+                            style: const TextStyle(fontSize: 72),
+                          ),
+                        )
+                      : (widget.gift.imageAssetPath != null
+                          ? Image.asset(
+                              widget.gift.imageAssetPath!,
+                              width: 105,
+                              height: 105,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => Text(
+                                widget.gift.icon,
+                                style: const TextStyle(fontSize: 72),
+                              ),
+                            )
+                          : Text(
+                              widget.gift.icon,
+                              style: const TextStyle(fontSize: 72),
+                            )),
             ),
 
             // Bottom pill indicator: "✨ Tap to Pop Animation"

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/video_processor.dart';
@@ -33,19 +34,27 @@ class _VideoThumbnailViewState extends State<VideoThumbnailView> {
   @override
   Widget build(BuildContext context) {
     final thumb = widget.post.thumbnailUrl;
-    if (thumb != null) {
-      return thumb.startsWith('http')
-          ? CachedNetworkImage(
-              imageUrl: thumb,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => _placeholder,
-              errorWidget: (_, _, _) => _placeholder,
-            )
-          : Image.file(File(thumb), fit: BoxFit.cover, cacheWidth: 400, errorBuilder: (_, _, _) => _placeholder);
+    if (thumb != null && thumb.isNotEmpty) {
+      if (thumb.startsWith('http')) {
+        return CachedNetworkImage(
+          imageUrl: thumb,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => _placeholder,
+          errorWidget: (_, _, _) => _placeholder,
+        );
+      }
+      if (kIsWeb) {
+        return Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder);
+      }
+      if (thumb.startsWith('blob:')) {
+        return Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder);
+      }
+      return Image.file(File(thumb), fit: BoxFit.cover, cacheWidth: 400, errorBuilder: (_, _, _) => _placeholder);
     }
+    if (kIsWeb) return _placeholder;
     return FutureBuilder<File?>(
       future: _poster,
-      builder: (context, snap) => snap.data == null
+      builder: (context, snap) => (snap.data == null || kIsWeb)
           ? _placeholder
           : Image.file(snap.data!, fit: BoxFit.cover, cacheWidth: 400, errorBuilder: (_, _, _) => _placeholder),
     );

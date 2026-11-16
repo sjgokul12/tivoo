@@ -72,7 +72,9 @@ class PkTopGiftersRow extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [for (var i = leftRanked.length - 1; i >= 0; i--) item(leftRanked[i], i + 1, _leftRings)],
+                children: [
+                  for (var i = leftRanked.length - 1; i >= 0; i--) item(leftRanked[i], i + 1, _leftRings),
+                ],
               ),
             ),
           ),
@@ -84,7 +86,9 @@ class PkTopGiftersRow extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [for (var i = 0; i < rightRanked.length; i++) item(rightRanked[i], i + 1, _rightRings)],
+                children: [
+                  for (var i = 0; i < rightRanked.length; i++) item(rightRanked[i], i + 1, _rightRings),
+                ],
               ),
             ),
           ),
@@ -201,8 +205,15 @@ class _PkSwordPartition extends StatelessWidget {
                 height: 2.5,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(1.5),
-                  gradient: const LinearGradient(colors: [Colors.transparent, Color(0xFFFF2DB4)]),
-                  boxShadow: const [BoxShadow(color: Color(0x99FF2DB4), blurRadius: 4)],
+                  gradient: const LinearGradient(
+                    colors: [Colors.transparent, Color(0xFFFF2DB4)],
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x99FF2DB4),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
 
@@ -213,7 +224,11 @@ class _PkSwordPartition extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFFFFD700).withValues(alpha: 0.45), blurRadius: 16, spreadRadius: 2),
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.45),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
                     BoxShadow(
                       color: const Color(0xFFFF2DB4).withValues(alpha: 0.35),
                       blurRadius: 20,
@@ -233,7 +248,11 @@ class _PkSwordPartition extends StatelessWidget {
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.flash_on_rounded, color: Color(0xFFFFD700), size: 32);
+                    return const Icon(
+                      Icons.flash_on_rounded,
+                      color: Color(0xFFFFD700),
+                      size: 32,
+                    );
                   },
                 ),
               ),
@@ -246,8 +265,15 @@ class _PkSwordPartition extends StatelessWidget {
                 height: 2.5,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(1.5),
-                  gradient: const LinearGradient(colors: [Color(0xFF2D7BFF), Colors.transparent]),
-                  boxShadow: const [BoxShadow(color: Color(0x992D7BFF), blurRadius: 4)],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2D7BFF), Colors.transparent],
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x992D7BFF),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
             ],

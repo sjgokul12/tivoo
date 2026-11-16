@@ -2,9 +2,15 @@ import 'dart:math';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:lottie/lottie.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/services/gift_sound_service.dart';
+import '../../../../core/services/gift_video_pool.dart';
+import '../../../../core/utils/video_source.dart';
+import '../../../../core/widgets/live_video_player.dart';
 import '../../domain/models/gift_item.dart';
 
 /// 3D gift animation engine.
@@ -57,6 +63,22 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
   /// Global screen position the gift flies to on exit (e.g. the host's profile photo).
   Offset? _target;
   VoidCallback? _onComplete;
+  VideoPlayerController? _giftVideoController;
+
+  void _disposeVideoController() {
+    if (_giftVideoController != null) {
+      final ctrl = _giftVideoController!;
+      final isPool = GiftVideoPool.instance.isPoolController(ctrl);
+      if (isPool) {
+        ctrl.pause();
+        ctrl.seekTo(Duration.zero);
+      } else {
+        ctrl.pause();
+        ctrl.dispose();
+      }
+      _giftVideoController = null;
+    }
+  }
 
   @override
   void initState() {
@@ -67,6 +89,7 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
 
   @override
   void dispose() {
+    _disposeVideoController();
     _timeline.dispose();
     _combo.dispose();
     super.dispose();
@@ -74,6 +97,7 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
 
   void _onTimelineStatus(AnimationStatus status) {
     if (status == AnimationStatus.completed && mounted) {
+      _disposeVideoController();
       GiftSoundService.instance.stop();
       final cb = _onComplete;
       _onComplete = null;
@@ -84,6 +108,7 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
 
   /// Immediately stops the running animation and hides everything.
   void clear() {
+    _disposeVideoController();
     _timeline.stop();
     _timeline.reset();
     _combo.reset();
@@ -127,10 +152,37 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
     }
 
     _onComplete = onComplete;
+    _disposeVideoController();
+
+    final videoPath = gift.effectiveVideoPath ??
+        (gift.imageAssetPath != null && gift.imageAssetPath!.endsWith('.mp4') ? gift.imageAssetPath : null);
+
+    if (gift.isVideo && videoPath != null) {
+      final prewarmed = GiftVideoPool.instance.play(videoPath, isMuted: false);
+      if (prewarmed != null) {
+        _giftVideoController = prewarmed;
+      } else {
+        final vc = videoControllerFor(videoPath);
+        _giftVideoController = vc;
+        vc.initialize().then((_) {
+          if (!mounted || _gift?.id != gift.id) return;
+          vc.setLooping(true);
+          try {
+            vc.setVolume(1.0);
+          } catch (_) {}
+          vc.play();
+          setState(() {});
+        }).catchError((err) {
+          debugPrint('ActiveGiftAnimationOverlay: Video controller init error: $err');
+        });
+      }
+    }
 
     // Decode the artwork at full resolution up front so it is sharp from the first frame.
     final art = gift.imageAssetPath;
-    if (art != null && art.isNotEmpty) precacheImage(AssetImage(art), context, onError: (_, _) {});
+    if (art != null && art.isNotEmpty && !gift.isLottie && !gift.isVideo && !art.endsWith('.mp4')) {
+      precacheImage(AssetImage(art), context, onError: (_, _) {});
+    }
 
     final look = _Look.of(gift);
     _seed++;
@@ -182,6 +234,7 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
                     size: constraints.biggest,
                     topPadding: MediaQuery.paddingOf(context).top,
                     showBanner: widget.showTopBanner,
+                    videoController: _giftVideoController,
                   ),
                 ),
               ),
@@ -199,7 +252,8 @@ class ActiveGiftAnimationOverlayState extends State<ActiveGiftAnimationOverlay> 
 enum _Tier {
   small(Duration(milliseconds: 4000), 0.62, 0.45),
   medium(Duration(milliseconds: 5200), 0.74, 0.58),
-  premium(Duration(milliseconds: 7000), 0.86, 0.72);
+  premium(Duration(milliseconds: 7000), 0.86, 0.72),
+  video(Duration(milliseconds: 8000), 1.05, 0.0);
 
   const _Tier(this.duration, this.heroFactor, this.dim);
 
@@ -316,6 +370,30 @@ class _Look {
       _gold,
       fireworks: true,
     ),
+    'p3d_search_ufo': _Look(
+      'rocket',
+      _Tier.premium,
+      _Arrival.above,
+      [_MoteKind.star, _MoteKind.sparkle],
+      _cosmic,
+      fireworks: true,
+    ),
+    'gift_search_ufo': _Look(
+      'rocket',
+      _Tier.premium,
+      _Arrival.above,
+      [_MoteKind.star, _MoteKind.sparkle],
+      _cosmic,
+      fireworks: true,
+    ),
+    'gift_ufo': _Look(
+      'rocket',
+      _Tier.premium,
+      _Arrival.above,
+      [_MoteKind.star, _MoteKind.sparkle],
+      _cosmic,
+      fireworks: true,
+    ),
 
     // Unified Gift Catalog IDs (PK Battle & all screens)
     'gift_ani7_crown': _Look('crown', _Tier.premium, _Arrival.below, [_MoteKind.sparkle, _MoteKind.ember], _gold),
@@ -388,6 +466,56 @@ class _Look {
 
     final key = '${gift.id} ${gift.name}'.toLowerCase();
     bool has(String s) => key.contains(s);
+    if (has('fox') || has('kitsune')) {
+      return const _Look(
+        'fox',
+        _Tier.video,
+        _Arrival.depth,
+        [_MoteKind.ember, _MoteKind.sparkle],
+        _gold,
+        fireworks: true,
+      );
+    }
+    if (has('dragon')) {
+      return const _Look(
+        'dragon',
+        _Tier.video,
+        _Arrival.above,
+        [_MoteKind.star, _MoteKind.sparkle],
+        _cosmic,
+        fireworks: true,
+      );
+    }
+    if (has('bunny') || has('rabbit')) {
+      return const _Look(
+        'bunny',
+        _Tier.video,
+        _Arrival.below,
+        [_MoteKind.heart, _MoteKind.sparkle],
+        _pink,
+        fireworks: false,
+      );
+    }
+    if (has('target') || has('cupid')) {
+      return const _Look(
+        'target',
+        _Tier.video,
+        _Arrival.depth,
+        [_MoteKind.heart, _MoteKind.shard],
+        _rose,
+        fireworks: false,
+      );
+    }
+    if (has('ufo') || has('search')) {
+      return const _Look(
+        'rocket',
+        _Tier.premium,
+        _Arrival.above,
+        [_MoteKind.star, _MoteKind.sparkle],
+        _cosmic,
+        fireworks: true,
+      );
+    }
     if (has('lion')) {
       return const _Look(
         'lion',
@@ -628,6 +756,7 @@ class _Mote {
       _Tier.small => 70,
       _Tier.medium => 100,
       _Tier.premium => 140,
+      _Tier.video => 140,
     };
     return List.generate(count, (i) {
       // Mostly the gift's own particle; a few generic sparkles for richness.
@@ -689,6 +818,7 @@ class _GiftStage extends StatelessWidget {
   final Size size;
   final double topPadding;
   final bool showBanner;
+  final VideoPlayerController? videoController;
 
   const _GiftStage({
     required this.timeline,
@@ -704,6 +834,7 @@ class _GiftStage extends StatelessWidget {
     required this.size,
     required this.topPadding,
     required this.showBanner,
+    this.videoController,
   });
 
   @override
@@ -719,15 +850,20 @@ class _GiftStage extends StatelessWidget {
         final wings = look.wings;
         final rocket = look.rocket;
         final duration = look.tier.duration.inMilliseconds / 1000;
+        final isVideo = gift.isVideo;
         final heroW = rocket != null
             ? min(size.width * 0.62, base * 1.2)
             : wings != null
             ? min(size.width * 0.98, base * 1.75)
+            : isVideo
+            ? min(size.width * 0.95, size.height * (720.0 / 1280.0) * 0.92)
             : (gift.isSceneArt ? min(size.width * 0.92, base * 1.55) : base);
         final heroH = rocket != null
             ? heroW / rocket.aspectRatio
             : wings != null
             ? heroW / wings.aspectRatio
+            : isVideo
+            ? heroW * (1280.0 / 720.0)
             : (gift.isSceneArt ? heroW / 1.45 : base);
         final stage = Offset(size.width / 2, size.height * 0.42);
         final dest = target ?? Offset(size.width * (toLeft ? 0.25 : 0.75), size.height * 0.22);
@@ -736,7 +872,9 @@ class _GiftStage extends StatelessWidget {
         // Gift placement: 3D arrival, then screen-space exit to the host.
         final world = _giftWorld(t, look.arrival);
         final projected = camera.project(world.x, world.y, world.z);
-        final exit = Curves.easeInCubic.transform(_interval(t, 0.72, 0.92));
+        final exStart = isVideo ? 0.94 : 0.72;
+        final exEnd = isVideo ? 0.99 : 0.92;
+        final exit = Curves.easeInCubic.transform(_interval(t, exStart, exEnd));
         final restScale = projected == null ? 0.0 : projected.scale / camera.focal * _Camera.restDistance;
         _Flight flightAt(double tt) {
           final sec = tt * duration;
@@ -750,7 +888,7 @@ class _GiftStage extends StatelessWidget {
           final cam = tt == t ? camera : _Camera.at(tt, tt * duration, stage, heroW);
           final w = tt == t ? world : _giftWorld(tt, look.arrival);
           final pr = tt == t ? projected : cam.project(w.x, w.y, w.z);
-          final ex = Curves.easeInCubic.transform(_interval(tt, 0.72, 0.92));
+          final ex = Curves.easeInCubic.transform(_interval(tt, exStart, exEnd));
           final f = flightAt(tt);
           final base = pr?.point ?? stage;
           return (ex > 0 ? _exitPoint(ex, base, dest, size) : base) + Offset(f.dx, f.dy);
@@ -853,11 +991,11 @@ class _GiftStage extends StatelessWidget {
                   aspectRatio: heroW / heroH,
                   child: wings != null
                       ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
-                      : _artFor(gift),
+                      : _artFor(gift, isThumbnail: true),
                 ),
               ),
             // 4. The gift.
-            if (t < 0.93 && heroScale > 0)
+            if (t < (isVideo ? 0.995 : 0.93) && heroScale > 0)
               Positioned(
                 left: heroCenter.dx - heroW / 2,
                 top: heroCenter.dy - heroH / 2,
@@ -879,7 +1017,9 @@ class _GiftStage extends StatelessWidget {
                       seconds: seconds,
                       width: heroW,
                       height: heroH,
-                      sheen: rocket == null,
+                      isVideo: isVideo,
+                      sheen: rocket == null && !isVideo,
+                      bloomArt: isVideo ? null : _GiftArt(gift: gift, isThumbnail: true),
                       art: rocket != null
                           ? _RocketArt(
                               rig: rocket,
@@ -891,7 +1031,7 @@ class _GiftStage extends StatelessWidget {
                             )
                           : wings != null
                           ? _FlappingWings(rig: wings, t: t, seconds: seconds, width: heroW, height: heroH)
-                          : _artFor(gift),
+                          : _artFor(gift, videoController: videoController),
                     ),
                   ),
                 ),
@@ -948,7 +1088,10 @@ class _GiftStage extends StatelessWidget {
 double? _sheenAt(double t) => t >= 0.34 && t <= 0.58 ? -0.3 + 1.6 * _interval(t, 0.34, 0.58) : null;
 
 /// Gift artwork: soft-edged picture art or a plain cut-out.
-Widget _artFor(GiftItem gift) => gift.isSceneArt ? _SoftEdges(child: _GiftArt(gift: gift)) : _GiftArt(gift: gift);
+Widget _artFor(GiftItem gift, {bool isThumbnail = false, VideoPlayerController? videoController}) =>
+    gift.isSceneArt
+        ? _SoftEdges(child: _GiftArt(gift: gift, isThumbnail: isThumbnail, videoController: videoController))
+        : _GiftArt(gift: gift, isThumbnail: isThumbnail, videoController: videoController);
 
 class _Hero3D extends StatelessWidget {
   final _Look look;
@@ -957,9 +1100,11 @@ class _Hero3D extends StatelessWidget {
   final double width;
   final double height;
   final Widget art;
+  final Widget? bloomArt;
 
   /// Shine sweep over the whole art (off when the art draws its own, e.g. the rocket).
   final bool sheen;
+  final bool isVideo;
 
   const _Hero3D({
     required this.look,
@@ -968,11 +1113,20 @@ class _Hero3D extends StatelessWidget {
     required this.width,
     required this.height,
     required this.art,
+    this.bloomArt,
     this.sheen = true,
+    this.isVideo = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (isVideo) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: art,
+      );
+    }
     final pulse = 0.85 + 0.15 * sin(seconds * 2 * pi * 1.1);
     final sheen = this.sheen ? _sheenAt(t) : null;
 
@@ -1002,7 +1156,7 @@ class _Hero3D extends StatelessWidget {
             scale: 1.07,
             child: ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: SizedBox(width: width, height: height, child: art),
+              child: SizedBox(width: width, height: height, child: bloomArt ?? art),
             ),
           ),
         ),
@@ -1295,11 +1449,13 @@ class _FlappingWings extends StatelessWidget {
 /// Image from assets, or the gift's emoji when the image is missing.
 class _GiftArt extends StatelessWidget {
   final GiftItem gift;
-  const _GiftArt({required this.gift});
+  final bool isThumbnail;
+  final VideoPlayerController? videoController;
+  const _GiftArt({required this.gift, this.isThumbnail = false, this.videoController});
 
   @override
   Widget build(BuildContext context) {
-    final emoji = FittedBox(
+    Widget buildEmoji() => FittedBox(
       child: Text(
         gift.icon,
         style: const TextStyle(
@@ -1309,13 +1465,81 @@ class _GiftArt extends StatelessWidget {
         ),
       ),
     );
+
+    final videoPath = gift.effectiveVideoPath ??
+        (gift.imageAssetPath != null && gift.imageAssetPath!.endsWith('.mp4') ? gift.imageAssetPath : null);
+
+    final effectiveController = videoController ??
+        (videoPath != null ? GiftVideoPool.instance.getController(videoPath) : null);
+
+    if (!isThumbnail && (gift.isVideo || videoPath != null)) {
+      final Widget playerWidget;
+      if (effectiveController != null && effectiveController.value.isInitialized) {
+        if (!effectiveController.value.isPlaying) {
+          effectiveController.play();
+        }
+        playerWidget = SizedBox.expand(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: effectiveController.value.size.width > 0 ? effectiveController.value.size.width : 720,
+              height: effectiveController.value.size.height > 0 ? effectiveController.value.size.height : 1280,
+              child: VideoPlayer(effectiveController),
+            ),
+          ),
+        );
+      } else if (videoPath != null) {
+        playerWidget = LiveVideoPlayer(
+          key: ValueKey('overlay_${gift.id}_$videoPath'),
+          playerId: 'overlay_${gift.id}',
+          videoAssetPath: videoPath,
+          placeholderAssetPath: gift.imageAssetPath,
+          autoPlay: true,
+          isMuted: false,
+          fit: BoxFit.contain,
+          enableVisibilityDetection: false,
+        );
+      } else {
+        return buildEmoji();
+      }
+
+      // Completely remove background card and blend seamlessly into the live screen
+      return ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => const RadialGradient(
+          center: Alignment.center,
+          radius: 0.95,
+          colors: [Colors.white, Colors.white, Colors.transparent],
+          stops: [0.0, 0.72, 1.0],
+        ).createShader(bounds),
+        child: _ScreenBlend(child: playerWidget),
+      );
+    }
+
+    if (gift.isLottie && gift.effectiveLottiePath != null) {
+      return Lottie.asset(
+        gift.effectiveLottiePath!,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => buildEmoji(),
+      );
+    }
+
     final path = gift.imageAssetPath;
-    if (path == null || path.isEmpty) return emoji;
+    if (path == null || path.isEmpty) return buildEmoji();
+
+    if (path.endsWith('.lottie') || path.endsWith('.json')) {
+      return Lottie.asset(
+        path,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => buildEmoji(),
+      );
+    }
+
     return Image.asset(
       path,
       fit: gift.isSceneArt ? BoxFit.cover : BoxFit.contain,
       filterQuality: FilterQuality.high,
-      errorBuilder: (_, _, _) => emoji,
+      errorBuilder: (_, _, _) => buildEmoji(),
     );
   }
 }
@@ -1343,6 +1567,26 @@ class _SoftEdges extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+/// Composites child onto whatever is behind it using BlendMode.screen.
+/// Black pixels become completely transparent, seamlessly blending the
+/// animated character and glowing effects directly into the live camera or PK screen.
+class _ScreenBlend extends SingleChildRenderObjectWidget {
+  const _ScreenBlend({required Widget child}) : super(child: child);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderScreenBlend();
+}
+
+class _RenderScreenBlend extends RenderProxyBox {
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (child == null) return;
+    context.canvas.saveLayer(offset & size, Paint()..blendMode = BlendMode.screen);
+    context.paintChild(child!, offset);
+    context.canvas.restore();
   }
 }
 
@@ -1513,7 +1757,7 @@ class _TopBanner extends StatelessWidget {
                   height: 36,
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x33FFFFFF)),
-                  child: ClipOval(child: _GiftArt(gift: gift)),
+                  child: ClipOval(child: _GiftArt(gift: gift, isThumbnail: true)),
                 ),
                 const SizedBox(width: 8),
                 Flexible(

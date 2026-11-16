@@ -17,6 +17,7 @@ class VideoPost {
   final DateTime createdAt;
   final int likes;
   final int views;
+  final bool allowDownloads;
 
   const VideoPost({
     required this.id,
@@ -30,6 +31,7 @@ class VideoPost {
     required this.createdAt,
     this.likes = 0,
     this.views = 0,
+    this.allowDownloads = true,
   });
 
   factory VideoPost.fromJson(Map<String, dynamic> json) => VideoPost(
@@ -44,6 +46,7 @@ class VideoPost {
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     likes: (json['likes'] as num?)?.toInt() ?? 0,
     views: (json['views'] as num?)?.toInt() ?? 0,
+    allowDownloads: json['allowDownloads'] as bool? ?? true,
   );
 
   Map<String, dynamic> toJson() => {
@@ -58,6 +61,7 @@ class VideoPost {
     'createdAt': createdAt.toIso8601String(),
     'likes': likes,
     'views': views,
+    'allowDownloads': allowDownloads,
   };
 
   /// "1.2K" style view count for tiles.

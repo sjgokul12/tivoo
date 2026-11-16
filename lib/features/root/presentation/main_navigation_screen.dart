@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/reel_video_manager.dart';
 import '../../../../core/widgets/luxury_atmosphere_background.dart';
 import '../../activity/presentation/screens/activity_screen.dart';
-import '../../broadcast/presentation/screens/go_live_broadcast_screen.dart';
 import '../../explore/presentation/screens/explore_screen.dart';
-import '../../explore/presentation/widgets/upload_video_sheet.dart';
+import '../../video_creator/presentation/screens/video_camera_screen.dart';
 import '../../home/presentation/controllers/home_controller.dart';
 import '../../home/presentation/screens/home_screen.dart';
 import '../../home/presentation/widgets/floating_bottom_nav_bar.dart';
@@ -99,7 +98,7 @@ class MainNavigationScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               const Text(
-                'Create & Broadcast',
+                'Create & Upload',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -109,38 +108,24 @@ class MainNavigationScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Go live, host PK battles or upload high-res video posts',
+                'Record, edit, apply filters & publish reels to Explore',
                 style: TextStyle(color: Colors.white54, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              // Option 1: Go Live Broadcast & PK Battle
-              _ChoiceTile(
-                icon: Icons.sensors_rounded,
-                gradient: const [Color(0xFFFF2D55), Color(0xFFFF8F00)],
-                glowColor: const Color(0x55FF2D55),
-                title: 'Go Live Broadcast',
-                subtitle: 'Stream live, use AR filters & host 1v1 PK Battles',
-                badge: 'HOST PK',
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GoLiveBroadcastScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              // Option 2: Upload Video Post
+              // Upload New Video
               _ChoiceTile(
                 icon: Icons.video_library_rounded,
                 gradient: const [Color(0xFF00E5FF), Color(0xFF7000FF)],
                 glowColor: const Color(0x5500E5FF),
-                title: 'Upload Video Post',
-                subtitle: 'Publish 4K & high-clarity video reels to Explore',
-                badge: '4K REELS',
+                title: 'Upload New Video',
+                subtitle: 'Record, edit, apply filters & publish reels to Explore',
+                badge: 'CREATOR',
                 onTap: () {
                   Navigator.of(ctx).pop();
-                  UploadVideoSheet.show(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const VideoCameraScreen()),
+                  );
                 },
               ),
             ],

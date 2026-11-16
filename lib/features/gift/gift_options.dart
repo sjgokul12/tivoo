@@ -25,6 +25,11 @@ enum GiftAnimationType {
   classicRose,
   classicHeart,
   genericSticker,
+  ufoSearch,
+  kitsuneFox,
+  celestialDragon,
+  loveBunny,
+  cupidTarget,
 }
 
 /// Core model representing a virtual gift across live streaming, PK battles,
@@ -34,6 +39,8 @@ class GiftItem {
   final String name;
   final String icon;
   final String? imageAssetPath;
+  final String? lottieAssetPath;
+  final String? videoAssetPath;
   final int diamonds;
   final String category;
   final String tagline;
@@ -45,12 +52,33 @@ class GiftItem {
     required this.name,
     required this.icon,
     this.imageAssetPath,
+    this.lottieAssetPath,
+    this.videoAssetPath,
     required this.diamonds,
     this.category = 'Popular',
     this.tagline = '',
     this.isSceneArt = false,
     this.animationTypeOverride,
   });
+
+  /// True if the gift uses a Lottie animation
+  bool get isLottie =>
+      (lottieAssetPath != null && lottieAssetPath!.isNotEmpty) ||
+      (imageAssetPath != null &&
+          (imageAssetPath!.endsWith('.lottie') || imageAssetPath!.endsWith('.json')));
+
+  /// Resolves the Lottie asset path for rendering animated gifts
+  String? get effectiveLottiePath =>
+      lottieAssetPath ?? (isLottie ? imageAssetPath : null);
+
+  /// True if the gift uses an MP4 video animation
+  bool get isVideo =>
+      (videoAssetPath != null && videoAssetPath!.isNotEmpty) ||
+      (imageAssetPath != null && imageAssetPath!.endsWith('.mp4'));
+
+  /// Resolves the video asset path for rendering video gifts
+  String? get effectiveVideoPath =>
+      videoAssetPath ?? (isVideo ? imageAssetPath : null);
 
   /// Formatted star / diamond label (e.g., "100,000 ⭐")
   String get formattedDiamonds {
@@ -69,6 +97,24 @@ class GiftItem {
     final idLower = id.toLowerCase();
     final nameLower = name.toLowerCase();
 
+    if (idLower.contains('fox') || nameLower.contains('fox') || idLower.contains('kitsune')) {
+      return GiftAnimationType.kitsuneFox;
+    }
+    if (idLower.contains('dragon') || nameLower.contains('dragon')) {
+      return GiftAnimationType.celestialDragon;
+    }
+    if (idLower.contains('bunny') || nameLower.contains('bunny') || nameLower.contains('rabbit')) {
+      return GiftAnimationType.loveBunny;
+    }
+    if (idLower.contains('target') || nameLower.contains('target') || idLower.contains('cupid')) {
+      return GiftAnimationType.cupidTarget;
+    }
+    if (idLower.contains('ufo') ||
+        nameLower.contains('ufo') ||
+        idLower.contains('search') ||
+        nameLower.contains('search')) {
+      return GiftAnimationType.ufoSearch;
+    }
     if (idLower.contains('ani10') || idLower.contains('roses') || nameLower.contains('rose')) {
       if (idLower.contains('roses') || nameLower == 'roses') return GiftAnimationType.roses;
       return GiftAnimationType.classicRose;
@@ -123,6 +169,16 @@ class GiftItem {
   /// Sound category key matching [GiftSoundService].
   String get soundCategory {
     switch (animationType) {
+      case GiftAnimationType.kitsuneFox:
+        return 'fox';
+      case GiftAnimationType.celestialDragon:
+        return 'dragon';
+      case GiftAnimationType.loveBunny:
+        return 'bunny';
+      case GiftAnimationType.cupidTarget:
+        return 'target';
+      case GiftAnimationType.ufoSearch:
+        return 'rocket';
       case GiftAnimationType.royalCrown:
         return 'crown';
       case GiftAnimationType.angelVehicle:
@@ -155,6 +211,11 @@ class GiftItem {
   }
 
   /// Helper boolean getters for fast condition checks
+  bool get isKitsuneFox => animationType == GiftAnimationType.kitsuneFox;
+  bool get isCelestialDragon => animationType == GiftAnimationType.celestialDragon;
+  bool get isLoveBunny => animationType == GiftAnimationType.loveBunny;
+  bool get isCupidTarget => animationType == GiftAnimationType.cupidTarget;
+  bool get isUfoSearch => animationType == GiftAnimationType.ufoSearch;
   bool get isCrown => animationType == GiftAnimationType.royalCrown;
   bool get isOceanDolphin => animationType == GiftAnimationType.oceanDolphin;
   bool get isRoses => animationType == GiftAnimationType.roses;
@@ -176,6 +237,8 @@ class GiftItem {
     String? name,
     String? icon,
     String? imageAssetPath,
+    String? lottieAssetPath,
+    String? videoAssetPath,
     int? diamonds,
     String? category,
     String? tagline,
@@ -187,6 +250,8 @@ class GiftItem {
       name: name ?? this.name,
       icon: icon ?? this.icon,
       imageAssetPath: imageAssetPath ?? this.imageAssetPath,
+      lottieAssetPath: lottieAssetPath ?? this.lottieAssetPath,
+      videoAssetPath: videoAssetPath ?? this.videoAssetPath,
       diamonds: diamonds ?? this.diamonds,
       category: category ?? this.category,
       tagline: tagline ?? this.tagline,
@@ -201,6 +266,8 @@ class GiftItem {
       'name': name,
       'icon': icon,
       'imageAssetPath': imageAssetPath,
+      'lottieAssetPath': lottieAssetPath,
+      'videoAssetPath': videoAssetPath,
       'diamonds': diamonds,
       'category': category,
       'tagline': tagline,
@@ -214,6 +281,8 @@ class GiftItem {
       name: map['name'] as String,
       icon: map['icon'] as String,
       imageAssetPath: map['imageAssetPath'] as String?,
+      lottieAssetPath: map['lottieAssetPath'] as String?,
+      videoAssetPath: map['videoAssetPath'] as String?,
       diamonds: map['diamonds'] as int,
       category: (map['category'] as String?) ?? 'Popular',
       tagline: (map['tagline'] as String?) ?? '',
@@ -320,6 +389,11 @@ class PKBattleGiftData {
   static const List<String> quickGiftNames = [
     'Rose',
     'Heart',
+    'Search UFO',
+    'Kitsune Fox',
+    'Celestial Dragon',
+    'Love Bunny',
+    'Cupid Target',
     'Luxury Car',
     'Ocean Dolphin',
     'Golden Horse',
@@ -328,6 +402,17 @@ class PKBattleGiftData {
 
   /// Sticker artwork mapped by gift name for PK simulated chat and pill banners
   static const Map<String, String> giftImages = {
+    'Search UFO': AppAssets.giftSearchLottie,
+    'UFO': AppAssets.giftSearchLottie,
+    'Search': AppAssets.giftSearchLottie,
+    'Kitsune Fox': AppAssets.giftThumbFox,
+    'Fox': AppAssets.giftThumbFox,
+    'Celestial Dragon': AppAssets.giftThumbDragon,
+    'Dragon': AppAssets.giftThumbDragon,
+    'Love Bunny': AppAssets.giftThumbBunny,
+    'Bunny': AppAssets.giftThumbBunny,
+    'Cupid Target': AppAssets.giftThumbTarget,
+    'Target': AppAssets.giftThumbTarget,
     'Rose': AppAssets.giftRose,
     'Flowers': AppAssets.giftFlowers,
     'Heart': AppAssets.giftLove,
@@ -581,6 +666,36 @@ class GiftAnimationMeta {
       stagesCount: 2,
       soundtrackName: 'magic',
     ),
+    GiftAnimationType.ufoSearch: GiftAnimationMeta(
+      type: GiftAnimationType.ufoSearch,
+      duration: Duration(milliseconds: 6500),
+      stagesCount: 5,
+      soundtrackName: 'sound_rocket.wav',
+    ),
+    GiftAnimationType.kitsuneFox: GiftAnimationMeta(
+      type: GiftAnimationType.kitsuneFox,
+      duration: Duration(milliseconds: 8000),
+      stagesCount: 5,
+      soundtrackName: 'sound_fox.wav',
+    ),
+    GiftAnimationType.celestialDragon: GiftAnimationMeta(
+      type: GiftAnimationType.celestialDragon,
+      duration: Duration(milliseconds: 8000),
+      stagesCount: 5,
+      soundtrackName: 'sound_dragon.wav',
+    ),
+    GiftAnimationType.loveBunny: GiftAnimationMeta(
+      type: GiftAnimationType.loveBunny,
+      duration: Duration(milliseconds: 8000),
+      stagesCount: 4,
+      soundtrackName: 'sound_bunny.wav',
+    ),
+    GiftAnimationType.cupidTarget: GiftAnimationMeta(
+      type: GiftAnimationType.cupidTarget,
+      duration: Duration(milliseconds: 8000),
+      stagesCount: 4,
+      soundtrackName: 'sound_target.wav',
+    ),
   };
 }
 
@@ -592,7 +707,72 @@ class GiftCatalog {
 
   /// 👑 Master list of all virtual gifts
   static const List<GiftItem> allGifts = [
-    // 👑 1. Royal Crown (Biggest Prize - 50,000 Stars)
+    // 🛸 1. Search UFO (2,000 Stars - Animated Lottie Gift)
+    GiftItem(
+      id: 'gift_search_ufo',
+      name: 'Search UFO',
+      icon: '🛸',
+      imageAssetPath: AppAssets.giftSearchLottie,
+      lottieAssetPath: AppAssets.giftSearchLottie,
+      diamonds: 2000,
+      category: 'Popular',
+      tagline: 'Cosmic Alien Beam & Interstellar Search',
+      animationTypeOverride: GiftAnimationType.ufoSearch,
+    ),
+
+    // 🦊 2. Kitsune Fox (8,000 Stars - Animated Video Gift)
+    GiftItem(
+      id: 'gift_video_fox',
+      name: 'Kitsune Fox',
+      icon: '🦊',
+      imageAssetPath: AppAssets.giftThumbFox,
+      videoAssetPath: AppAssets.giftVideoFox,
+      diamonds: 8000,
+      category: 'Luxury',
+      tagline: 'Nine-Tailed Celestial Kitsune Awakening',
+      animationTypeOverride: GiftAnimationType.kitsuneFox,
+    ),
+
+    // 🐉 3. Celestial Dragon (12,000 Stars - Animated Video Gift)
+    GiftItem(
+      id: 'gift_video_dragon',
+      name: 'Celestial Dragon',
+      icon: '🐉',
+      imageAssetPath: AppAssets.giftThumbDragon,
+      videoAssetPath: AppAssets.giftVideoDragon,
+      diamonds: 12000,
+      category: 'Luxury',
+      tagline: 'Mythic White Dragon of Fortune & Power',
+      animationTypeOverride: GiftAnimationType.celestialDragon,
+    ),
+
+    // 🐰 4. Love Bunny (1,500 Stars - Animated Video Gift)
+    GiftItem(
+      id: 'gift_video_bunny',
+      name: 'Love Bunny',
+      icon: '🐰',
+      imageAssetPath: AppAssets.giftThumbBunny,
+      videoAssetPath: AppAssets.giftVideoBunny,
+      diamonds: 1500,
+      category: 'Love',
+      tagline: 'Heartfelt Melody & Sweet Kisses',
+      animationTypeOverride: GiftAnimationType.loveBunny,
+    ),
+
+    // 🎯 5. Cupid Target (800 Stars - Animated Video Gift)
+    GiftItem(
+      id: 'gift_video_target',
+      name: 'Cupid Target',
+      icon: '🎯',
+      imageAssetPath: AppAssets.giftThumbTarget,
+      videoAssetPath: AppAssets.giftVideoTarget,
+      diamonds: 800,
+      category: 'Love',
+      tagline: 'Love Arrow Direct Hit to the Heart',
+      animationTypeOverride: GiftAnimationType.cupidTarget,
+    ),
+
+    // 👑 6. Royal Crown (Biggest Prize - 50,000 Stars)
     GiftItem(
       id: 'gift_ani7_crown',
       name: 'Royal Crown',
@@ -815,7 +995,13 @@ class GiftCatalog {
                 g.id.contains('horse') ||
                 g.id.contains('car') ||
                 g.id.contains('whale') ||
-                g.id.contains('rose'))
+                g.id.contains('rose') ||
+                g.id.contains('ufo') ||
+                g.id.contains('search') ||
+                g.id.contains('fox') ||
+                g.id.contains('dragon') ||
+                g.id.contains('bunny') ||
+                g.id.contains('target'))
             .toList();
 
       case 'Love':
@@ -826,7 +1012,9 @@ class GiftCatalog {
                 g.id.contains('wings') ||
                 g.id.contains('vehicle') ||
                 g.id.contains('roses') ||
-                g.id.contains('love'))
+                g.id.contains('love') ||
+                g.id.contains('bunny') ||
+                g.id.contains('target'))
             .toList();
 
       case 'Luxury':
@@ -840,7 +1028,9 @@ class GiftCatalog {
                 g.id.contains('roses') ||
                 g.id.contains('rose') ||
                 g.id.contains('flower') ||
-                g.id.contains('castle'))
+                g.id.contains('castle') ||
+                g.id.contains('bunny') ||
+                g.id.contains('target'))
             .toList();
 
       case 'Special':
@@ -850,7 +1040,11 @@ class GiftCatalog {
                 g.id.contains('throne') ||
                 g.id.contains('lion') ||
                 g.id.contains('dolphin') ||
-                g.id.contains('whale'))
+                g.id.contains('whale') ||
+                g.id.contains('ufo') ||
+                g.id.contains('search') ||
+                g.id.contains('fox') ||
+                g.id.contains('dragon'))
             .toList();
 
       case 'All':

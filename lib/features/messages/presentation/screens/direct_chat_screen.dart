@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -544,14 +545,23 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
             if (msg.mediaPath != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(msg.mediaPath!),
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image, color: Colors.white54),
-                ),
+                child: (kIsWeb || msg.mediaPath!.startsWith('http') || msg.mediaPath!.startsWith('blob:'))
+                    ? Image.network(
+                        msg.mediaPath!,
+                        height: 160,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.broken_image, color: Colors.white54),
+                      )
+                    : Image.file(
+                        File(msg.mediaPath!),
+                        height: 160,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.broken_image, color: Colors.white54),
+                      ),
               ),
               const SizedBox(height: 6),
             ],

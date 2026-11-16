@@ -6,10 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../home/presentation/widgets/live_tools_bottom_sheet.dart';
+import '../../profile/presentation/controllers/follow_controller.dart';
 import '../battle/pk_battle_view_base.dart';
 import '../core/pk_battle_session.dart';
 import '../sheets/pk_match_flow.dart';
+import '../sheets/pk_more_options_sheet.dart';
 import '../sheets/pk_sheets.dart';
 import 'pk_streamer_end_overlay.dart';
 
@@ -54,13 +55,15 @@ class _PkStreamerBattleViewState extends PkBattleViewState<PkStreamerBattleView>
 
   @override
   void openMoreOptions() {
-    LiveToolsBottomSheet.show(
+    PkMoreOptionsSheet.show(
       context,
-      onPkSettingsTap: _openPkSettings,
-      onInviteTap: _openMatchFlow,
-      onGuestsTap: _openMatchFlow,
-      onRankingTap: () => PkSheets.showMoreOptions(context, onSettings: _openPkSettings, onPreviewWinner: endBattle),
-      onReportTap: () => PkSheets.showRules(context),
+      leftHost: left,
+      rightHost: right,
+      onSwitchHost: confirmSwitchActiveProfile,
+      onBlock: () => ref.read(followControllerProvider.notifier).blockUser(hostIdFor(right), onStatusNotify: showSnack),
+      onHelp: () => PkSheets.showRules(context),
+      onSettings: _openPkSettings,
+      onInvite: _openMatchFlow,
     );
   }
 

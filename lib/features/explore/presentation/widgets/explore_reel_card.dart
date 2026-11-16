@@ -38,6 +38,7 @@ class _ExploreReelCardState extends ConsumerState<ExploreReelCard> with SingleTi
   );
   late bool _isLiked = widget.stream.isLiked;
   late int _likes = _parseCount(widget.stream.diamondsCount);
+  bool _showComments = false;
 
   ExploreStreamModel get _s => widget.stream;
 
@@ -45,6 +46,14 @@ class _ExploreReelCardState extends ConsumerState<ExploreReelCard> with SingleTi
   (String, bool) get _commentsKey => (_s.id, _s.post == null);
 
   bool get _isOwnPost => _s.post != null && ref.watch(postsControllerProvider).isMine(_s.post!);
+
+  @override
+  void didUpdateWidget(ExploreReelCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isActive && _showComments) {
+      _showComments = false;
+    }
+  }
 
   static int _parseCount(String s) {
     final clean = s.trim().toUpperCase().replaceAll(',', '');
@@ -88,16 +97,174 @@ class _ExploreReelCardState extends ConsumerState<ExploreReelCard> with SingleTi
       subtitle: _s.streamerName,
       shareUrl: url,
       shareText: 'Watch ${_s.streamerName}\'s video on Tivoo! $url',
+      canDownload: true,
+      allowDownload: _s.allowDownloads,
+      videoAuthor: _s.streamerName,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < 720;
-    final button = compact ? 44.0 : 48.0;
-    final gap = compact ? 14.0 : 18.0;
-    final bottom = compact ? 86.0 : 96.0;
+    final mq = MediaQuery.of(context);
+    final compact = mq.size.height < 720;
+    final button = compact ? 42.0 : 48.0;
+    final gap = compact ? 12.0 : 16.0;
+    final bottom = (compact ? 78.0 : 92.0) + mq.padding.bottom * 0.5;
     final comments = ref.watch(commentsProvider(_commentsKey)).length;
+    final keyboard = mq.viewInsets.bottom;
+    final isKeyboardOpen = keyboard > 0;
+    final screenH = mq.size.height;
+    final topPadding = mq.padding.top;
+    final usableHeight = screenH - topPadding;
+
+    if (_showComments) {
+      // Responsive video height calculation (like PK Battle):
+      // When typing (keyboard is open): shrink so that both the video, comments list,
+      // and the active typing field stay above the keyboard.
+      final double videoHeight;
+      if (isKeyboardOpen) {
+        final availableAboveKeyboard = usableHeight - keyboard;
+        videoHeight = (availableAboveKeyboard * 0.40).clamp(140.0, 230.0);
+      } else {
+        videoHeight = (usableHeight * 0.44).clamp(240.0, 360.0);
+      }
+
+      return Scaffold(
+        backgroundColor: Colors.black,
+        resizeToAvoidBottomInset: false,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // 1. Shrunken video container with smooth AnimatedContainer
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                height: videoHeight,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(22)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black87, blurRadius: 18, offset: Offset(0, 6)),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: () => _like(fromDoubleTap: true),
+                      onTap: () => FocusScope.of(context).unfocus(),
+                      child: ReelMediaView(
+                        videoAssetPath: _s.videoAssetPath,
+                        coverAssetPath: _s.coverAssetPath,
+                        coverImageUrl: _s.coverImageUrl,
+                        isActive: widget.isActive,
+                      ),
+                    ),
+                    const IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x88000000), Colors.transparent, Color(0x66000000)],
+                            stops: [0.0, 0.4, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Header overlay on shrunken video
+                    Positioned(
+                      top: 10,
+                      left: 12,
+                      right: 12,
+                      child: Row(
+                        children: [
+                          _buildAvatar(),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _s.streamerName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  _s.subCategory,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Like button pill
+                          GestureDetector(
+                            onTap: _like,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                                    color: _isLiked ? Colors.redAccent : Colors.white70,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _format(_likes),
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Comments Inline Section
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: keyboard),
+                  child: CommentsSheet(
+                    itemId: _s.id,
+                    seed: _s.post == null,
+                    isInline: true,
+                    onClose: () {
+                      FocusScope.of(context).unfocus();
+                      setState(() => _showComments = false);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return FloatingHeartsOverlay(
       key: _heartsKey,
@@ -157,7 +324,7 @@ class _ExploreReelCardState extends ConsumerState<ExploreReelCard> with SingleTi
                   size: button,
                   count: comments == 0 ? null : _format(comments),
                   semantics: 'Comments',
-                  onTap: () => CommentsSheet.show(context, itemId: _s.id, seed: _s.post == null),
+                  onTap: () => setState(() => _showComments = true),
                   icon: Icons.mode_comment_outlined,
                   flipIcon: true,
                 ),

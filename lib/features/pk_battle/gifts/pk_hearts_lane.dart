@@ -22,7 +22,12 @@ class PkHeartsLane extends StatefulWidget {
 class PkHeartsLaneState extends State<PkHeartsLane> with TickerProviderStateMixin {
   static const int _maxHearts = 20;
   // Bright neon pinks only, like the design.
-  static const List<Color> _colors = [Color(0xFFFF2DAA), Color(0xFFFF4FD8), Color(0xFFFF3D9A), Color(0xFFFF5CC4)];
+  static const List<Color> _colors = [
+    Color(0xFFFF2DAA),
+    Color(0xFFFF4FD8),
+    Color(0xFFFF3D9A),
+    Color(0xFFFF5CC4),
+  ];
 
   final List<_Heart> _hearts = [];
   final Random _random = Random();

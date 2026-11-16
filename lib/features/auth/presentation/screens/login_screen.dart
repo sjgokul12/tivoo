@@ -13,20 +13,33 @@ import '../widgets/social_login_buttons.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialEmail;
+  const LoginScreen({super.key, this.initialEmail});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController(text: 'jessica@tivoo.live');
-  final _passwordController = TextEditingController(text: '••••••••');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
+  bool _isOtpMode = false;
+  bool _otpSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+      _emailController.text = widget.initialEmail!;
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -37,11 +50,88 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _passwordController.text.trim(),
     );
 
-    if (success && mounted) {
+    if (!mounted) return;
+    if (success) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => const MainNavigationScreen(),
         ),
+      );
+    } else {
+      final error = ref.read(authControllerProvider).errorMessage ??
+          'Login failed. Please check your credentials.';
+
+      // If email is not verified yet, switch directly to OTP entry
+      if (error.toLowerCase().contains('email not verified')) {
+        setState(() {
+          _isOtpMode = true;
+          _otpSent = true;
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  void _onSendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address to receive an OTP.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final success = await ref.read(authControllerProvider.notifier).sendEmailOtp(email, purpose: 'login');
+    if (!mounted) return;
+
+    if (success) {
+      setState(() => _otpSent = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('OTP sent from Shaachandiran@gmail.com to $email!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else {
+      final error = ref.read(authControllerProvider).errorMessage ?? 'Failed to send OTP.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  void _onVerifyOtp() async {
+    final email = _emailController.text.trim();
+    final otp = _otpController.text.trim();
+    if (otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the OTP code.'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    final success = await ref.read(authControllerProvider.notifier).verifyEmailOtp(email, otp, purpose: 'login');
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      );
+    } else {
+      final error = ref.read(authControllerProvider).errorMessage ?? 'Invalid OTP code.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
       );
     }
   }
@@ -137,71 +227,195 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
 
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 12),
 
-                              // Email or Phone Number Input Field
-                              AuthTextField(
-                                controller: _emailController,
-                                hintText: 'Email or Phone Number',
-                                prefixIcon: Icons.mail_outline_rounded,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Password Input Field with Visibility Toggle
-                              AuthTextField(
-                                controller: _passwordController,
-                                hintText: 'Password',
-                                prefixIcon: Icons.lock_outline_rounded,
-                                isPassword: true,
-                                isPasswordVisible:
-                                    authState.isPasswordVisible,
-                                onTogglePassword:
-                                    authController.togglePasswordVisibility,
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Forgot Password Button
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: GestureDetector(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Password reset link sent to email',
+                              // Login Mode Switch: Password vs Email OTP
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _isOtpMode = false),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: !_isOtpMode ? AppColors.primaryYellow.withValues(alpha: 0.25) : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(9),
+                                            border: Border.all(
+                                              color: !_isOtpMode ? AppColors.primaryYellow : Colors.transparent,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'Password',
+                                            style: TextStyle(
+                                              color: !_isOtpMode ? AppColors.primaryYellow : Colors.white60,
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      duration: Duration(seconds: 1),
                                     ),
-                                  );
-                                },
-                                child: const Text(
-                                  'Forgot Password?',
-                                  style: TextStyle(
-                                    color: AppColors.primaryYellow,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _isOtpMode = true),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: _isOtpMode ? AppColors.primaryYellow.withValues(alpha: 0.25) : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(9),
+                                            border: Border.all(
+                                              color: _isOtpMode ? AppColors.primaryYellow : Colors.transparent,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'Email OTP',
+                                            style: TextStyle(
+                                              color: _isOtpMode ? AppColors.primaryYellow : Colors.white60,
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
 
-                            const SizedBox(height: 14),
+                              const SizedBox(height: 14),
 
-                            // Gradient Log In CTA Button
-                            GradientButton(
-                              text: 'Log In',
-                              height: 48,
-                              borderRadius: 24,
-                              isLoading: authState.isLoading,
-                              onPressed: _onLogin,
-                            ),
-                          ],
+                              if (!_isOtpMode) ...[
+                                // Email or Phone Number Input Field
+                                AuthTextField(
+                                  controller: _emailController,
+                                  hintText: 'Email or Phone Number',
+                                  prefixIcon: Icons.mail_outline_rounded,
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Password Input Field with Visibility Toggle
+                                AuthTextField(
+                                  controller: _passwordController,
+                                  hintText: 'Password',
+                                  prefixIcon: Icons.lock_outline_rounded,
+                                  isPassword: true,
+                                  isPasswordVisible: authState.isPasswordVisible,
+                                  onTogglePassword: authController.togglePasswordVisibility,
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Forgot Password Button
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Password reset link sent to email'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        color: AppColors.primaryYellow,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                // Gradient Log In CTA Button
+                                GradientButton(
+                                  text: 'Log In',
+                                  height: 48,
+                                  borderRadius: 24,
+                                  isLoading: authState.isLoading,
+                                  onPressed: _onLogin,
+                                ),
+                              ] else ...[
+                                // Email for OTP
+                                AuthTextField(
+                                  controller: _emailController,
+                                  hintText: 'Enter your email',
+                                  prefixIcon: Icons.email_rounded,
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
+
+                                if (_otpSent) ...[
+                                  const SizedBox(height: 10),
+                                  AuthTextField(
+                                    controller: _otpController,
+                                    hintText: '6-digit OTP Code',
+                                    prefixIcon: Icons.pin_outlined,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: GestureDetector(
+                                      onTap: _onSendOtp,
+                                      child: const Text(
+                                        'Resend OTP',
+                                        style: TextStyle(
+                                          color: AppColors.primaryYellow,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  GradientButton(
+                                    text: 'Verify & Log In',
+                                    height: 48,
+                                    borderRadius: 24,
+                                    isLoading: authState.isLoading,
+                                    onPressed: _onVerifyOtp,
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 14),
+                                  GradientButton(
+                                    text: 'Send OTP Code',
+                                    height: 48,
+                                    borderRadius: 24,
+                                    isLoading: authState.isLoading,
+                                    onPressed: _onSendOtp,
+                                  ),
+                                ],
+
+                                const SizedBox(height: 8),
+                                Text(
+                                  'OTP sent from Shaachandiran@gmail.com',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
 
                       const SizedBox(height: 16),
 

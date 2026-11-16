@@ -51,6 +51,7 @@ dependencies:
   path_provider: ^2.1.6
   http: ^1.6.0
   video_compress: ^3.1.4
+  lottie: ^3.7.0
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +87,7 @@ flutter:
     - assets/wallet/
     - assets/drafts/
     - assets/pk/
+    - assets/new gift/
 
   fonts:
     - family: Pacifico # Tivoo wordmark

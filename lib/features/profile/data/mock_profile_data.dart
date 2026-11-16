@@ -95,6 +95,27 @@ class MockProfileData {
     ),
   ];
 
+  static final UserProfileModel emptyProfile = UserProfileModel(
+    id: '',
+    name: 'New Creator',
+    username: 'creator',
+    bio: '',
+    aboutMe: '',
+    avatarUrl: '',
+    coverBackgroundUrl: '',
+    email: '',
+    phoneNumber: '',
+    roles: const ['Creator'],
+    isVerified: false,
+    isOnline: true,
+    liveStreamsCount: 0,
+    followersCount: '0',
+    followingCount: 0,
+    likesCount: '0',
+    totalViews: '0',
+    posts: const [],
+  );
+
   static final UserProfileModel defaultProfile = UserProfileModel(
     id: 'user_rohit',
     name: 'Rohit Rajdhani',

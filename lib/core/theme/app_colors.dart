@@ -23,6 +23,7 @@ class AppColors {
 
   // Aliases for seamless compatibility
   static const Color primaryPink = primaryYellow;
+  static const Color accentPink = Color(0xFFFF2A85);
   static const Color primaryPurple = primaryAmber;
   static const Color primaryCyan = primaryYellowLight;
   static const Color liveRed = Color(0xFFFF3B30); // Kept for live broadcast alerts

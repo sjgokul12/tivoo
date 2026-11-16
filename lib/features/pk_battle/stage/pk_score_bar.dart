@@ -35,7 +35,9 @@ class PkScoreBar extends StatelessWidget {
       builder: (context, constraints) {
         final isKeyboard = MediaQuery.viewInsetsOf(context).bottom > 50;
         final width = constraints.maxWidth - 20;
-        final barH = isKeyboard ? (width * 0.08).clamp(30.0, 36.0) : (width * 0.10).clamp(34.0, 48.0);
+        final barH = isKeyboard
+            ? (width * 0.08).clamp(30.0, 36.0)
+            : (width * 0.10).clamp(34.0, 48.0);
         final scoreStyle = TextStyle(
           color: Colors.white,
           fontSize: barH * 0.5,

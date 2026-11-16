@@ -6,7 +6,7 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/luxe_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/custom_avatar.dart';
-import '../../../family/presentation/screens/family_team_screen.dart';
+import '../../../family/presentation/screens/view_family_details_screen.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../controllers/profile_controller.dart';
@@ -549,13 +549,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ProfileIdentityHeader(
                             username: isViewingStreamer
                                 ? streamer!.streamerName.toLowerCase().replaceAll(' ', '_')
-                                : profile.username,
+                                : (profile.username.isNotEmpty ? profile.username : 'creator'),
                             avatarAsset: isViewingStreamer
-                                ? (streamer!.streamerAssetPath ??
-                                    (streamer.streamerAvatarUrl == null
-                                        ? AppAssets.liveCard1
-                                        : streamer.streamerAvatarUrl!))
-                                : (profile.avatarUrl.isNotEmpty ? profile.avatarUrl : AppAssets.status5),
+                                ? (streamer!.streamerAssetPath ?? (streamer.streamerAvatarUrl ?? ''))
+                                : profile.avatarUrl,
                             followersCount: isViewingStreamer
                                 ? relationship!.formattedFollowers
                                 : profile.followersCount,
@@ -647,7 +644,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   shareText: shareText,
                                 );
                               },
-                              onFamily: () => _open(const FamilyTeamScreen()),
+                              onFamily: () => _open(const ViewFamilyDetailsScreen()),
                             ),
                           ],
                           SizedBox(height: 24 * s),

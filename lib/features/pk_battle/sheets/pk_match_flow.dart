@@ -35,7 +35,12 @@ class PkMatchFlow {
   final ValueChanged<PkOpponent>? onMatched;
   final VoidCallback? onOpenSettings;
 
-  PkMatchFlow({required this.context, required this.host, this.onMatched, this.onOpenSettings});
+  PkMatchFlow({
+    required this.context,
+    required this.host,
+    this.onMatched,
+    this.onOpenSettings,
+  });
 
   static const List<PkOpponent> liveCreators = [
     PkOpponent('Anitha', AppAssets.status4, AppAssets.video2, '2.5K watching'),
@@ -203,7 +208,11 @@ class _PkMenuSheet extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onFollowing;
 
-  const _PkMenuSheet({required this.onRandom, required this.onSearch, required this.onFollowing});
+  const _PkMenuSheet({
+    required this.onRandom,
+    required this.onSearch,
+    required this.onFollowing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +224,12 @@ class _PkMenuSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Image.asset(AppAssets.pkTopBanner, height: 38, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
+              Image.asset(
+                AppAssets.pkTopBanner,
+                height: 38,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.medium,
+              ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: Colors.white70),
                 onPressed: () => Navigator.pop(context),
@@ -328,7 +342,10 @@ class _PkDurationSheet extends StatefulWidget {
   final bool isRandom;
   final ValueChanged<int> onDurationSelected;
 
-  const _PkDurationSheet({required this.isRandom, required this.onDurationSelected});
+  const _PkDurationSheet({
+    required this.isRandom,
+    required this.onDurationSelected,
+  });
 
   @override
   State<_PkDurationSheet> createState() => _PkDurationSheetState();
@@ -437,7 +454,10 @@ class _PkDurationSheetState extends State<_PkDurationSheet> {
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? _gold : Colors.white54, width: 2),
+                border: Border.all(
+                  color: isSelected ? _gold : Colors.white54,
+                  width: 2,
+                ),
               ),
               child: isSelected
                   ? Center(
@@ -476,7 +496,11 @@ class _PkSearchingSheet extends StatefulWidget {
   final VoidCallback onFound;
   final VoidCallback onCancel;
 
-  const _PkSearchingSheet({required this.durationSeconds, required this.onFound, required this.onCancel});
+  const _PkSearchingSheet({
+    required this.durationSeconds,
+    required this.onFound,
+    required this.onCancel,
+  });
 
   @override
   State<_PkSearchingSheet> createState() => _PkSearchingSheetState();
@@ -532,7 +556,10 @@ class _PkSearchingSheetState extends State<_PkSearchingSheet> with SingleTickerP
                       height: 90 + 50 * val,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF8E2DE2).withValues(alpha: 1 - val), width: 2),
+                        border: Border.all(
+                          color: const Color(0xFF8E2DE2).withValues(alpha: 1 - val),
+                          width: 2,
+                        ),
                       ),
                     ),
                     Container(
@@ -540,8 +567,15 @@ class _PkSearchingSheetState extends State<_PkSearchingSheet> with SingleTickerP
                       height: 90,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)]),
-                        boxShadow: [BoxShadow(color: const Color(0xFF8E2DE2).withValues(alpha: 0.6), blurRadius: 18)],
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF8E2DE2).withValues(alpha: 0.6),
+                            blurRadius: 18,
+                          ),
+                        ],
                       ),
                       child: const Icon(Icons.shuffle_rounded, color: Colors.white, size: 40),
                     ),
@@ -581,10 +615,7 @@ class _PkSearchingSheetState extends State<_PkSearchingSheet> with SingleTickerP
       children: [
         const Icon(Icons.check_circle_rounded, color: Color(0xFF00E676), size: 18),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(color: Colors.white70, fontSize: 13.5, fontWeight: FontWeight.w600),
-        ),
+        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13.5, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -599,7 +630,11 @@ class _PkCreatorsListSheet extends StatefulWidget {
   final List<PkOpponent> creators;
   final ValueChanged<PkOpponent> onSelectCreator;
 
-  const _PkCreatorsListSheet({required this.durationSeconds, required this.creators, required this.onSelectCreator});
+  const _PkCreatorsListSheet({
+    required this.durationSeconds,
+    required this.creators,
+    required this.onSelectCreator,
+  });
 
   @override
   State<_PkCreatorsListSheet> createState() => _PkCreatorsListSheetState();
@@ -745,7 +780,10 @@ class _PkCreatorsListSheetState extends State<_PkCreatorsListSheet> {
                   creator.name,
                   style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
                 ),
-                Text(creator.viewers, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                Text(
+                  creator.viewers,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -820,7 +858,10 @@ class _PkSendRequestDialog extends StatelessWidget {
               rival.name,
               style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
             ),
-            Text(rival.viewers, style: const TextStyle(color: Colors.white54, fontSize: 12.5)),
+            Text(
+              rival.viewers,
+              style: const TextStyle(color: Colors.white54, fontSize: 12.5),
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -956,7 +997,10 @@ class _PkMatchFoundDialogState extends State<_PkMatchFoundDialog> {
                       widget.host.name,
                       style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
                     ),
-                    Text('$minutes Minutes', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text(
+                      '$minutes Minutes',
+                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -989,7 +1033,10 @@ class _PkMatchFoundDialogState extends State<_PkMatchFoundDialog> {
                       widget.rival.name,
                       style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
                     ),
-                    Text('$minutes Minutes', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text(
+                      '$minutes Minutes',
+                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
                   ],
                 ),
               ],
@@ -1011,7 +1058,12 @@ class _PkMatchFoundDialogState extends State<_PkMatchFoundDialog> {
                   const SizedBox(height: 4),
                   Text(
                     '$_countdown',
-                    style: const TextStyle(color: _gold, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: 2),
+                    style: const TextStyle(
+                      color: _gold,
+                      fontSize: 38,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ],
               ),

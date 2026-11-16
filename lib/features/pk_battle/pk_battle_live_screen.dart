@@ -20,8 +20,7 @@ class PkBattleLiveScreen extends ConsumerStatefulWidget {
   /// The initial battle to show (defaults to Neha vs Arun).
   final PkMatch match;
 
-  /// Whether the current user is host / creator of this battle. Leave null to
-  /// use [_TestingRoleToggle] (no backend yet to say who the user is).
+  /// Whether the current user is host / creator of this battle (defaults to false for viewers).
   final bool? isCreator;
 
   const PkBattleLiveScreen({super.key, this.onBack, this.match = PkDemoData.featured, this.isCreator});
@@ -39,20 +38,7 @@ class _PkBattleLiveScreenState extends ConsumerState<PkBattleLiveScreen> {
   @override
   void initState() {
     super.initState();
-    _isCreator = widget.isCreator ?? _TestingRoleToggle.next();
-    if (widget.isCreator == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🧪 Testing: ${_isCreator ? 'Streamer' : 'User'} view'),
-            backgroundColor: const Color(0xFF192233),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      });
-    }
+    _isCreator = widget.isCreator ?? false;
     _feed = List.of(PkFeedData.feedBattles);
     final matchIndex = _feed.indexWhere((item) => item.match.id == widget.match.id);
     if (matchIndex != -1) {
@@ -93,11 +79,15 @@ class _PkBattleLiveScreenState extends ConsumerState<PkBattleLiveScreen> {
           setState(() {
             _feed.add(PkBattleFeedItem.fromMatch(newBattle));
           });
-          _pageController.animateToPage(
-            _feed.length - 1,
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeInOut,
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_pageController.hasClients) {
+              _pageController.animateToPage(
+                _feed.length - 1,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOut,
+              );
+            }
+          });
         }
       },
     );
@@ -164,13 +154,4 @@ class _PkBattleLiveScreenState extends ConsumerState<PkBattleLiveScreen> {
       ),
     );
   }
-}
-
-/// Testing only (no backend yet): PK screens alternate between the streamer
-/// view and the user view — 1st open streamer, 2nd user, 3rd streamer, …
-/// Remove once the backend tells us whether the user is the host.
-class _TestingRoleToggle {
-  static int _opens = 0;
-
-  static bool next() => _opens++ % 2 == 0;
 }

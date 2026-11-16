@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/widgets/custom_avatar.dart';
 
@@ -85,13 +86,21 @@ class PkGiftPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final giftIcon = gift.giftImage != null
-        ? Image.asset(
-            gift.giftImage!,
-            width: 26,
-            height: 26,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 18)),
-          )
+        ? (gift.giftImage!.endsWith('.lottie') || gift.giftImage!.endsWith('.json')
+            ? Lottie.asset(
+                gift.giftImage!,
+                width: 26,
+                height: 26,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 18)),
+              )
+            : Image.asset(
+                gift.giftImage!,
+                width: 26,
+                height: 26,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 18)),
+              ))
         : Text(gift.emoji, style: const TextStyle(fontSize: 18));
 
     return Container(

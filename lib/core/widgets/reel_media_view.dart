@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -72,42 +73,11 @@ class _ReelMediaViewState extends State<ReelMediaView> {
                 fit: BoxFit.cover,
                 clipBehavior: Clip.hardEdge,
                 child: SizedBox(
-                  width: controller.value.size.width,
-                  height: controller.value.size.height,
+                  width: controller.value.size.width > 0 ? controller.value.size.width : 360.0,
+                  height: controller.value.size.height > 0 ? controller.value.size.height : 640.0,
                   child: VideoPlayer(controller),
                 ),
               ),
-              if (controller.value.size.width >= 1080 || controller.value.size.height >= 1080)
-                Positioned(
-                  top: 54,
-                  right: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
-                            ? AppColors.primaryYellow
-                            : Colors.cyanAccent.withValues(alpha: 0.7),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
-                          ? '4K UHD'
-                          : '1080p FHD',
-                      style: TextStyle(
-                        color: (controller.value.size.width >= 2160 || controller.value.size.height >= 2160)
-                            ? AppColors.primaryYellow
-                            : Colors.cyanAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
-                ),
             ],
             if (widget.isActive && !ready && !_manager.hasError(path))
               Center(
@@ -148,14 +118,18 @@ class _ReelMediaViewState extends State<ReelMediaView> {
     }
     final url = widget.coverImageUrl;
     if (url != null && url.isNotEmpty) {
-      return url.startsWith('http')
-          ? CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => placeholder,
-              errorWidget: (_, _, _) => placeholder,
-            )
-          : Image.file(File(url), fit: BoxFit.cover, errorBuilder: (_, _, _) => placeholder);
+      if (url.startsWith('http')) {
+        return CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => placeholder,
+          errorWidget: (_, _, _) => placeholder,
+        );
+      }
+      if (kIsWeb || url.startsWith('blob:')) {
+        return Image.network(url, fit: BoxFit.cover, errorBuilder: (_, _, _) => placeholder);
+      }
+      return Image.file(File(url), fit: BoxFit.cover, errorBuilder: (_, _, _) => placeholder);
     }
     return placeholder;
   }

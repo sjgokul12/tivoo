@@ -2,6 +2,7 @@
 // the star gift portal with floating 3D hearts, and the glowing input bar matching Image 1.
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/widgets/custom_avatar.dart';
@@ -325,13 +326,21 @@ class _GiftCommentPill extends StatelessWidget {
   Widget build(BuildContext context) {
     const iconSize = 18.0;
     final giftIcon = gift.giftImage != null
-        ? Image.asset(
-            gift.giftImage!,
-            width: iconSize,
-            height: iconSize,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8)),
-          )
+        ? (gift.giftImage!.endsWith('.lottie') || gift.giftImage!.endsWith('.json')
+            ? Lottie.asset(
+                gift.giftImage!,
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8)),
+              )
+            : Image.asset(
+                gift.giftImage!,
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8)),
+              ))
         : Text(gift.emoji, style: const TextStyle(fontSize: iconSize * 0.8));
 
     final style = _styleFor(gift.sender);

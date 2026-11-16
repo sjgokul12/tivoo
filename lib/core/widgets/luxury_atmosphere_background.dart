@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../constants/app_assets.dart';
+import 'live_video_player.dart';
 
 /// Ultra-attractive luxury atmosphere background with vibrant cyber yellow,
 /// neon magenta, electric cyan aurora orbs, animated sweeping stage light beams,
@@ -15,6 +16,9 @@ class LuxuryAtmosphereBackground extends StatefulWidget {
   final String? backgroundImageAsset;
   final bool showBackgroundImage;
   final double backgroundImageOpacity;
+  final String? backgroundVideoAsset;
+  final bool showBackgroundVideo;
+  final double backgroundVideoOpacity;
 
   const LuxuryAtmosphereBackground({
     super.key,
@@ -27,6 +31,9 @@ class LuxuryAtmosphereBackground extends StatefulWidget {
     this.backgroundImageAsset,
     this.showBackgroundImage = false,
     this.backgroundImageOpacity = 0.95,
+    this.backgroundVideoAsset = AppAssets.giftVideoFox,
+    this.showBackgroundVideo = true,
+    this.backgroundVideoOpacity = 0.35,
   });
 
   @override
@@ -69,7 +76,24 @@ class _LuxuryAtmosphereBackgroundState extends State<LuxuryAtmosphereBackground>
         // 1. Deep Obsidian Velvet Base
         const ColoredBox(color: Color(0xFF070709)),
 
-        // 1b. Luxury Golden Arena Stage Background Image (Crown + Stage Podium)
+        // 1b. Edited APK Background Video (Nine-Tailed Kitsune Fox / Celestial Video)
+        if (widget.showBackgroundVideo && widget.backgroundVideoAsset != null)
+          Positioned.fill(
+            child: Opacity(
+              opacity: widget.backgroundVideoOpacity.clamp(0.0, 1.0),
+              child: LiveVideoPlayer(
+                key: ValueKey('luxury_bg_${widget.backgroundVideoAsset!}'),
+                playerId: 'luxury_bg_video',
+                videoAssetPath: widget.backgroundVideoAsset!,
+                autoPlay: true,
+                isMuted: true,
+                fit: BoxFit.cover,
+                enableVisibilityDetection: false,
+              ),
+            ),
+          ),
+
+        // 1c. Luxury Golden Arena Stage Background Image (Crown + Stage Podium)
         if (widget.showBackgroundImage)
           Positioned.fill(
             child: Opacity(

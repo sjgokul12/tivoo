@@ -3,6 +3,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../core/widgets/custom_avatar.dart';
 import '../../../core/widgets/live_video_player.dart';
@@ -93,7 +94,14 @@ class _PkVideoArenaState extends State<PkVideoArena> with SingleTickerProviderSt
                 ],
               ),
               // Timer positioned in the center between the video screens below the LIVE / viewer pills
-              if (widget.timer != null) Positioned(top: 38, child: Transform.scale(scale: 0.95, child: widget.timer!)),
+              if (widget.timer != null)
+                Positioned(
+                  top: 38,
+                  child: Transform.scale(
+                    scale: 0.95,
+                    child: widget.timer!,
+                  ),
+                ),
               // VS emblem shown at the start of a round
               IgnorePointer(
                 child: AnimatedOpacity(
@@ -164,60 +172,60 @@ class _LiveCard extends StatelessWidget {
         },
         child: ClipRRect(
           borderRadius: clipRadius,
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final pill = (c.maxWidth * 0.11).clamp(18.0, 24.0);
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  LiveVideoPlayer(
-                    key: ValueKey('pk_${isLeft ? 'left' : 'right'}_stream_${host.name}_${host.videoAsset}'),
-                    playerId: 'pk_${isLeft ? 'left' : 'right'}_stream_${host.name.toLowerCase()}',
-                    videoAssetPath: host.videoAsset,
-                    placeholderAssetPath: host.avatarAsset,
-                    fit: BoxFit.cover,
-                    autoPlay: isPlaying,
-                    isMuted: true,
-                    showSoundToggle: false,
-                  ),
-                  // Gradient shade over video
-                  const IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0x66000000), Colors.transparent, Colors.transparent, Color(0x88000000)],
-                          stops: [0, 0.2, 0.7, 1],
-                        ),
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final pill = (c.maxWidth * 0.11).clamp(18.0, 24.0);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                LiveVideoPlayer(
+                  key: ValueKey('pk_${isLeft ? 'left' : 'right'}_stream_${host.name}_${host.videoAsset}'),
+                  playerId: 'pk_${isLeft ? 'left' : 'right'}_stream_${host.name.toLowerCase()}',
+                  videoAssetPath: host.videoAsset,
+                  placeholderAssetPath: host.avatarAsset,
+                  fit: BoxFit.cover,
+                  autoPlay: isPlaying,
+                  isMuted: true,
+                  showSoundToggle: false,
+                ),
+                // Gradient shade over video
+                const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x66000000), Colors.transparent, Colors.transparent, Color(0x88000000)],
+                        stops: [0, 0.2, 0.7, 1],
                       ),
                     ),
                   ),
-                  // Top-left: LIVE pill
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    height: pill,
-                    child: _LivePill(height: pill),
-                  ),
-                  // Top-right: Viewer count pill
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    height: pill,
-                    child: _ViewerPill(count: host.viewers, height: pill, onTap: onViewersTap),
-                  ),
-                  // Bottom: Latest gift event pill inside the video card
-                  Positioned(
-                    left: 6,
-                    right: 6,
-                    bottom: 8,
-                    child: _GiftPillInCard(gift: gift, isLeft: isLeft),
-                  ),
-                ],
-              );
-            },
-          ),
+                ),
+                // Top-left: LIVE pill
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  height: pill,
+                  child: _LivePill(height: pill),
+                ),
+                // Top-right: Viewer count pill
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  height: pill,
+                  child: _ViewerPill(count: host.viewers, height: pill, onTap: onViewersTap),
+                ),
+                // Bottom: Latest gift event pill inside the video card
+                Positioned(
+                  left: 6,
+                  right: 6,
+                  bottom: 8,
+                  child: _GiftPillInCard(gift: gift, isLeft: isLeft),
+                ),
+              ],
+            );
+          },
+        ),
         ),
       ),
     );
@@ -303,16 +311,26 @@ class _GiftPillInCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = isLeft ? const [Color(0xFFFF7AE0), Color(0xFFB04DFF)] : const [Color(0xFF7FD0FF), Color(0xFF2E9BFF)];
+    final border = isLeft
+        ? const [Color(0xFFFF7AE0), Color(0xFFB04DFF)]
+        : const [Color(0xFF7FD0FF), Color(0xFF2E9BFF)];
 
     final giftIcon = gift.giftImage != null
-        ? Image.asset(
-            gift.giftImage!,
-            width: 22,
-            height: 22,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 16)),
-          )
+        ? (gift.giftImage!.endsWith('.lottie') || gift.giftImage!.endsWith('.json')
+            ? Lottie.asset(
+                gift.giftImage!,
+                width: 22,
+                height: 22,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 16)),
+              )
+            : Image.asset(
+                gift.giftImage!,
+                width: 22,
+                height: 22,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Text(gift.emoji, style: const TextStyle(fontSize: 16)),
+              ))
         : Text(gift.emoji, style: const TextStyle(fontSize: 16));
 
     return Container(
@@ -321,7 +339,9 @@ class _GiftPillInCard extends StatelessWidget {
         color: const Color(0xCC0D0B28),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border.first.withValues(alpha: 0.8), width: 1.2),
-        boxShadow: [BoxShadow(color: border.first.withValues(alpha: 0.35), blurRadius: 6)],
+        boxShadow: [
+          BoxShadow(color: border.first.withValues(alpha: 0.35), blurRadius: 6),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

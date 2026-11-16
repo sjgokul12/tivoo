@@ -11,6 +11,7 @@ class VideoProcessor {
   /// Poster image for [path] (a JPEG in the cache), or null if it can't be read.
   /// Includes timeouts and multi-stage fallbacks to handle 4K and heavy HDR files without locking up.
   static Future<File?> thumbnail(String path) async {
+    if (kIsWeb) return null;
     try {
       final file = await VideoCompress.getFileThumbnail(
         path,
@@ -83,6 +84,7 @@ class VideoProcessor {
     String path, {
     void Function(double progress)? onProgress,
   }) async {
+    if (kIsWeb) return File(path);
     final sub = VideoCompress.compressProgress$.subscribe(
       (p) => onProgress?.call((p / 100).clamp(0.0, 1.0)),
     );

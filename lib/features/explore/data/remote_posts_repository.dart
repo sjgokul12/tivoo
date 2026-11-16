@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:tivoo/features/explore/domain/models/video_post.dart';
@@ -55,6 +56,9 @@ class RemotePostsRepository implements PostsRepository {
   Future<VideoPost> uploadVideo({
     required File video,
     File? thumbnail,
+    Uint8List? videoBytes,
+    Uint8List? thumbnailBytes,
+    String? token,
     required PostAuthor author,
     String caption = '',
     void Function(double progress)? onProgress,
@@ -67,9 +71,42 @@ class RemotePostsRepository implements PostsRepository {
         // Only URLs make sense to other users; local file / asset avatars are dropped.
         'authorAvatar': author.avatar.startsWith('http') ? author.avatar : '',
         'caption': caption,
-      })
-      ..files.add(await http.MultipartFile.fromPath('video', video.path));
-    if (thumbnail != null) multipart.files.add(await http.MultipartFile.fromPath('thumbnail', thumbnail.path));
+      });
+
+    if (token != null && token.isNotEmpty) {
+      multipart.headers['Authorization'] = 'Bearer $token';
+    }
+
+    if (kIsWeb) {
+      Uint8List vBytes;
+      if (videoBytes != null && videoBytes.isNotEmpty) {
+        vBytes = videoBytes;
+      } else {
+        try {
+          vBytes = await video.readAsBytes();
+        } catch (_) {
+          vBytes = Uint8List(0);
+        }
+      }
+      multipart.files.add(
+        http.MultipartFile.fromBytes('video', vBytes, filename: 'reel_${DateTime.now().millisecondsSinceEpoch}.mp4'),
+      );
+      if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+        multipart.files.add(
+          http.MultipartFile.fromBytes('thumbnail', thumbnailBytes, filename: 'thumb_${DateTime.now().millisecondsSinceEpoch}.jpg'),
+        );
+      } else if (thumbnail != null) {
+        try {
+          final thumbBytes = await thumbnail.readAsBytes();
+          multipart.files.add(
+            http.MultipartFile.fromBytes('thumbnail', thumbBytes, filename: 'thumb_${DateTime.now().millisecondsSinceEpoch}.jpg'),
+          );
+        } catch (_) {}
+      }
+    } else {
+      multipart.files.add(await http.MultipartFile.fromPath('video', video.path));
+      if (thumbnail != null) multipart.files.add(await http.MultipartFile.fromPath('thumbnail', thumbnail.path));
+    }
 
     // Re-stream the multipart body so we can report upload progress.
     final total = multipart.contentLength;

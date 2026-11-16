@@ -5,6 +5,8 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/live_video_player.dart';
+
 /// Vector gold crown with jewelled tips and a blue gem (names, score bar).
 class PkGoldCrown extends StatelessWidget {
   final double size;
@@ -199,22 +201,51 @@ void paintSparkle(Canvas canvas, Offset c, double r, Color color) {
   canvas.drawPath(path, Paint()..color = color);
 }
 
-/// Deep indigo page background with magenta (top-left) and blue (top-right) glows, light rays and streaks.
+/// Deep indigo page background with dynamic video atmosphere, magenta (top-left) and blue (top-right) glows, light rays and streaks.
 class PkBackdrop extends StatelessWidget {
-  const PkBackdrop({super.key});
+  final String? videoAsset;
+  final bool showVideo;
+  final double videoOpacity;
+
+  const PkBackdrop({
+    super.key,
+    this.videoAsset,
+    this.showVideo = false,
+    this.videoOpacity = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF26106A), Color(0xFF16137A), Color(0xFF100E5C), Color(0xFF0A0A3E)],
-          stops: [0, 0.35, 0.7, 1],
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF26106A), Color(0xFF16137A), Color(0xFF100E5C), Color(0xFF0A0A3E)],
+              stops: [0, 0.35, 0.7, 1],
+            ),
+          ),
         ),
-      ),
-      child: CustomPaint(painter: _BackdropGlowPainter(), size: Size.infinite),
+        if (showVideo && videoAsset != null)
+          Positioned.fill(
+            child: Opacity(
+              opacity: videoOpacity.clamp(0.0, 1.0),
+              child: LiveVideoPlayer(
+                key: ValueKey('pk_backdrop_${videoAsset!}'),
+                playerId: 'pk_backdrop_video',
+                videoAssetPath: videoAsset!,
+                autoPlay: true,
+                isMuted: true,
+                fit: BoxFit.cover,
+                enableVisibilityDetection: false,
+              ),
+            ),
+          ),
+        const CustomPaint(painter: _BackdropGlowPainter(), size: Size.infinite),
+      ],
     );
   }
 }

@@ -26,8 +26,8 @@ class CreatorVerificationModel {
     this.qualityVideosCount = 5,
     this.hasWhiteTiki = true,
     this.hasGrayTiki = true,
-    this.familyId = 'family_rs_tech',
-    this.familyName = 'RS TECH',
+    this.familyId = 'family_tivoo_angels',
+    this.familyName = 'Tivoo Angels ✨',
     this.isFamilyLeader = true,
   });
 

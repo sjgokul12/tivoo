@@ -32,6 +32,9 @@ enum FilterOverlayType {
   dog,
   angelHalo,
   cyberGlasses,
+  goldenCrown,
+  devilHorns,
+  flowerCrown,
 }
 
 /// Represents a single camera filter / AR lens option.
@@ -45,6 +48,8 @@ class CameraFilterModel {
   final Color secondaryColor;
   final FilterOverlayType overlayType;
   final String description;
+  final String creator;
+  final bool isSnapLens;
 
   const CameraFilterModel({
     required this.id,
@@ -56,6 +61,8 @@ class CameraFilterModel {
     this.secondaryColor = const Color(0xFF9B3CFF),
     required this.overlayType,
     this.description = '',
+    this.creator = 'Snap Lens Studio',
+    this.isSnapLens = true,
   });
 
   bool get isNone => id == 'none';
@@ -198,6 +205,39 @@ class MockFilterData {
       secondaryColor: Color(0xFFD600FF),
       overlayType: FilterOverlayType.cyberGlasses,
       description: 'Futuristic neon spectacles & holographic grid tint',
+    ),
+    const CameraFilterModel(
+      id: 'crown',
+      name: 'Crown',
+      category: FilterCategory.style,
+      thumbnailAsset: AppAssets.avatarPriya,
+      fallbackIcon: Icons.workspace_premium_rounded,
+      primaryColor: Color(0xFFFFD700),
+      secondaryColor: Color(0xFFFF8E3C),
+      overlayType: FilterOverlayType.goldenCrown,
+      description: 'Majestic 3D glowing gold crown with floating jewels',
+    ),
+    const CameraFilterModel(
+      id: 'devil',
+      name: 'Devil Horns',
+      category: FilterCategory.fun,
+      thumbnailAsset: AppAssets.avatarSneha,
+      fallbackIcon: Icons.whatshot_rounded,
+      primaryColor: Color(0xFFFF1744),
+      secondaryColor: Color(0xFFFF5252),
+      overlayType: FilterOverlayType.devilHorns,
+      description: 'Fiery neon devil horns with glowing embers',
+    ),
+    const CameraFilterModel(
+      id: 'flowers',
+      name: 'Flowers',
+      category: FilterCategory.nature,
+      thumbnailAsset: AppAssets.avatarNeha,
+      fallbackIcon: Icons.local_florist_rounded,
+      primaryColor: Color(0xFFFF80AB),
+      secondaryColor: Color(0xFFF48FB1),
+      overlayType: FilterOverlayType.flowerCrown,
+      description: 'Pastel blooming flower garland with falling petals',
     ),
   ];
 

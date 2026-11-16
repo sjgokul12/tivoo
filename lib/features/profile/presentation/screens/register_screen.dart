@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -7,17 +8,18 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/gradient_button.dart';
 import '../../../../core/widgets/tivoo_logo.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/widgets/auth_text_field.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
+class _RegisterScreenState extends ConsumerState<RegisterScreen>
     with SingleTickerProviderStateMixin {
   final _fullNameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -74,24 +76,55 @@ class _RegisterScreenState extends State<RegisterScreen>
       return;
     }
 
+    final fullName = _fullNameController.text.trim();
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (fullName.isEmpty || username.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    // Simulate a short async action (UI only — no backend)
-    await Future.delayed(const Duration(milliseconds: 600));
+
+    final success = await ref.read(authControllerProvider.notifier).register(
+      name: fullName,
+      username: username,
+      email: email,
+      password: password,
+    );
+
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account created successfully! Please log in.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-    // Navigate back to Login
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
+    if (success) {
+      // Must type OTP code in popup before proceeding to Login
+      _showOtpVerificationDialog(email);
     } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      final err = ref.read(authControllerProvider).errorMessage ?? 'Registration failed.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -101,6 +134,31 @@ class _RegisterScreenState extends State<RegisterScreen>
       const SnackBar(
         content: Text('Google sign-up selected'),
         duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showOtpVerificationDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => _OtpVerificationDialog(
+        email: email,
+        onVerified: () {
+          Navigator.of(dialogCtx).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account verified successfully! Please log in.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => LoginScreen(initialEmail: email),
+            ),
+          );
+        },
       ),
     );
   }
@@ -645,3 +703,239 @@ class _GoogleSignUpButton extends StatelessWidget {
     );
   }
 }
+
+class _OtpVerificationDialog extends ConsumerStatefulWidget {
+  final String email;
+  final VoidCallback onVerified;
+
+  const _OtpVerificationDialog({
+    required this.email,
+    required this.onVerified,
+  });
+
+  @override
+  ConsumerState<_OtpVerificationDialog> createState() => _OtpVerificationDialogState();
+}
+
+class _OtpVerificationDialogState extends ConsumerState<_OtpVerificationDialog> {
+  final _otpController = TextEditingController();
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _onVerify() async {
+    final otp = _otpController.text.trim();
+    if (otp.length < 4) {
+      setState(() => _error = 'Please enter the 6-digit OTP code');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final success = await ref.read(authControllerProvider.notifier).verifyEmailOtp(
+      widget.email,
+      otp,
+      purpose: 'verify_email',
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      widget.onVerified();
+    } else {
+      final err = ref.read(authControllerProvider).errorMessage ?? 'Invalid OTP code. Please try again.';
+      setState(() => _error = err);
+    }
+  }
+
+  void _onResend() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final success = await ref.read(authControllerProvider.notifier).sendEmailOtp(
+      widget.email,
+      purpose: 'verify_email',
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('New OTP code dispatched to ${widget.email} from Shaachandiran@gmail.com!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      final err = ref.read(authControllerProvider).errorMessage ?? 'Failed to resend OTP.';
+      setState(() => _error = err);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131526),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.primaryYellow.withValues(alpha: 0.6), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryYellow.withValues(alpha: 0.2),
+              blurRadius: 24,
+              spreadRadius: 2,
+            ),
+            const BoxShadow(color: Colors.black87, blurRadius: 30),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD600), Color(0xFFFF9100)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(color: AppColors.primaryYellow.withValues(alpha: 0.4), blurRadius: 16),
+                ],
+              ),
+              child: const Icon(Icons.mark_email_read_rounded, color: Colors.black, size: 28),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Verify Account',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Enter the 6-digit OTP code sent to',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              widget.email,
+              style: const TextStyle(color: AppColors.primaryYellow, fontSize: 13.5, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Sender: Shaachandiran@gmail.com',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF090A14),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.primaryYellow.withValues(alpha: 0.4)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: TextField(
+                controller: _otpController,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                style: const TextStyle(
+                  color: AppColors.primaryYellow,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 10,
+                ),
+                decoration: const InputDecoration(
+                  hintText: '• • • • • •',
+                  hintStyle: TextStyle(color: Colors.white24, fontSize: 22, letterSpacing: 8),
+                  counterText: '',
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.35), width: 0.8),
+              ),
+              child: const Text(
+                'Dev Test Code: 123456 or 154545 (or real code from backend terminal)',
+                style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            GradientButton(
+              text: 'Verify & Continue to Login',
+              height: 48,
+              borderRadius: 24,
+              isLoading: _isLoading,
+              onPressed: _onVerify,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Didn't receive the code? ",
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                ),
+                GestureDetector(
+                  onTap: _isLoading ? null : _onResend,
+                  child: const Text(
+                    'Resend OTP',
+                    style: TextStyle(
+                      color: AppColors.primaryYellow,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

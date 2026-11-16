@@ -32,6 +32,14 @@ class GiftSoundService {
   /// full-length track in sounds/gift/; small gifts use the short sounds.
   static String soundFor(String category) {
     switch (category.toLowerCase()) {
+      case 'fox':
+        return 'sounds/gift/sound_fox.wav';
+      case 'dragon':
+        return 'sounds/gift/sound_dragon.wav';
+      case 'bunny':
+        return 'sounds/gift/sound_bunny.wav';
+      case 'target':
+        return 'sounds/gift/sound_target.wav';
       case 'lion':
         return 'sounds/gift/sound_lion.wav';
       case 'horse':

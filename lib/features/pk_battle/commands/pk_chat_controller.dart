@@ -13,8 +13,8 @@ class PkChatController extends ChangeNotifier {
     required String hostName,
     List<LiveComment>? initialComments,
     List<(String, String, String, bool)>? commentPool,
-  }) : _comments = initialComments ?? _initialComments(hostName),
-       _pool = commentPool ?? PkDemoData.incomingComments;
+  })  : _comments = initialComments ?? _initialComments(hostName),
+        _pool = commentPool ?? PkDemoData.incomingComments;
 
   static const int maxComments = 100;
 
@@ -78,7 +78,10 @@ class PkChatController extends ChangeNotifier {
   void reportComment(String commentId) {
     _comments = _comments.map((c) {
       if (c.id == commentId) {
-        return c.copyWith(message: 'This comment has been reported', isReported: true);
+        return c.copyWith(
+          message: 'This comment has been reported',
+          isReported: true,
+        );
       }
       return c;
     }).toList();

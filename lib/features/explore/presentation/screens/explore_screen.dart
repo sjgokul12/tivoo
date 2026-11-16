@@ -11,7 +11,6 @@ import '../controllers/explore_controller.dart';
 import '../controllers/posts_controller.dart';
 import '../widgets/explore_header.dart';
 import '../widgets/explore_reel_card.dart';
-import '../widgets/upload_video_sheet.dart';
 
 ExploreStreamModel _postToExploreModel(VideoPost post) {
   final avatarIsAsset = post.authorAvatar.startsWith('assets/');
@@ -28,6 +27,7 @@ ExploreStreamModel _postToExploreModel(VideoPost post) {
     diamondsCount: '${post.likes}',
     isLive: false,
     isVerified: false,
+    allowDownloads: post.allowDownloads,
     post: post,
   );
 }
@@ -86,9 +86,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Resume playback when coming back to the Explore tab.
+    // Resume playback and fetch latest reels when coming back to the Explore tab.
     ref.listen<int>(bottomNavIndexProvider, (prev, next) {
-      if (next == 0 && prev != 0) _onPageSettled(_currentIndex);
+      if (next == 0 && prev != 0) {
+        ref.read(postsControllerProvider.notifier).refresh();
+        _onPageSettled(_currentIndex);
+      }
     });
     // A new upload lands at the top of the feed: restart playback on the visible page.
     ref.listen<PostsState>(postsControllerProvider, (prev, next) {
@@ -107,62 +110,43 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Positioned.fill(
             child: feed.isEmpty
                 ? _EmptyState(onClear: () => ref.read(exploreSearchProvider.notifier).state = '')
-                : PageView.builder(
-                    controller: _pageController,
-                    scrollDirection: Axis.vertical,
-                    itemCount: feed.length,
-                    onPageChanged: (i) {
-                      setState(() => _currentIndex = i);
-                      _onPageSettled(i);
+                : RefreshIndicator(
+                    color: const Color(0xFFFF2A85),
+                    backgroundColor: const Color(0xFF131526),
+                    onRefresh: () async {
+                      await ref.read(postsControllerProvider.notifier).refresh();
                     },
-                    itemBuilder: (context, i) => Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: context.isTablet ? 480 : double.infinity),
-                        child: ExploreReelCard(key: ValueKey(feed[i].id), stream: feed[i], isActive: i == _currentIndex),
+                    child: PageView.builder(
+                      controller: _pageController,
+                      scrollDirection: Axis.vertical,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: feed.length,
+                      onPageChanged: (i) {
+                        setState(() => _currentIndex = i);
+                        _onPageSettled(i);
+                      },
+                      itemBuilder: (context, i) => Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: context.isTablet ? 480 : double.infinity),
+                          child: ExploreReelCard(key: ValueKey(feed[i].id), stream: feed[i], isActive: i == _currentIndex),
+                        ),
                       ),
                     ),
                   ),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: ExploreHeader(
-                onBackTap: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
-                onSearchTap: _showSearch,
-                onUploadTap: () => UploadVideoSheet.show(context),
+          if (Navigator.of(context).canPop())
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: ExploreHeader(
+                  onBackTap: () => Navigator.of(context).pop(),
+                ),
               ),
             ),
-          ),
         ],
-      ),
-    );
-  }
-
-  void _showSearch() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xF5161622),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
-        child: TextFormField(
-          autofocus: true,
-          initialValue: ref.read(exploreSearchProvider),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Search creators or topics…',
-            hintStyle: const TextStyle(color: Colors.white54),
-            prefixIcon: const Icon(Icons.search, color: Colors.white70),
-            filled: true,
-            fillColor: const Color(0x66181824),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-          ),
-          onChanged: (v) => ref.read(exploreSearchProvider.notifier).state = v,
-        ),
       ),
     );
   }

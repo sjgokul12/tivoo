@@ -12,7 +12,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../../core/services/gift_video_pool.dart';
 import '../../../core/services/reel_video_manager.dart';
+import '../../../core/theme/luxe_theme.dart';
 import '../../../core/widgets/comment_action_sheet.dart';
 import '../../gift/gift.dart' as store;
 import '../../home/domain/models/live_stream_card_model.dart';
@@ -33,6 +35,7 @@ import '../core/pk_models.dart';
 import '../core/pk_responsive.dart';
 import '../gifts/pk_gift_panel.dart';
 import '../overlays/pk_boxer_intro.dart';
+import '../sheets/pk_more_options_sheet.dart';
 import '../sheets/pk_sheets.dart';
 import '../stage/pk_score_bar.dart';
 import '../stage/pk_stage.dart';
@@ -111,17 +114,120 @@ abstract class PkBattleViewState<T extends PkBattleView> extends ConsumerState<T
   String get matchId => widget.feedItem.match.id;
 
   // ---------------------------------------------------------------------------
-  // Role-specific hooks
+  // Role-specific hooks & Profile Switch
   // ---------------------------------------------------------------------------
 
   /// Popup shown over the stage once the timer runs out.
   Widget buildEndOverlay(BuildContext context);
 
   /// The "More" (…) button next to the comment box.
-  void openMoreOptions();
+  void openMoreOptions() {
+    PkMoreOptionsSheet.show(
+      context,
+      leftHost: left,
+      rightHost: right,
+      onSwitchHost: confirmSwitchActiveProfile,
+      onBlock: () => ref.read(followControllerProvider.notifier).blockUser(hostIdFor(right), onStatusNotify: showSnack),
+      onHelp: () => PkSheets.showRules(context),
+    );
+  }
 
-  /// Tap on the opponent's (right) video.
-  void onRightVideoTap() {}
+  /// Tap on the opponent's (right) video to switch active host profile.
+  void onRightVideoTap() => confirmSwitchActiveProfile();
+
+  /// Prompts confirmation to switch active host profiles.
+  Future<void> confirmSwitchActiveProfile() async {
+    final shouldSwitch = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1B1638),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: LuxeColors.purple, width: 1.2),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.swap_horiz_rounded, color: LuxeColors.gold, size: 24),
+            SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'Switch active profile?',
+                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Make ${right.name} the active host profile? All profile-related actions, gifts, and comments will target ${right.name}.',
+          style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white60, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: LuxeColors.gold,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSwitch == true && mounted) switchActiveProfiles();
+  }
+
+  /// Swaps left and right hosts, scores, gifts, and supporters.
+  void switchActiveProfiles() {
+    setState(() {
+      final tempHost = left;
+      left = right;
+      right = tempHost;
+
+      final tempScore = leftScore;
+      leftScore = rightScore;
+      rightScore = tempScore;
+
+      final tempGift = leftGift;
+      leftGift = rightGift;
+      rightGift = tempGift;
+
+      final tempGifters = Map.of(leftGifters);
+      leftGifters
+        ..clear()
+        ..addAll(rightGifters);
+      rightGifters
+        ..clear()
+        ..addAll(tempGifters);
+    });
+
+    chat.add(
+      userName: 'System',
+      avatar: left.avatarAsset,
+      message: 'Active profile switched to ${left.name}',
+      isGift: false,
+    );
+
+    PkSheets.showBanner(
+      context,
+      title: 'Active Profile Switched',
+      message: '${left.name} is now your active host!',
+      icon: Icons.swap_horiz_rounded,
+      color: const Color(0xFFFFD600),
+      avatarAsset: left.avatarAsset,
+      badgeText: 'ACTIVE',
+      isBottom: true,
+    );
+  }
 
   /// Called once when the countdown reaches zero.
   void onBattleEnded() {}
@@ -133,6 +239,7 @@ abstract class PkBattleViewState<T extends PkBattleView> extends ConsumerState<T
   @override
   void initState() {
     super.initState();
+    GiftVideoPool.instance.warmUp();
     final match = widget.feedItem.match;
     left = match.left;
     right = match.right;
@@ -368,6 +475,16 @@ abstract class PkBattleViewState<T extends PkBattleView> extends ConsumerState<T
     'Love Castle': 'p3d_love_castle',
     'Galaxy Rocket': 'p3d_galaxy_rocket',
     'Diamond Wings': 'p3d_diamond_wings',
+    'Search UFO': 'p3d_search_ufo',
+    'UFO': 'p3d_search_ufo',
+    'Kitsune Fox': 'p3d_kitsune_fox',
+    'Fox': 'p3d_kitsune_fox',
+    'Celestial Dragon': 'p3d_celestial_dragon',
+    'Dragon': 'p3d_celestial_dragon',
+    'Love Bunny': 'p3d_love_bunny',
+    'Bunny': 'p3d_love_bunny',
+    'Cupid Target': 'p3d_cupid_target',
+    'Target': 'p3d_cupid_target',
   };
 
   GiftItem _playable(store.GiftItem gift) => GiftItem(
@@ -375,7 +492,10 @@ abstract class PkBattleViewState<T extends PkBattleView> extends ConsumerState<T
     name: gift.name,
     icon: gift.icon,
     imageAssetPath: gift.imageAssetPath,
+    lottieAssetPath: gift.lottieAssetPath,
+    videoAssetPath: gift.videoAssetPath,
     diamonds: gift.diamonds,
+    animationTypeOverride: gift.animationTypeOverride,
   );
 
   void _sendGift(GiftItem gift, int quantity, String recipient) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -51,6 +52,9 @@ class LocalPostsRepository implements PostsRepository {
   Future<VideoPost> uploadVideo({
     required File video,
     File? thumbnail,
+    Uint8List? videoBytes,
+    Uint8List? thumbnailBytes,
+    String? token,
     required PostAuthor author,
     String caption = '',
     void Function(double progress)? onProgress,

@@ -10,6 +10,7 @@ class ActivityHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canPop = Navigator.canPop(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -17,6 +18,26 @@ class ActivityHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          if (canPop) ...[
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.08),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ],
           // Title & Subtitle in Expanded to prevent text overflow
           Expanded(
             child: Column(
@@ -34,7 +55,7 @@ class ActivityHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Stay updated with your favorite streamers',
+                  'Stay updated with your activities & requests',
                   style: AppTextStyles.heroSubtitle.copyWith(
                     fontSize: 13.5,
                     color: isDark
@@ -47,7 +68,6 @@ class ActivityHeader extends StatelessWidget {
               ],
             ),
           ),
-
         ],
       ),
     );

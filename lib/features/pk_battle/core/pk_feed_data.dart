@@ -88,15 +88,16 @@ class PkFeedData {
     required String viewers,
     required String likes,
     String bio = '',
-  }) => PkHost(
-    name: name,
-    handle: '@${name.toLowerCase()}',
-    bio: bio.isNotEmpty ? bio : '✨ Live Stream Host | PK Champion ✨',
-    avatarAsset: avatar,
-    videoAsset: video,
-    likes: likes,
-    viewers: viewers,
-  );
+  }) =>
+      PkHost(
+        name: name,
+        handle: '@${name.toLowerCase()}',
+        bio: bio.isNotEmpty ? bio : '✨ Live Stream Host | PK Champion ✨',
+        avatarAsset: avatar,
+        videoAsset: video,
+        likes: likes,
+        viewers: viewers,
+      );
 
   static final List<PkBattleFeedItem> feedBattles = [
     // 1. Neha vs Arun

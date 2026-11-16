@@ -11,7 +11,11 @@ class PkExploreSheet extends StatelessWidget {
   final ValueChanged<PkMatch> onSelectBattle;
   final String? currentMatchId;
 
-  const PkExploreSheet({super.key, required this.onSelectBattle, this.currentMatchId});
+  const PkExploreSheet({
+    super.key,
+    required this.onSelectBattle,
+    this.currentMatchId,
+  });
 
   static Future<void> show(
     BuildContext context, {
@@ -23,7 +27,10 @@ class PkExploreSheet extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (ctx) => PkExploreSheet(onSelectBattle: onSelectBattle, currentMatchId: currentMatchId),
+      builder: (ctx) => PkExploreSheet(
+        onSelectBattle: onSelectBattle,
+        currentMatchId: currentMatchId,
+      ),
     );
   }
 
@@ -169,10 +176,21 @@ class PkExploreSheet extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xF2100A26),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-              border: Border.all(color: const Color(0x3300E5FF), width: 1.2),
+              border: Border.all(
+                color: const Color(0x3300E5FF),
+                width: 1.2,
+              ),
               boxShadow: const [
-                BoxShadow(color: Color(0x6600E5FF), blurRadius: 28, spreadRadius: 1, offset: Offset(0, -4)),
-                BoxShadow(color: Colors.black87, blurRadius: 36),
+                BoxShadow(
+                  color: Color(0x6600E5FF),
+                  blurRadius: 28,
+                  spreadRadius: 1,
+                  offset: Offset(0, -4),
+                ),
+                BoxShadow(
+                  color: Colors.black87,
+                  blurRadius: 36,
+                ),
               ],
             ),
             child: Column(
@@ -201,9 +219,16 @@ class PkExploreSheet extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                          border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.5), width: 1.2),
+                          border: Border.all(
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                            width: 1.2,
+                          ),
                         ),
-                        child: const Icon(Icons.explore_rounded, color: Color(0xFF00E5FF), size: 18),
+                        child: const Icon(
+                          Icons.explore_rounded,
+                          color: Color(0xFF00E5FF),
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       const Text(
@@ -227,7 +252,11 @@ class PkExploreSheet extends StatelessWidget {
                             color: Colors.white.withValues(alpha: 0.08),
                             border: Border.all(color: Colors.white12),
                           ),
-                          child: const Icon(Icons.close_rounded, color: Colors.white70, size: 16),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white70,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ],
@@ -248,7 +277,9 @@ class PkExploreSheet extends StatelessWidget {
                   child: TabBar(
                     indicator: BoxDecoration(
                       borderRadius: BorderRadius.circular(19),
-                      gradient: const LinearGradient(colors: [Color(0xFF00E5FF), Color(0xFFFF2DB4)]),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00E5FF), Color(0xFFFF2DB4)],
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFFFF2DB4).withValues(alpha: 0.4),
@@ -358,12 +389,16 @@ class _PkBattleCard extends StatelessWidget {
         color: isCurrent ? const Color(0x4000E5FF) : const Color(0xB316103A),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isCurrent ? const Color(0xFF00E5FF) : const Color(0x3300E5FF),
+          color: isCurrent
+              ? const Color(0xFF00E5FF)
+              : const Color(0x3300E5FF),
           width: isCurrent ? 1.4 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: isCurrent ? const Color(0x4400E5FF) : const Color(0x22FF2DB4),
+            color: isCurrent
+                ? const Color(0x4400E5FF)
+                : const Color(0x22FF2DB4),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -382,9 +417,14 @@ class _PkBattleCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
-                        boxShadow: const [BoxShadow(color: Color(0x5500E5FF), blurRadius: 8)],
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x5500E5FF), blurRadius: 8),
+                        ],
                       ),
-                      child: CustomAvatar(radius: 19, assetPath: battle.left.avatarAsset),
+                      child: CustomAvatar(
+                        radius: 19,
+                        assetPath: battle.left.avatarAsset,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -393,7 +433,11 @@ class _PkBattleCard extends StatelessWidget {
                         children: [
                           Text(
                             battle.left.name,
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -401,13 +445,21 @@ class _PkBattleCard extends StatelessWidget {
                             Text(
                               '${battle.leftScore}',
                               style: TextStyle(
-                                color: battle.leftScore >= battle.rightScore ? const Color(0xFFFFD700) : Colors.white54,
+                                color: battle.leftScore >= battle.rightScore
+                                    ? const Color(0xFFFFD700)
+                                    : Colors.white54,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),
                             )
                           else
-                            Text(battle.left.likes, style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10.5)),
+                            Text(
+                              battle.left.likes,
+                              style: const TextStyle(
+                                color: Color(0xFF00E5FF),
+                                fontSize: 10.5,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -422,8 +474,12 @@ class _PkBattleCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(colors: [Color(0xFF00E5FF), Color(0xFFFF2DB4)]),
-                    boxShadow: const [BoxShadow(color: Color(0x66FF2DB4), blurRadius: 8)],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00E5FF), Color(0xFFFF2DB4)],
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x66FF2DB4), blurRadius: 8),
+                    ],
                   ),
                   child: const Text(
                     'VS',
@@ -448,7 +504,11 @@ class _PkBattleCard extends StatelessWidget {
                         children: [
                           Text(
                             battle.right.name,
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -456,13 +516,21 @@ class _PkBattleCard extends StatelessWidget {
                             Text(
                               '${battle.rightScore}',
                               style: TextStyle(
-                                color: battle.rightScore > battle.leftScore ? const Color(0xFFFFD700) : Colors.white54,
+                                color: battle.rightScore > battle.leftScore
+                                    ? const Color(0xFFFFD700)
+                                    : Colors.white54,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),
                             )
                           else
-                            Text(battle.right.likes, style: const TextStyle(color: Color(0xFFFF2DB4), fontSize: 10.5)),
+                            Text(
+                              battle.right.likes,
+                              style: const TextStyle(
+                                color: Color(0xFFFF2DB4),
+                                fontSize: 10.5,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -471,9 +539,14 @@ class _PkBattleCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFFFF2DB4), width: 1.5),
-                        boxShadow: const [BoxShadow(color: Color(0x55FF2DB4), blurRadius: 8)],
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x55FF2DB4), blurRadius: 8),
+                        ],
                       ),
-                      child: CustomAvatar(radius: 19, assetPath: battle.right.avatarAsset),
+                      child: CustomAvatar(
+                        radius: 19,
+                        assetPath: battle.right.avatarAsset,
+                      ),
                     ),
                   ],
                 ),
@@ -502,12 +575,20 @@ class _PkBattleCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       const Text(
                         'LIVE',
-                        style: TextStyle(color: Color(0xFFFF2D55), fontSize: 10, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                          color: Color(0xFFFF2D55),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '🔥 ${battle.viewers}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -527,7 +608,11 @@ class _PkBattleCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         battle.startsAt ?? 'Coming Soon',
-                        style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10.5, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -547,7 +632,11 @@ class _PkBattleCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Winner: ${battle.winner.name}',
-                        style: const TextStyle(color: Color(0xFFFFD700), fontSize: 10.5, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -597,7 +686,9 @@ class _PkBattleCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          isCurrent ? 'Watching' : (isUpcoming ? 'Preview' : (isResults ? 'Replay' : 'Watch Battle')),
+                          isCurrent
+                              ? 'Watching'
+                              : (isUpcoming ? 'Preview' : (isResults ? 'Replay' : 'Watch Battle')),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,

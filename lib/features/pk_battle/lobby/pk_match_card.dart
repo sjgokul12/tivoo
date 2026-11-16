@@ -42,7 +42,10 @@ class PkMatchCard extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(u * 4.5),
-                  border: Border.all(color: const Color(0xFFFFD600).withValues(alpha: 0.25), width: u * 0.3),
+                  border: Border.all(
+                    color: const Color(0xFFFFD600).withValues(alpha: 0.25),
+                    width: u * 0.3,
+                  ),
                   boxShadow: const [
                     BoxShadow(color: Color(0x33FFC928), blurRadius: 14, offset: Offset(-2, 3)),
                     BoxShadow(color: Color(0x337B4DFF), blurRadius: 14, offset: Offset(2, 3)),
@@ -82,7 +85,10 @@ class PkMatchCard extends StatelessWidget {
                                 gradient: LinearGradient(
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
-                                  colors: [const Color(0xFF1E3A8A).withValues(alpha: 0.35), Colors.transparent],
+                                  colors: [
+                                    const Color(0xFF1E3A8A).withValues(alpha: 0.35),
+                                    Colors.transparent,
+                                  ],
                                 ),
                               ),
                             ),
@@ -93,7 +99,10 @@ class PkMatchCard extends StatelessWidget {
                                 gradient: LinearGradient(
                                   begin: Alignment.centerRight,
                                   end: Alignment.centerLeft,
-                                  colors: [const Color(0xFF831843).withValues(alpha: 0.35), Colors.transparent],
+                                  colors: [
+                                    const Color(0xFF831843).withValues(alpha: 0.35),
+                                    Colors.transparent,
+                                  ],
                                 ),
                               ),
                             ),
@@ -107,7 +116,11 @@ class PkMatchCard extends StatelessWidget {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Color(0xB3050410), Colors.transparent, Color(0xD9050410)],
+                            colors: [
+                              Color(0xB3050410),
+                              Colors.transparent,
+                              Color(0xD9050410),
+                            ],
                             stops: [0.0, 0.45, 1.0],
                           ),
                         ),
@@ -121,9 +134,16 @@ class PkMatchCard extends StatelessWidget {
                             gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Color(0xFFFFD600), Color(0xFF00E5FF), Colors.transparent],
+                              colors: [
+                                Colors.transparent,
+                                Color(0xFFFFD600),
+                                Color(0xFF00E5FF),
+                                Colors.transparent,
+                              ],
                             ),
-                            boxShadow: const [BoxShadow(color: Color(0x88FFD600), blurRadius: 8)],
+                            boxShadow: const [
+                              BoxShadow(color: Color(0x88FFD600), blurRadius: 8),
+                            ],
                           ),
                         ),
                       ),
@@ -195,11 +215,18 @@ class _StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(u * 3),
         gradient: LinearGradient(colors: colors),
-        boxShadow: [BoxShadow(color: colors.first.withValues(alpha: 0.45), blurRadius: 6)],
+        boxShadow: [
+          BoxShadow(color: colors.first.withValues(alpha: 0.45), blurRadius: 6),
+        ],
       ),
       child: Text(
         label,
-        style: TextStyle(color: Colors.white, fontSize: u * 3.6, fontWeight: FontWeight.w900, letterSpacing: 0.4),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: u * 3.6,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }
@@ -256,7 +283,10 @@ class _GoldVsBadge extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           // Background lightning flare
-          CustomPaint(size: Size(width, height), painter: _BoltPainter()),
+          CustomPaint(
+            size: Size(width, height),
+            painter: _BoltPainter(),
+          ),
           // Deep dark stroke for crisp outline over any photo
           Text(
             'VS',
@@ -280,7 +310,10 @@ class _GoldVsBadge extends StatelessWidget {
               colors: [Color(0xFFFFFBE0), Color(0xFFFFD54A), Color(0xFFFF9800), Color(0xFFFFC107)],
               stops: [0, 0.4, 0.75, 1],
             ).createShader,
-            child: Text('VS', style: style.copyWith(color: Colors.white)),
+            child: Text(
+              'VS',
+              style: style.copyWith(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -340,7 +373,9 @@ class _Name extends StatelessWidget {
         color: Colors.white,
         fontSize: u * 5,
         fontWeight: FontWeight.w800,
-        shadows: const [Shadow(color: Color(0xEE000000), blurRadius: 8, offset: Offset(0, 2))],
+        shadows: const [
+          Shadow(color: Color(0xEE000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
       ),
     );
   }
@@ -366,8 +401,17 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(u * 6),
           gradient: LuxeColors.goldGradient,
-          border: Border.all(color: LuxeColors.goldLight, width: u * 0.3),
-          boxShadow: const [BoxShadow(color: Color(0x88FFC928), blurRadius: 14, offset: Offset(0, 3))],
+          border: Border.all(
+            color: LuxeColors.goldLight,
+            width: u * 0.3,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x88FFC928),
+              blurRadius: 14,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Text(
           label,

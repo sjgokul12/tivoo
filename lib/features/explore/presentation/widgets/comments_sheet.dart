@@ -15,8 +15,16 @@ const _muted = Color(0xFF9A98AE);
 class CommentsSheet extends ConsumerStatefulWidget {
   final String itemId;
   final bool seed;
+  final bool isInline;
+  final VoidCallback? onClose;
 
-  const CommentsSheet({super.key, required this.itemId, this.seed = true});
+  const CommentsSheet({
+    super.key,
+    required this.itemId,
+    this.seed = true,
+    this.isInline = false,
+    this.onClose,
+  });
 
   /// [seed] adds sample comments (for demo videos); pass false for real uploads.
   static Future<void> show(BuildContext context, {required String itemId, bool seed = true}) {
@@ -87,10 +95,21 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final comments = ref.watch(commentsProvider(_key));
-    final profile = ref.watch(profileControllerProvider).profile;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     final maxWidth = MediaQuery.sizeOf(context).width > 700 ? 600.0 : double.infinity;
+
+    if (widget.isInline) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: _sheetBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          boxShadow: [
+            BoxShadow(color: Colors.black87, blurRadius: 18, offset: Offset(0, -4)),
+          ],
+        ),
+        child: _buildSheetBody(context, null),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboard),
@@ -108,128 +127,169 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
                 color: _sheetBg,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
               ),
-              child: Column(
-                children: [
-                  // Handle + title
-                  const SizedBox(height: 10),
-                  Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    comments.isEmpty ? 'Comments' : 'Comments  ·  ${comments.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-                  // List
-                  Expanded(
-                    child: comments.isEmpty
-                        ? ListView(controller: scroll, children: const [SizedBox(height: 70), _EmptyState()])
-                        : ListView.builder(
-                            controller: scroll,
-                            padding: const EdgeInsets.fromLTRB(16, 10, 8, 16),
-                            itemCount: comments.length,
-                            itemBuilder: (_, i) => _CommentTile(
-                              comment: comments[i],
-                              onLike: () => ref.read(commentsProvider(_key).notifier).toggleLike(comments[i].id),
-                              onReply: () => _reply(comments[i]),
-                              onLongPress: comments[i].isMine ? () => _confirmDelete(comments[i]) : null,
-                            ),
-                          ),
-                  ),
-                  Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-                  // Quick emoji row
-                  SizedBox(
-                    height: 46,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      children: [
-                        for (final e in _quickEmojis)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () {
-                              _input.text += e;
-                              _input.selection = TextSelection.collapsed(offset: _input.text.length);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 9),
-                              child: Center(child: Text(e, style: const TextStyle(fontSize: 22))),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Input bar
-                  SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 2, 8, 10),
-                      child: Row(
-                        children: [
-                          CustomAvatar(
-                            radius: 17,
-                            imageUrl: profile.avatarUrl.isNotEmpty ? profile.avatarUrl : AppAssets.status5,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _input,
-                              focusNode: _focus,
-                              minLines: 1,
-                              maxLines: 4,
-                              maxLength: 500,
-                              textCapitalization: TextCapitalization.sentences,
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
-                              cursorColor: _gold,
-                              onSubmitted: (_) => _send(),
-                              decoration: InputDecoration(
-                                counterText: '',
-                                isDense: true,
-                                hintText: 'Add a comment…',
-                                hintStyle: const TextStyle(color: _muted, fontSize: 14),
-                                filled: true,
-                                fillColor: Colors.white.withValues(alpha: 0.07),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                  borderSide: BorderSide.none,
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                  borderSide: BorderSide(color: _gold.withValues(alpha: 0.6)),
-                                ),
-                              ),
-                            ),
-                          ),
-                          AnimatedOpacity(
-                            duration: const Duration(milliseconds: 150),
-                            opacity: _input.text.trim().isEmpty ? 0.4 : 1,
-                            child: IconButton(
-                              tooltip: 'Post',
-                              onPressed: _input.text.trim().isEmpty ? null : _send,
-                              icon: const Icon(Icons.arrow_upward_rounded),
-                              style: IconButton.styleFrom(
-                                backgroundColor: _gold,
-                                foregroundColor: const Color(0xFF1A1300),
-                                disabledBackgroundColor: _gold,
-                                disabledForegroundColor: const Color(0xFF1A1300),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildSheetBody(context, scroll),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSheetBody(BuildContext context, ScrollController? scroll) {
+    final comments = ref.watch(commentsProvider(_key));
+    final profile = ref.watch(profileControllerProvider).profile;
+
+    return Column(
+      children: [
+        // Handle + Header with Title and Close Button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+          child: Row(
+            children: [
+              const SizedBox(width: 28), // balance close button
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      comments.isEmpty ? 'Comments' : 'Comments  ·  ${comments.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  if (widget.onClose != null) {
+                    widget.onClose!();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  child: const Icon(Icons.close_rounded, color: Colors.white70, size: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+
+        // Comments List
+        Expanded(
+          child: comments.isEmpty
+              ? ListView(controller: scroll, children: const [SizedBox(height: 60), _EmptyState()])
+              : ListView.builder(
+                  controller: scroll,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 12),
+                  itemCount: comments.length,
+                  itemBuilder: (_, i) => _CommentTile(
+                    comment: comments[i],
+                    onLike: () => ref.read(commentsProvider(_key).notifier).toggleLike(comments[i].id),
+                    onReply: () => _reply(comments[i]),
+                    onLongPress: comments[i].isMine ? () => _confirmDelete(comments[i]) : null,
+                  ),
+                ),
+        ),
+        Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
+
+        // Quick emoji row
+        SizedBox(
+          height: 42,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            children: [
+              for (final e in _quickEmojis)
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    _input.text += e;
+                    _input.selection = TextSelection.collapsed(offset: _input.text.length);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(child: Text(e, style: const TextStyle(fontSize: 20))),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // Input bar
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 2, 8, 8),
+            child: Row(
+              children: [
+                CustomAvatar(
+                  radius: 16,
+                  imageUrl: profile.avatarUrl.isNotEmpty ? profile.avatarUrl : AppAssets.status5,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _input,
+                    focusNode: _focus,
+                    minLines: 1,
+                    maxLines: 3,
+                    maxLength: 500,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                    cursorColor: _gold,
+                    onSubmitted: (_) => _send(),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      isDense: true,
+                      hintText: 'Add a comment…',
+                      hintStyle: const TextStyle(color: _muted, fontSize: 13.5),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.07),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(color: _gold.withValues(alpha: 0.6)),
+                      ),
+                    ),
+                  ),
+                ),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _input.text.trim().isEmpty ? 0.35 : 1,
+                  child: IconButton(
+                    tooltip: 'Post',
+                    onPressed: _input.text.trim().isEmpty ? null : _send,
+                    icon: const Icon(Icons.arrow_upward_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: _gold,
+                      foregroundColor: const Color(0xFF1A1300),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

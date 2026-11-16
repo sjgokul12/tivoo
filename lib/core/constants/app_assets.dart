@@ -132,6 +132,16 @@ class AppAssets {
   static const String endChat = 'assets/endchat.jpg';
 
   // Gift store artwork (lib/features/gift)
+  static const String giftSearchLottie = 'assets/new gift/search.lottie';
+  static const String giftSearchJson = 'assets/new gift/search.json';
+  static const String giftVideoFox = 'assets/gifts/video1_fox.mp4';
+  static const String giftVideoDragon = 'assets/gifts/video2_dragon.mp4';
+  static const String giftVideoBunny = 'assets/gifts/video3_bunny.mp4';
+  static const String giftVideoTarget = 'assets/gifts/video4_target.mp4';
+  static const String giftThumbFox = 'assets/gifts/thumb_fox.png';
+  static const String giftThumbDragon = 'assets/gifts/thumb_dragon.png';
+  static const String giftThumbBunny = 'assets/gifts/thumb_bunny.png';
+  static const String giftThumbTarget = 'assets/gifts/thumb_target.png';
   static const String giftLove = 'assets/gift_love.png';
   static const String giftDiamond = 'assets/gift_diamond.png';
   static const String giftFlowers = 'assets/gift_flowers.png';

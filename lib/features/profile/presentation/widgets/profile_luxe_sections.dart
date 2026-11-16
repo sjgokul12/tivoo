@@ -17,7 +17,9 @@ const Color _ink = Color(0xFF1A1300);
 
 /// Scale factor for the profile layout (1.0 on a 390 px wide phone).
 double profileScale(BuildContext context) =>
-    (math.min(MediaQuery.sizeOf(context).width, 680) / 390).clamp(0.86, 1.25).toDouble();
+    (math.min(MediaQuery.sizeOf(context).width, 680) / 390)
+        .clamp(0.86, 1.25)
+        .toDouble();
 
 /// Subtle glass panel used for the stats card and the badges row.
 BoxDecoration _glass(double radius) => BoxDecoration(
@@ -99,7 +101,10 @@ class _ProfileLightsPainter extends CustomPainter {
     shard(Offset(w * 0.94, h * 0.92), Offset(w * 1.05, h * 0.82), 18, violet);
 
     // Gold arc behind the header (from behind the avatar out to the top right).
-    final arc = Rect.fromCircle(center: Offset(w * 0.78, h * 0.3), radius: w * 0.62);
+    final arc = Rect.fromCircle(
+      center: Offset(w * 0.78, h * 0.3),
+      radius: w * 0.62,
+    );
     canvas.drawArc(
       arc,
       math.pi * 1.06,
@@ -107,7 +112,12 @@ class _ProfileLightsPainter extends CustomPainter {
       false,
       Paint()
         ..shader = const SweepGradient(
-          colors: [Colors.transparent, Color(0x99FFC928), Color(0x33FFC928), Colors.transparent],
+          colors: [
+            Colors.transparent,
+            Color(0x99FFC928),
+            Color(0x33FFC928),
+            Colors.transparent,
+          ],
           stops: [0.5, 0.62, 0.75, 0.8],
         ).createShader(arc)
         ..style = PaintingStyle.stroke
@@ -115,10 +125,16 @@ class _ProfileLightsPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
     // Diagonal gold beam at the top right.
-    shard(Offset(w * 0.5, h * 0.06), Offset(w * 0.68, -h * 0.01), 10, const Color(0x88FFC928));
+    shard(
+      Offset(w * 0.5, h * 0.06),
+      Offset(w * 0.68, -h * 0.01),
+      10,
+      const Color(0x88FFC928),
+    );
 
     // Bokeh
-    final dot = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+    final dot = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
     for (final (x, y, r, a) in const [
       (0.04, 0.16, 2.0, 0.7),
       (0.97, 0.33, 2.4, 0.6),
@@ -177,7 +193,10 @@ class _RingButton extends StatelessWidget {
           child: Container(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(center: Alignment(-0.3, -0.4), colors: [Color(0xFF26215A), Color(0xFF0B0920)]),
+              gradient: RadialGradient(
+                center: Alignment(-0.3, -0.4),
+                colors: [Color(0xFF26215A), Color(0xFF0B0920)],
+              ),
             ),
             child: Icon(icon, color: Colors.white, size: size * _iconScale),
           ),
@@ -208,14 +227,29 @@ class ProfileTopBar extends StatelessWidget {
     final size = 40 * s;
     return Row(
       children: [
-        _RingButton(icon: Icons.arrow_back_rounded, label: 'Back', size: size, onTap: onBack),
+        _RingButton(
+          icon: Icons.arrow_back_rounded,
+          label: 'Back',
+          size: size,
+          onTap: onBack,
+        ),
         const Spacer(),
         if (showActions && onMenu != null)
-          _RingButton(icon: Icons.menu_rounded, label: 'Menu', size: size, onTap: onMenu!),
+          _RingButton(
+            icon: Icons.menu_rounded,
+            label: 'Menu',
+            size: size,
+            onTap: onMenu!,
+          ),
         if (showActions && onMenu != null && onSettings != null)
           SizedBox(width: 9 * s),
         if (showActions && onSettings != null)
-          _RingButton(icon: Icons.settings_rounded, label: 'Settings', size: size, onTap: onSettings!),
+          _RingButton(
+            icon: Icons.settings_rounded,
+            label: 'Settings',
+            size: size,
+            onTap: onSettings!,
+          ),
       ],
     );
   }
@@ -258,7 +292,11 @@ class ProfileIdentityHeader extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.only(top: 6 * s),
-          child: _Avatar(size: avatar, asset: avatarAsset, onCamera: onAvatarCamera),
+          child: _Avatar(
+            size: avatar,
+            asset: avatarAsset,
+            onCamera: onAvatarCamera,
+          ),
         ),
         SizedBox(width: 12 * s),
         Expanded(
@@ -273,10 +311,18 @@ class ProfileIdentityHeader extends StatelessWidget {
                   children: [
                     Text(
                       username,
-                      style: TextStyle(color: Colors.white, fontSize: 17 * s, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17 * s,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     SizedBox(width: 5 * s),
-                    Icon(Icons.verified_rounded, color: const Color(0xFF2E9BFF), size: 17 * s),
+                    Icon(
+                      Icons.verified_rounded,
+                      color: const Color(0xFF2E9BFF),
+                      size: 17 * s,
+                    ),
                     SizedBox(width: 7 * s),
                     _LevelPill(level: level, s: s, onTap: onLevelTap),
                   ],
@@ -310,7 +356,11 @@ class _Avatar extends StatelessWidget {
   final double size;
   final String asset;
   final VoidCallback onCamera;
-  const _Avatar({required this.size, required this.asset, required this.onCamera});
+  const _Avatar({
+    required this.size,
+    required this.asset,
+    required this.onCamera,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -328,8 +378,16 @@ class _Avatar extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: const Color(0xAAFFC928), blurRadius: size * 0.2, spreadRadius: size * 0.01),
-                  BoxShadow(color: const Color(0x55FF9A00), blurRadius: size * 0.34, spreadRadius: size * 0.03),
+                  BoxShadow(
+                    color: const Color(0xAAFFC928),
+                    blurRadius: size * 0.2,
+                    spreadRadius: size * 0.01,
+                  ),
+                  BoxShadow(
+                    color: const Color(0x55FF9A00),
+                    blurRadius: size * 0.34,
+                    spreadRadius: size * 0.03,
+                  ),
                 ],
               ),
             ),
@@ -352,11 +410,16 @@ class _Avatar extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned.fill(child: CustomPaint(painter: _AvatarRingPainter())),
+          const Positioned.fill(
+            child: CustomPaint(painter: _AvatarRingPainter()),
+          ),
           Positioned(
             top: -size * 0.24,
             left: size * 0.02,
-            child: Transform.rotate(angle: -0.36, child: LuxeCrown(size: size * 0.38)),
+            child: Transform.rotate(
+              angle: -0.36,
+              child: LuxeCrown(size: size * 0.38),
+            ),
           ),
         ],
       ),
@@ -416,7 +479,13 @@ class _AvatarRingPainter extends CustomPainter {
         ..strokeWidth = stroke * 0.5
         ..strokeCap = StrokeCap.round
         ..shader = const SweepGradient(
-          colors: [Color(0x00B04DFF), Color(0xFFB04DFF), Color(0xFFE040FB), Color(0xFF7B4DFF), Color(0x007B4DFF)],
+          colors: [
+            Color(0x00B04DFF),
+            Color(0xFFB04DFF),
+            Color(0xFFE040FB),
+            Color(0xFF7B4DFF),
+            Color(0x007B4DFF),
+          ],
           stops: [0.2, 0.3, 0.42, 0.6, 0.72],
         ).createShader(ring)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.008),
@@ -448,7 +517,11 @@ class _AvatarRingPainter extends CustomPainter {
         size * 1.4,
         Paint()
           ..shader = RadialGradient(
-            colors: [Colors.white.withValues(alpha: 0.9), const Color(0x88FFC928), Colors.transparent],
+            colors: [
+              Colors.white.withValues(alpha: 0.9),
+              const Color(0x88FFC928),
+              Colors.transparent,
+            ],
             stops: const [0, 0.3, 1],
           ).createShader(Rect.fromCircle(center: p, radius: size * 1.4)),
       );
@@ -496,11 +569,19 @@ class _LevelPill extends StatelessWidget {
             SizedBox(width: 3 * s),
             Text(
               'Lv $level',
-              style: TextStyle(color: Colors.white, fontSize: 10.5 * s, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10.5 * s,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             if (onTap != null) ...[
               SizedBox(width: 2 * s),
-              Icon(Icons.chevron_right_rounded, color: LuxeColors.gold, size: 11 * s),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: LuxeColors.gold,
+                size: 11 * s,
+              ),
             ],
           ],
         ),
@@ -531,7 +612,12 @@ class _StatsCard extends StatelessWidget {
           children: [
             Text(
               value,
-              style: TextStyle(color: Colors.white, fontSize: 17 * s, fontWeight: FontWeight.w600, height: 1.2),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17 * s,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
             ),
             Text(
               label,
@@ -541,13 +627,23 @@ class _StatsCard extends StatelessWidget {
         ),
       ),
     );
-    Widget divider() => Container(width: 1, height: 28 * s, color: Colors.white.withValues(alpha: 0.16));
+    Widget divider() => Container(
+      width: 1,
+      height: 28 * s,
+      color: Colors.white.withValues(alpha: 0.16),
+    );
 
     return Container(
       padding: EdgeInsets.symmetric(vertical: 9 * s, horizontal: 4 * s),
       decoration: _glass(16 * s),
       child: Row(
-        children: [stat(followers, 'Followers'), divider(), stat(following, 'Following'), divider(), stat(likes, 'Likes')],
+        children: [
+          stat(followers, 'Followers'),
+          divider(),
+          stat(following, 'Following'),
+          divider(),
+          stat(likes, 'Likes'),
+        ],
       ),
     );
   }
@@ -570,21 +666,36 @@ class ProfileBio extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.symmetric(horizontal: 8 * s, vertical: 2 * s),
-          decoration: BoxDecoration(gradient: LuxeColors.goldGradient, borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(
+            gradient: LuxeColors.goldGradient,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Text(
             '#Knowledge',
-            style: TextStyle(color: _ink, fontSize: 11 * s, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: _ink,
+              fontSize: 11 * s,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         SizedBox(height: 5 * s),
         Text(
           name,
-          style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15 * s,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         SizedBox(height: 2 * s),
         Text(
           bio.toUpperCase(),
-          style: TextStyle(color: const Color(0xFFD9D6EE), fontSize: 11.5 * s, height: 1.4),
+          style: TextStyle(
+            color: const Color(0xFFD9D6EE),
+            fontSize: 11.5 * s,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -623,7 +734,11 @@ class ProfileActions extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.edit_outlined, color: LuxeColors.gold, size: 18 * s),
+                      Icon(
+                        Icons.edit_outlined,
+                        color: LuxeColors.gold,
+                        size: 18 * s,
+                      ),
                       SizedBox(width: 7 * s),
                       Text(
                         'Edit Profile',
@@ -642,42 +757,49 @@ class ProfileActions extends StatelessWidget {
           ),
         ),
         SizedBox(width: 10 * s),
-        // Messages Panel Button
+        // Messages Panel Button (Same style as Edit Profile)
         Expanded(
           child: Semantics(
             button: true,
             child: GestureDetector(
               onTap: onMessagesTap,
-              child: _GlossyGoldButton(
+              child: _GlossyGlassButton(
                 height: h,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.chat_bubble_outline_rounded, color: _ink, size: 18 * s),
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: LuxeColors.gold,
+                        size: 18 * s,
+                      ),
                       SizedBox(width: 7 * s),
                       Text(
                         'Messages',
                         style: TextStyle(
-                          color: _ink,
+                          color: Colors.white,
                           fontSize: 13.5 * s,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: 0.2,
                         ),
                       ),
                       if (unreadCount > 0) ...[
                         SizedBox(width: 6 * s),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6 * s, vertical: 2 * s),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6 * s,
+                            vertical: 2 * s,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF161200),
+                            color: LuxeColors.gold,
                             borderRadius: BorderRadius.circular(10 * s),
                           ),
                           child: Text(
                             '$unreadCount',
                             style: TextStyle(
-                              color: LuxeColors.gold,
+                              color: Colors.black,
                               fontSize: 10.5 * s,
                               fontWeight: FontWeight.w900,
                             ),
@@ -710,7 +832,10 @@ class _GlossyGlassButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0x331C1645),
         borderRadius: r,
-        border: Border.all(color: LuxeColors.gold.withValues(alpha: 0.55), width: 1.2),
+        border: Border.all(
+          color: LuxeColors.gold.withValues(alpha: 0.55),
+          width: 1.2,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x44000000),
@@ -743,63 +868,12 @@ class _GlossyGlassButton extends StatelessWidget {
                 ),
               ),
             ),
-            Center(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: child)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Gold pill with a glossy top highlight and a diagonal light streak near its right end.
-class _GlossyGoldButton extends StatelessWidget {
-  final double height;
-  final Widget child;
-  const _GlossyGoldButton({required this.height, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = BorderRadius.circular(height / 2);
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: r,
-        border: Border.all(color: const Color(0xFFFFE9A0), width: 1),
-        boxShadow: const [BoxShadow(color: Color(0x88FFC928), blurRadius: 16, offset: Offset(0, 3))],
-      ),
-      child: ClipRRect(
-        borderRadius: r,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFFE066), LuxeColors.gold, Color(0xFFF2B200), Color(0xFFFFF0A8), Color(0xFFE59A00)],
-                  stops: [0, 0.4, 0.66, 0.74, 1],
-                ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: child,
               ),
             ),
-            // Top gloss
-            Align(
-              alignment: Alignment.topCenter,
-              child: FractionallySizedBox(
-                heightFactor: 0.45,
-                widthFactor: 1,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.white.withValues(alpha: 0.45), Colors.white.withValues(alpha: 0)],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Center(child: child),
           ],
         ),
       ),
@@ -811,7 +885,7 @@ class _GlossyGoldButton extends StatelessWidget {
 // BADGES ROW
 // =============================================================================
 
-/// One glass panel: [⭐ Tivoo Star No.500+ ›] | [Angels 👥 ›] | [Share] | [🛡 Family RS TECH ›]
+/// One glass panel: [⭐ Tivoo Star No.500+ ›] | [Angels 👥 ›] | [🛡 Family Tivoo Angels ✨ ›] | [🔗 Share icon]
 class ProfileBadgesRow extends StatelessWidget {
   final VoidCallback onTikiStar;
   final VoidCallback? onTivooStar;
@@ -832,7 +906,12 @@ class ProfileBadgesRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = profileScale(context);
     final h = 56 * s;
-    Widget cell(Widget child, VoidCallback onTap, int flex, {bool framed = true}) => Expanded(
+    Widget cell(
+      Widget child,
+      VoidCallback onTap,
+      int flex, {
+      bool framed = true,
+    }) => Expanded(
       flex: flex,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -844,9 +923,16 @@ class ProfileBadgesRow extends StatelessWidget {
               ? BoxDecoration(
                   borderRadius: BorderRadius.circular(h / 2),
                   color: Colors.white.withValues(alpha: 0.05),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.16), width: 1.1),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    width: 1.1,
+                  ),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x22000000), blurRadius: 6, offset: Offset(0, 2)),
+                    BoxShadow(
+                      color: Color(0x22000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 )
               : null,
@@ -868,7 +954,11 @@ class ProfileBadgesRow extends StatelessWidget {
           cell(
             _BadgeCell(
               s: s,
-              leading: _RoundIcon(icon: Icons.star_rounded, color: LuxeColors.gold, s: s),
+              leading: _RoundIcon(
+                icon: Icons.star_rounded,
+                color: LuxeColors.gold,
+                s: s,
+              ),
               title: 'Tivoo Star',
               value: 'No.500+',
             ),
@@ -887,56 +977,70 @@ class ProfileBadgesRow extends StatelessWidget {
                   children: [
                     Positioned(
                       left: 0,
-                      child: CustomAvatar(radius: 11 * s, assetPath: AppAssets.avatarPriya),
+                      child: CustomAvatar(
+                        radius: 11 * s,
+                        assetPath: AppAssets.avatarPriya,
+                      ),
                     ),
                     Positioned(
                       left: 18 * s,
-                      child: CustomAvatar(radius: 11 * s, assetPath: AppAssets.avatarNeha),
+                      child: CustomAvatar(
+                        radius: 11 * s,
+                        assetPath: AppAssets.avatarNeha,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
             onAngels,
-            22,
-          ),
-          SizedBox(width: 5 * s),
-          cell(
-            Container(
-              height: h - 8 * s,
-              padding: EdgeInsets.symmetric(horizontal: 14 * s),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFFFE34D), LuxeColors.gold]),
-                borderRadius: BorderRadius.circular(h / 2),
-                boxShadow: const [BoxShadow(color: Color(0x77FFC928), blurRadius: 10)],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.push_pin_rounded, color: _ink, size: 16 * s),
-                  SizedBox(width: 5 * s),
-                  Text(
-                    'Share',
-                    style: TextStyle(color: _ink, fontSize: 13.5 * s, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-            onShare,
-            22,
-            framed: false,
+            24,
           ),
           SizedBox(width: 5 * s),
           cell(
             _BadgeCell(
               s: s,
-              leading: _RoundIcon(icon: Icons.shield_rounded, color: const Color(0xFFCFE2FF), s: s),
+              leading: _RoundIcon(
+                icon: Icons.shield_rounded,
+                color: const Color(0xFFCFE2FF),
+                s: s,
+              ),
               title: 'Family',
-              value: 'RS TECH',
+              value: 'Tivoo Angels ✨',
             ),
             onFamily,
-            30,
+            36,
+          ),
+          SizedBox(width: 6 * s),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onShare,
+            child: Container(
+              width: 36 * s,
+              height: 36 * s,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  width: 1.1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.share_rounded,
+                  color: Colors.white,
+                  size: 17 * s,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -951,7 +1055,13 @@ class _BadgeCell extends StatelessWidget {
   final String? value;
   final Widget? valueWidget;
 
-  const _BadgeCell({required this.s, this.leading, required this.title, this.value, this.valueWidget});
+  const _BadgeCell({
+    required this.s,
+    this.leading,
+    required this.title,
+    this.value,
+    this.valueWidget,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -966,13 +1076,21 @@ class _BadgeCell extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(color: const Color(0xFFD9D6EE), fontSize: 12 * s, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: const Color(0xFFD9D6EE),
+                fontSize: 12 * s,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             SizedBox(height: 1 * s),
             valueWidget ??
                 Text(
                   value ?? '',
-                  style: TextStyle(color: Colors.white, fontSize: 13.5 * s, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5 * s,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
           ],
         ),
@@ -996,9 +1114,16 @@ class _RoundIcon extends StatelessWidget {
       height: 35 * s,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(colors: [Color(0xFF2A2366), Color(0xFF0E0B2C)]),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.22), width: 1.1),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8)],
+        gradient: const RadialGradient(
+          colors: [Color(0xFF2A2366), Color(0xFF0E0B2C)],
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.22),
+          width: 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 8),
+        ],
       ),
       child: Icon(
         icon,
@@ -1025,9 +1150,15 @@ class ProfileVideo {
   /// Set for videos the user uploaded.
   final VideoPost? post;
 
-  const ProfileVideo(this.asset, {this.views, this.isDraftFolder = false, this.post});
+  const ProfileVideo(
+    this.asset, {
+    this.views,
+    this.isDraftFolder = false,
+    this.post,
+  });
 
-  ProfileVideo.uploaded(VideoPost post) : this(AppAssets.liveCard1, views: post.formattedViews, post: post);
+  ProfileVideo.uploaded(VideoPost post)
+    : this(AppAssets.liveCard1, views: post.formattedViews, post: post);
 
   bool get isVideo => post != null;
 }
@@ -1094,20 +1225,31 @@ class ProfileContentPanel extends StatelessWidget {
     if (!isViewingDrafts && !videos.any((v) => v.isVideo)) {
       return Column(
         children: [
-          if (videos.isNotEmpty) grid(videos.length, (i) => _tileFor(videos[i])),
+          if (videos.isNotEmpty)
+            grid(videos.length, (i) => _tileFor(videos[i])),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 28 * s),
             child: Column(
               children: [
-                Icon(Icons.video_library_outlined, color: Colors.white38, size: 40 * s),
+                Icon(
+                  Icons.video_library_outlined,
+                  color: Colors.white38,
+                  size: 40 * s,
+                ),
                 SizedBox(height: 10 * s),
                 Text(
                   'No videos yet',
-                  style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15 * s,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 SizedBox(height: 4 * s),
                 Text(
-                  onLongPressVideo == null ? 'Videos will appear here.' : 'Tap + below to upload your first video.',
+                  onLongPressVideo == null
+                      ? 'Videos will appear here.'
+                      : 'Tap + below to upload your first video.',
                   style: TextStyle(color: Colors.white54, fontSize: 12.5 * s),
                 ),
               ],
@@ -1132,17 +1274,26 @@ class ProfileContentPanel extends StatelessWidget {
                 onPressed: onCloseDrafts,
                 tooltip: 'Back to posts',
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.08)),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                ),
               ),
               SizedBox(width: 8 * s),
               Text(
                 'Drafts · ${draftVideos.length}',
-                style: TextStyle(color: Colors.white, fontSize: 15 * s, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15 * s,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               Icon(Icons.lock_rounded, color: LuxeColors.gold, size: 14 * s),
               SizedBox(width: 4 * s),
-              Text('Only you', style: TextStyle(color: Colors.white60, fontSize: 11.5 * s)),
+              Text(
+                'Only you',
+                style: TextStyle(color: Colors.white60, fontSize: 11.5 * s),
+              ),
             ],
           ),
         ),
@@ -1180,7 +1331,8 @@ class ProfileContentPanel extends StatelessWidget {
     );
   }
 
-  static Widget _asset(String path) => Image.asset(path, fit: BoxFit.cover, cacheWidth: 420);
+  static Widget _asset(String path) =>
+      Image.asset(path, fit: BoxFit.cover, cacheWidth: 420);
 }
 
 /// Rounded tile with a type icon at the top right and a stat at the bottom left.
@@ -1215,7 +1367,13 @@ class _GridTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14 * u),
               border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-              boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 8, offset: Offset(0, 3))],
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x44000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(13 * u),
@@ -1228,7 +1386,11 @@ class _GridTile extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0x33000000), Colors.transparent, Color(0x99000000)],
+                        colors: [
+                          Color(0x33000000),
+                          Colors.transparent,
+                          Color(0x99000000),
+                        ],
                         stops: [0, 0.45, 1],
                       ),
                     ),
@@ -1237,7 +1399,12 @@ class _GridTile extends StatelessWidget {
                     Positioned(
                       top: 7 * u,
                       right: 7 * u,
-                      child: Icon(topRight, color: Colors.white, size: 17 * u, shadows: _shadow),
+                      child: Icon(
+                        topRight,
+                        color: Colors.white,
+                        size: 17 * u,
+                        shadows: _shadow,
+                      ),
                     ),
                   Positioned(
                     left: 8 * u,
@@ -1245,7 +1412,12 @@ class _GridTile extends StatelessWidget {
                     right: 8 * u,
                     child: Row(
                       children: [
-                        Icon(bottomIcon, color: Colors.white, size: 15 * u, shadows: _shadow),
+                        Icon(
+                          bottomIcon,
+                          color: Colors.white,
+                          size: 15 * u,
+                          shadows: _shadow,
+                        ),
                         SizedBox(width: 4 * u),
                         Flexible(
                           child: Text(

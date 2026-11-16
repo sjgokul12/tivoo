@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../theme/app_colors.dart';
+import '../utils/video_source.dart';
 
 class LiveVideoPlayer extends StatefulWidget {
   final String playerId;
@@ -13,6 +14,7 @@ class LiveVideoPlayer extends StatefulWidget {
   final bool isMuted;
   final bool showSoundToggle;
   final BoxFit fit;
+  final bool enableVisibilityDetection;
 
   const LiveVideoPlayer({
     super.key,
@@ -24,6 +26,7 @@ class LiveVideoPlayer extends StatefulWidget {
     this.isMuted = true,
     this.showSoundToggle = false,
     this.fit = BoxFit.cover,
+    this.enableVisibilityDetection = false,
   });
 
   @override
@@ -47,11 +50,11 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
   }
 
   void _handleVisibilityChanged(VisibilityInfo info) {
-    if (!mounted) return;
+    if (!mounted || !widget.enableVisibilityDetection) return;
     final visibleFraction = info.visibleFraction;
 
     if (_controller == null) {
-      if (!_isInitializing && visibleFraction > 0.1) {
+      if (!_isInitializing && visibleFraction > 0.05) {
         _initializeVideo();
       }
       return;
@@ -59,7 +62,7 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
 
     if (!_controller!.value.isInitialized) return;
 
-    final shouldPlay = widget.autoPlay && visibleFraction > 0.6;
+    final shouldPlay = widget.autoPlay && visibleFraction > 0.05;
     if (shouldPlay && !_controller!.value.isPlaying) {
       _controller!.play();
     } else if (!shouldPlay && _controller!.value.isPlaying) {
@@ -83,10 +86,7 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
     if (_isInitializing || _controller != null) return;
     _isInitializing = true;
     try {
-      final controller = VideoPlayerController.asset(
-        widget.videoAssetPath,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      );
+      final controller = videoControllerFor(widget.videoAssetPath);
       _controller = controller;
       controller.addListener(_videoListener);
 
@@ -97,7 +97,9 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
       }
 
       await controller.setLooping(true);
-      await controller.setVolume(_isMuted ? 0.0 : 1.0);
+      try {
+        await controller.setVolume(_isMuted ? 0.0 : 1.0);
+      } catch (_) {}
 
       if (widget.autoPlay) {
         try {
@@ -105,8 +107,10 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
         } catch (playErr) {
           debugPrint('Autoplay blocked, muting and retrying: $playErr');
           _isMuted = true;
-          await controller.setVolume(0.0);
-          await controller.play();
+          try {
+            await controller.setVolume(0.0);
+            await controller.play();
+          } catch (_) {}
         }
       }
 
@@ -173,75 +177,81 @@ class _LiveVideoPlayerState extends State<LiveVideoPlayer> {
   Widget build(BuildContext context) {
     final hasActiveVideo = _isInitialized && _controller != null && _controller!.value.isInitialized && !_hasError;
 
-    return VisibilityDetector(
-      key: ValueKey('live-video-${widget.playerId}'),
-      onVisibilityChanged: _handleVisibilityChanged,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Placeholder while initializing or on error
-          Positioned.fill(child: _buildPlaceholder()),
+    final videoStack = Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. Placeholder while initializing or on error
+        Positioned.fill(child: _buildPlaceholder()),
 
-          // 2. Video Player with smooth cross-fade rendering
-          if (_controller != null && _controller!.value.isInitialized)
-            Positioned.fill(
-              child: AnimatedOpacity(
-                opacity: hasActiveVideo ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeInOut,
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: widget.fit,
-                    clipBehavior: Clip.hardEdge,
-                    child: SizedBox(
-                      width: (_controller!.value.size.width > 0) ? _controller!.value.size.width : 1080,
-                      height: (_controller!.value.size.height > 0) ? _controller!.value.size.height : 1920,
-                      child: VideoPlayer(_controller!),
-                    ),
+        // 2. Video Player with smooth cross-fade rendering
+        if (_controller != null && _controller!.value.isInitialized)
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: hasActiveVideo ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: widget.fit,
+                  clipBehavior: Clip.hardEdge,
+                  child: SizedBox(
+                    width: (_controller!.value.size.width > 0) ? _controller!.value.size.width : 720,
+                    height: (_controller!.value.size.height > 0) ? _controller!.value.size.height : 1280,
+                    child: VideoPlayer(_controller!),
                   ),
                 ),
               ),
             ),
+          ),
 
-          // 3. Subtle non-blocking loading indicator if video is still preparing
-          if (!_isInitialized && !_hasError)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: LinearProgressIndicator(
-                minHeight: 2.0,
-                backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYellow.withValues(alpha: 0.75)),
-              ),
+        // 3. Subtle non-blocking loading indicator if video is still preparing
+        if (!_isInitialized && !_hasError)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(
+              minHeight: 2.0,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYellow.withValues(alpha: 0.75)),
             ),
+          ),
 
-          // 4. Sound Toggle Button (Optional)
-          if (widget.showSoundToggle && hasActiveVideo)
-            Positioned(
-              top: 56,
-              right: 16,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _toggleSound,
-                child: Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
-                  ),
-                  child: Icon(
-                    _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+        // 4. Sound Toggle Button (Optional)
+        if (widget.showSoundToggle && hasActiveVideo)
+          Positioned(
+            top: 56,
+            right: 16,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleSound,
+              child: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                ),
+                child: Icon(
+                  _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: Colors.white,
+                  size: 16,
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
+
+    if (widget.enableVisibilityDetection) {
+      return VisibilityDetector(
+        key: ValueKey('live-video-${widget.playerId}'),
+        onVisibilityChanged: _handleVisibilityChanged,
+        child: videoStack,
+      );
+    }
+
+    return videoStack;
   }
 
   Widget _buildPlaceholder() {

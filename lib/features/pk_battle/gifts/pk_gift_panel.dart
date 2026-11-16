@@ -26,7 +26,10 @@ class PkRightColumn extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (hearts != null) Expanded(child: ClipRect(child: hearts!)),
+            if (hearts != null)
+              Expanded(
+                child: ClipRect(child: hearts!),
+              ),
             Center(
               child: PkGiftOrb(size: w, onTap: onGift),
             ),
@@ -48,8 +51,10 @@ class _FloatingHeartsCluster extends StatefulWidget {
 }
 
 class _FloatingHeartsClusterState extends State<_FloatingHeartsCluster> with SingleTickerProviderStateMixin {
-  late final AnimationController _float = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
-    ..repeat(reverse: true);
+  late final AnimationController _float = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -82,7 +87,10 @@ class _FloatingHeartsClusterState extends State<_FloatingHeartsCluster> with Sin
             Positioned(
               right: widget.width * 0.08,
               bottom: widget.height * 0.44 - floatY2,
-              child: Transform.rotate(angle: 0.15, child: const Heart3D(size: 30, color: Color(0xFFFF4FD8), glow: 0.8)),
+              child: Transform.rotate(
+                angle: 0.15,
+                child: const Heart3D(size: 30, color: Color(0xFFFF4FD8), glow: 0.8),
+              ),
             ),
             // 3. Small heart (upper-left)
             Positioned(
@@ -97,12 +105,27 @@ class _FloatingHeartsClusterState extends State<_FloatingHeartsCluster> with Sin
             Positioned(
               right: widget.width * 0.03,
               bottom: widget.height * 0.18 + floatY2,
-              child: Transform.rotate(angle: 0.2, child: const Heart3D(size: 25, color: Color(0xFFFF5CC4), glow: 0.7)),
+              child: Transform.rotate(
+                angle: 0.2,
+                child: const Heart3D(size: 25, color: Color(0xFFFF5CC4), glow: 0.7),
+              ),
             ),
             // Golden 4-point sparkle stars matching Image 1
-            Positioned(right: widget.width * 0.16, top: widget.height * 0.08, child: const _SparkleStar(size: 15)),
-            Positioned(left: widget.width * 0.06, top: widget.height * 0.34, child: const _SparkleStar(size: 12)),
-            Positioned(right: widget.width * 0.02, top: widget.height * 0.52, child: const _SparkleStar(size: 14)),
+            Positioned(
+              right: widget.width * 0.16,
+              top: widget.height * 0.08,
+              child: const _SparkleStar(size: 15),
+            ),
+            Positioned(
+              left: widget.width * 0.06,
+              top: widget.height * 0.34,
+              child: const _SparkleStar(size: 12),
+            ),
+            Positioned(
+              right: widget.width * 0.02,
+              top: widget.height * 0.52,
+              child: const _SparkleStar(size: 14),
+            ),
           ],
         );
       },
@@ -117,7 +140,10 @@ class _SparkleStar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(size: Size(size, size), painter: const _SparkleStarPainter());
+    return CustomPaint(
+      size: Size(size, size),
+      painter: const _SparkleStarPainter(),
+    );
   }
 }
 
@@ -142,7 +168,10 @@ class _SparkleStarPainter extends CustomPainter {
         ..color = const Color(0xFFFFD600)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
-    canvas.drawPath(path, Paint()..color = const Color(0xFFFFFBE0));
+    canvas.drawPath(
+      path,
+      Paint()..color = const Color(0xFFFFFBE0),
+    );
   }
 
   @override
@@ -194,8 +223,11 @@ class _PkGiftOrbState extends State<PkGiftOrb> {
                   height: size,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 38),
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.star_rounded,
+                    color: Color(0xFFFFD700),
+                    size: 38,
+                  ),
                 ),
               ),
             ),
@@ -205,3 +237,4 @@ class _PkGiftOrbState extends State<PkGiftOrb> {
     );
   }
 }
+
