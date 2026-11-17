@@ -774,7 +774,7 @@ class _OtpVerificationDialogState extends ConsumerState<_OtpVerificationDialog> 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('New OTP code dispatched to ${widget.email} from Shaachandiran@gmail.com!'),
+          content: Text('New OTP code dispatched to ${widget.email} from tivoo5477@gmail.com!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -842,7 +842,7 @@ class _OtpVerificationDialogState extends ConsumerState<_OtpVerificationDialog> 
             ),
             const SizedBox(height: 2),
             Text(
-              'Sender: Shaachandiran@gmail.com',
+              'Sender: tivoo5477@gmail.com',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 11),
               textAlign: TextAlign.center,
             ),

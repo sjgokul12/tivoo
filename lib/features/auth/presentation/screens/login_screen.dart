@@ -98,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _otpSent = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('OTP sent from Shaachandiran@gmail.com to $email!'),
+          content: Text('OTP sent from tivoo5477@gmail.com to $email!'),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 4),
         ),
@@ -405,7 +405,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                                 const SizedBox(height: 8),
                                 Text(
-                                  'OTP sent from Shaachandiran@gmail.com',
+                                  'OTP sent from tivoo5477@gmail.com',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.45),
                                     fontSize: 11,
