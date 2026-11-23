@@ -56,23 +56,11 @@ class PkMatchCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Battlers' Real Profile Pictures (Split Left / Right)
+                      // 1. Battlers' Real Profile Pictures / Covers (Split Left / Right)
                       Row(
                         children: [
-                          Expanded(
-                            child: Image.asset(
-                              match.left.avatarAsset,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                          ),
-                          Expanded(
-                            child: Image.asset(
-                              match.right.avatarAsset,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                          ),
+                          Expanded(child: _buildHostPhoto(match.left)),
+                          Expanded(child: _buildHostPhoto(match.right)),
                         ],
                       ),
 
@@ -194,6 +182,34 @@ class PkMatchCard extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHostPhoto(PkHost host) {
+    if (host.coverBytes != null && host.coverBytes!.isNotEmpty) {
+      return Image.memory(
+        host.coverBytes!,
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        errorBuilder: (context, error, stackTrace) => Image.asset(host.avatarAsset, fit: BoxFit.cover, alignment: Alignment.topCenter),
+      );
+    }
+    if (host.coverUrl != null && host.coverUrl!.isNotEmpty) {
+      final url = host.coverUrl!;
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          errorBuilder: (context, error, stackTrace) => Image.asset(host.avatarAsset, fit: BoxFit.cover, alignment: Alignment.topCenter),
+        );
+      }
+    }
+    return Image.asset(
+      host.avatarAsset.isNotEmpty ? host.avatarAsset : 'assets/images/user1.png',
+      fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
+      errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF1E1B38)),
     );
   }
 }

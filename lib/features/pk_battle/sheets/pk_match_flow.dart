@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/widgets/custom_avatar.dart';
+import '../core/pk_battle_session.dart';
 import '../core/pk_models.dart';
 import '../pk_battle_live_screen.dart';
 import 'pk_sheets.dart';
@@ -43,6 +44,9 @@ class PkMatchFlow {
   });
 
   static const List<PkOpponent> liveCreators = [
+    PkOpponent('Sakthi', AppAssets.avatarSaran, AppAssets.video3, '14.2K watching'),
+    PkOpponent('Sangeetha', AppAssets.avatarSneha, AppAssets.video1, '11.8K watching'),
+    PkOpponent('Leena', AppAssets.avatarPriya, AppAssets.video2, '18.5K watching'),
     PkOpponent('Anitha', AppAssets.status4, AppAssets.video2, '2.5K watching'),
     PkOpponent('Karthik', AppAssets.status2, AppAssets.video4, '980 watching'),
     PkOpponent('Vicky', AppAssets.status5, AppAssets.video6, '860 watching'),
@@ -52,7 +56,7 @@ class PkMatchFlow {
     PkOpponent('Priya', AppAssets.avatarPriya, AppAssets.video2, '12.4K watching'),
   ];
 
-  static const PkOpponent randomRival = PkOpponent('Arjun', AppAssets.status5, AppAssets.video1, '8.3K');
+  static const PkOpponent randomRival = PkOpponent('Sakthi', AppAssets.avatarSaran, AppAssets.video3, '14.2K');
 
   void start() {
     showModalBottomSheet(
@@ -166,6 +170,27 @@ class PkMatchFlow {
   }
 
   void _startBattle(PkOpponent rival, int durationSeconds) {
+    final match = PkMatch(
+      id: 'pk_${host.name.toLowerCase()}_${rival.name.toLowerCase()}',
+      left: host,
+      right: PkHost(
+        name: rival.name,
+        avatarAsset: rival.avatarAsset,
+        videoAsset: rival.videoAsset,
+        likes: rival.viewers,
+        viewers: rival.viewers,
+      ),
+      status: PkMatchStatus.ongoing,
+      viewers: '12.4K',
+      cover: AppAssets.pkCoverPriyaAnu,
+      leftScore: 12540,
+      rightScore: 9870,
+      secondsLeft: durationSeconds,
+    );
+
+    // Register into session hub so the lobby card updates live
+    PkBattleSessionHub.instance.registerMatch(match);
+
     if (onMatched != null) {
       onMatched!(rival);
       return;
@@ -173,23 +198,7 @@ class PkMatchFlow {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PkBattleLiveScreen(
-          match: PkMatch(
-            id: 'pk_${host.name.toLowerCase()}_${rival.name.toLowerCase()}',
-            left: host,
-            right: PkHost(
-              name: rival.name,
-              avatarAsset: rival.avatarAsset,
-              videoAsset: rival.videoAsset,
-              likes: rival.viewers,
-              viewers: rival.viewers,
-            ),
-            status: PkMatchStatus.ongoing,
-            viewers: '12.4K',
-            cover: AppAssets.pkCoverPriyaAnu,
-            leftScore: 12540,
-            rightScore: 9870,
-            secondsLeft: durationSeconds,
-          ),
+          match: match,
           // The host started this battle, so they get the streamer screen.
           isCreator: true,
           onBack: () => Navigator.of(context).pop(),

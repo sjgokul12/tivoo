@@ -1,5 +1,6 @@
 // PK battle data: hosts, matches, settings, gift events and demo data.
 
+import 'dart:typed_data';
 import '../../../core/constants/app_assets.dart';
 
 /// One side of the PK battle.
@@ -11,6 +12,8 @@ class PkHost {
   final String videoAsset;
   final String likes;
   final String viewers;
+  final Uint8List? coverBytes;
+  final String? coverUrl;
 
   const PkHost({
     required this.name,
@@ -20,9 +23,19 @@ class PkHost {
     required this.viewers,
     this.handle = '',
     this.bio = '',
+    this.coverBytes,
+    this.coverUrl,
   });
 
-  PkHost copyWith({String? name, String? avatarAsset, String? videoAsset, String? likes, String? viewers}) {
+  PkHost copyWith({
+    String? name,
+    String? avatarAsset,
+    String? videoAsset,
+    String? likes,
+    String? viewers,
+    Uint8List? coverBytes,
+    String? coverUrl,
+  }) {
     return PkHost(
       name: name ?? this.name,
       avatarAsset: avatarAsset ?? this.avatarAsset,
@@ -31,6 +44,8 @@ class PkHost {
       viewers: viewers ?? this.viewers,
       handle: name != null ? '@${name.toLowerCase()}' : handle,
       bio: name != null ? '' : bio,
+      coverBytes: coverBytes ?? this.coverBytes,
+      coverUrl: coverUrl ?? this.coverUrl,
     );
   }
 }

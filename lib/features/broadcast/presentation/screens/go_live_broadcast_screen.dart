@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/constants/app_assets.dart';
@@ -16,6 +19,9 @@ import '../../domain/models/camera_filter_model.dart';
 import '../widgets/filter_overlay_widget.dart';
 import '../widgets/filter_selection_carousel.dart';
 import '../widgets/live_filter_bottom_sheet.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../home/domain/models/live_stream_card_model.dart';
+import '../../../home/presentation/controllers/home_controller.dart';
 import '../../../live_stream/presentation/widgets/creator_more_options_sheet.dart';
 import '../../../pk_battle/core/pk_models.dart';
 import '../../../pk_battle/sheets/pk_match_flow.dart';
@@ -25,14 +31,14 @@ enum _BroadcastStatus { requesting, denied, error, ready }
 /// Go Live camera broadcast screen featuring Instagram/Snapchat-style AR camera filters.
 /// Supports pre-live filter selection, real-time animated filter overlays, live broadcasting,
 /// on-the-fly filter switching, quick filter carousel, and bottom sheet studio.
-class GoLiveBroadcastScreen extends StatefulWidget {
+class GoLiveBroadcastScreen extends ConsumerStatefulWidget {
   const GoLiveBroadcastScreen({super.key});
 
   @override
-  State<GoLiveBroadcastScreen> createState() => _GoLiveBroadcastScreenState();
+  ConsumerState<GoLiveBroadcastScreen> createState() => _GoLiveBroadcastScreenState();
 }
 
-class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
+class _GoLiveBroadcastScreenState extends ConsumerState<GoLiveBroadcastScreen>
     with WidgetsBindingObserver {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
@@ -45,6 +51,11 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
 
   // Broadcast state
   bool _isLive = false;
+  String? _currentStreamId;
+  Uint8List? _coverBytes;
+  late final TextEditingController _titleController;
+  String _selectedCategory = 'Popular';
+  final List<String> _categories = const ['Popular', 'Chat', 'Music', 'Dance', 'PK Battle', 'Gaming'];
   CameraFilterModel _selectedFilter = MockFilterData.allFilters[1]; // Defaults to Butterfly
 
   // Live metrics
@@ -57,6 +68,7 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: "Leena's Live Stream ✨");
     WidgetsBinding.instance.addObserver(this);
     _setup();
   }
@@ -142,8 +154,41 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
   }
 
   void _startGoLive() {
+    final user = ref.read(authControllerProvider).currentUser;
+    final streamerName = (user?.name.isNotEmpty == true)
+        ? user!.name
+        : ((user?.username.isNotEmpty == true) ? user!.username : 'Leena');
+
+    final title = _titleController.text.trim().isNotEmpty
+        ? _titleController.text.trim()
+        : '$streamerName\'s Live Stream ✨';
+
+    final streamId = 'live_${DateTime.now().millisecondsSinceEpoch}';
+
+    final stream = LiveStreamCardModel(
+      id: streamId,
+      streamerName: streamerName,
+      streamerBio: 'Live on Tivoo ✨',
+      streamerAvatarUrl: user?.avatarUrl,
+      streamerAssetPath: AppAssets.avatarPriya,
+      coverBytes: _coverBytes,
+      coverAssetPath: _coverBytes == null ? AppAssets.avatarPriya : null,
+      streamTitle: title,
+      category: _selectedCategory,
+      viewersCount: '1.2K',
+      diamondsCount: '0',
+      isLive: true,
+      heatScore: 950,
+      tags: [_selectedCategory, 'Live', 'Tivoo'],
+      badge: 'Trending',
+    );
+
+    // Register live stream so it appears in the main live screen!
+    ref.read(homeControllerProvider.notifier).addLiveStream(stream);
+
     setState(() {
       _isLive = true;
+      _currentStreamId = streamId;
       _elapsed = Duration.zero;
       _viewerCount = 1240;
     });
@@ -161,6 +206,146 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
     });
   }
 
+  void _showCoverImagePickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141226),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Choose Cover Photo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'A striking cover image attracts more viewers to your live stream.',
+                style: TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                tileColor: const Color(0xFF1D1B36),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD600).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_camera_rounded, color: Color(0xFFFFD600), size: 24),
+                ),
+                title: const Text(
+                  'Take Photo with Camera',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+                subtitle: const Text(
+                  'Capture a live selfie as your stream cover',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickCoverImage(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                tileColor: const Color(0xFF1D1B36),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E9BFF).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFF2E9BFF), size: 24),
+                ),
+                title: const Text(
+                  'Choose from File Manager / Gallery',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+                subtitle: const Text(
+                  'Pick an image from files or photo album',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickCoverImage(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 14),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCoverImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _coverBytes = bytes;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cover image selected successfully!'),
+              backgroundColor: Color(0xFF00C853),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not pick image: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   void _openLiveFilterSheet() {
     LiveFilterBottomSheet.show(
       context,
@@ -172,14 +357,20 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
   }
 
   void _openPkBattle() {
+    final user = ref.read(authControllerProvider).currentUser;
+    final streamerName = (user?.name.isNotEmpty == true)
+        ? user!.name
+        : ((user?.username.isNotEmpty == true) ? user!.username : 'Leena');
+
     PkMatchFlow(
       context: context,
       host: PkHost(
-        name: 'Leena',
+        name: streamerName,
         avatarAsset: AppAssets.avatarPriya,
         videoAsset: AppAssets.video1,
         likes: '24.5K',
         viewers: _formattedViewers,
+        coverBytes: _coverBytes,
       ),
     ).start();
   }
@@ -220,6 +411,9 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             onPressed: () {
+              if (_currentStreamId != null) {
+                ref.read(homeControllerProvider.notifier).removeLiveStream(_currentStreamId!);
+              }
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
@@ -260,6 +454,7 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
     _viewerTimer?.cancel();
     _elapsedTimer?.cancel();
     _cameraController?.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -407,6 +602,14 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
           ),
         ),
 
+        // Live Setup Card: Cover Image (Camera / File Manager), Title, Category
+        Positioned(
+          top: topPadding + 62,
+          left: 16,
+          right: 16,
+          child: _buildPreLiveSetupCard(),
+        ),
+
         // Bottom Filter Studio Panel
         Positioned(
           left: 0,
@@ -421,6 +624,195 @@ class _GoLiveBroadcastScreenState extends State<GoLiveBroadcastScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreLiveSetupCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141226).withValues(alpha: 0.90),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFFD600).withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover Image Box (Camera / Gallery / File Manager)
+              GestureDetector(
+                onTap: _showCoverImagePickerSheet,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF221F3C),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFFFD600).withValues(alpha: 0.7),
+                          width: 1.5,
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _coverBytes != null
+                          ? Image.memory(_coverBytes!, fit: BoxFit.cover)
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.add_a_photo_rounded,
+                                  color: Color(0xFFFFD600),
+                                  size: 26,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Set Cover',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                    Positioned(
+                      right: 4,
+                      bottom: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFD600),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.black,
+                          size: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Stream Title & Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        hintText: 'Enter stream title...',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 13.5,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF0E0C1C),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFFFD600)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Hint row
+                    Row(
+                      children: [
+                        const Icon(Icons.touch_app_rounded, color: Color(0xFFFFD600), size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Tap cover to choose from Camera / Files',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 10.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Category selection pills
+          SizedBox(
+            height: 28,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final cat = _categories[index];
+                final isSelected = _selectedCategory == cat;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFFFD600)
+                          : const Color(0xFF221F3C),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFFFD600)
+                            : Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Text(
+                      cat,
+                      style: TextStyle(
+                        color: isSelected ? Colors.black : Colors.white70,
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

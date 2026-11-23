@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/luxe_theme.dart';
 import '../../../core/utils/responsive.dart';
+import '../../broadcast/presentation/screens/go_live_broadcast_screen.dart';
+import '../core/pk_battle_session.dart';
 import '../core/pk_models.dart';
 import '../pk_battle_live_screen.dart';
 import 'pk_match_card.dart';
@@ -30,8 +32,24 @@ class _PkHomeScreenState extends State<PkHomeScreen> {
   _PkFilter _filter = _PkFilter.all;
   final Set<String> _following = {};
 
+  @override
+  void initState() {
+    super.initState();
+    PkBattleSessionHub.instance.activeMatches.addListener(_onMatchesUpdated);
+  }
+
+  @override
+  void dispose() {
+    PkBattleSessionHub.instance.activeMatches.removeListener(_onMatchesUpdated);
+    super.dispose();
+  }
+
+  void _onMatchesUpdated() {
+    if (mounted) setState(() {});
+  }
+
   List<PkMatch> get _matches {
-    final all = widget.matches ?? PkDemoData.matches;
+    final all = widget.matches ?? PkBattleSessionHub.instance.activeMatches.value;
     return switch (_filter) {
       _PkFilter.all => all,
       _PkFilter.ongoing => all.where((m) => m.status == PkMatchStatus.ongoing).toList(),
@@ -105,10 +123,92 @@ class _PkHomeScreenState extends State<PkHomeScreen> {
               child: _FilterTabs(selected: _filter, onSelected: (f) => setState(() => _filter = f)),
             ),
             if (matches.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
-                  child: Text('No PK battles here yet', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111024),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: const Color(0xFFFFD600).withValues(alpha: 0.2),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFF2D55), Color(0xFFFF9100)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFF2D55).withValues(alpha: 0.4),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 36),
+                          ),
+                          const SizedBox(height: 18),
+                          const Text(
+                            'No PK Battles Right Now',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No creators are battling at the moment.\nGo live and tap PK to challenge another creator!',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.65),
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const GoLiveBroadcastScreen()),
+                              );
+                            },
+                            icon: const Icon(Icons.videocam_rounded, color: Colors.black, size: 20),
+                            label: const Text(
+                              'Go Live & Challenge',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFD600),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               )
             else

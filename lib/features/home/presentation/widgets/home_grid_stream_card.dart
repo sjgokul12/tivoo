@@ -155,9 +155,18 @@ class HomeGridStreamCard extends ConsumerWidget {
             ),
           ],
         ),
-        SizedBox(height: 5 * u),
+        if (stream.streamTitle != null && stream.streamTitle!.isNotEmpty) ...[
+          SizedBox(height: 2 * u),
+          Text(
+            stream.streamTitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: const Color(0xFFFFD600), fontSize: 11.5 * u, fontWeight: FontWeight.bold),
+          ),
+        ],
+        SizedBox(height: 4 * u),
         Text(
-          stream.tags.join(' | '),
+          stream.tags.isNotEmpty ? stream.tags.join(' | ') : (stream.category.isNotEmpty ? stream.category : 'Live'),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(color: const Color(0xFFE2E6F0), fontSize: 11 * u),
@@ -167,12 +176,44 @@ class HomeGridStreamCard extends ConsumerWidget {
   }
 
   Widget _cover() {
+    if (stream.coverBytes != null && stream.coverBytes!.isNotEmpty) {
+      return Image.memory(
+        stream.coverBytes!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _fallbackCover(),
+      );
+    }
+    if (stream.coverImageUrl != null && stream.coverImageUrl!.isNotEmpty) {
+      final url = stream.coverImageUrl!;
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _fallbackCover(),
+        );
+      }
+    }
     final path = (stream.coverAssetPath?.isNotEmpty ?? false)
         ? stream.coverAssetPath!
         : (stream.streamerAssetPath?.isNotEmpty ?? false)
         ? stream.streamerAssetPath!
         : AppAssets.status1;
-    return Image.asset(path, fit: BoxFit.cover, cacheWidth: 480, filterQuality: FilterQuality.medium);
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      cacheWidth: 480,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (context, error, stackTrace) => _fallbackCover(),
+    );
+  }
+
+  Widget _fallbackCover() {
+    return Image.asset(
+      AppAssets.status1,
+      fit: BoxFit.cover,
+      cacheWidth: 480,
+      filterQuality: FilterQuality.medium,
+    );
   }
   Widget _buildFollowButtonWidget(BuildContext context, WidgetRef ref, double u) {
     final followMap = ref.watch(followControllerProvider);

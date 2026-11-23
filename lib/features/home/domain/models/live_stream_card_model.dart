@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class LiveStreamCardModel {
   final String id;
   final String? userId;
@@ -7,6 +9,8 @@ class LiveStreamCardModel {
   final String? streamerAssetPath;
   final String? coverImageUrl;
   final String? coverAssetPath;
+  final Uint8List? coverBytes;
+  final String? streamTitle;
   final String? videoAssetPath;
   final String? videoUrl;
   final bool isVerified;
@@ -34,6 +38,8 @@ class LiveStreamCardModel {
     this.streamerAssetPath,
     this.coverImageUrl,
     this.coverAssetPath,
+    this.coverBytes,
+    this.streamTitle,
     this.videoAssetPath,
     this.videoUrl,
     this.isVerified = true,
@@ -67,6 +73,8 @@ class LiveStreamCardModel {
     String? streamerAssetPath,
     String? coverImageUrl,
     String? coverAssetPath,
+    Uint8List? coverBytes,
+    String? streamTitle,
     String? videoAssetPath,
     String? videoUrl,
     bool? isVerified,
@@ -90,6 +98,8 @@ class LiveStreamCardModel {
       streamerAssetPath: streamerAssetPath ?? this.streamerAssetPath,
       coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       coverAssetPath: coverAssetPath ?? this.coverAssetPath,
+      coverBytes: coverBytes ?? this.coverBytes,
+      streamTitle: streamTitle ?? this.streamTitle,
       videoAssetPath: videoAssetPath ?? this.videoAssetPath,
       videoUrl: videoUrl ?? this.videoUrl,
       isVerified: isVerified ?? this.isVerified,

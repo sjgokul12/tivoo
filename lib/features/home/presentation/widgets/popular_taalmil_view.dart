@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../broadcast/presentation/screens/go_live_broadcast_screen.dart';
 import '../../../live_stream/presentation/screens/live_stream_screen.dart';
 import '../../domain/models/live_stream_card_model.dart';
 import 'home_grid_stream_card.dart';
@@ -14,11 +15,97 @@ class PopularTaalmilView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (streams.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(40),
-          child: Center(
-            child: Text('No live broadcasts right now', style: TextStyle(color: Colors.white54)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101426),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFFFD600).withValues(alpha: 0.22),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD600), Color(0xFFFF8A00)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFB300).withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.sensors_rounded, color: Colors.black, size: 36),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'No Live Streams Right Now',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Be the first to broadcast live to your community!\nChoose your cover image and start streaming now.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 22),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GoLiveBroadcastScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.videocam_rounded, color: Colors.black, size: 20),
+                  label: const Text(
+                    'Go Live Now',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFD600),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );

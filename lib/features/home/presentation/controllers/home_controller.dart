@@ -15,7 +15,7 @@ class HomeState {
     this.selectedCategoryIndex = 0,
     this.categories = MockLiveData.categories,
     this.stories = MockLiveData.stories,
-    this.allStreams = MockLiveData.liveStreams,
+    this.allStreams = const [],
     this.isLoading = false,
   });
 
@@ -51,6 +51,25 @@ class HomeController extends StateNotifier<HomeState> {
     if (state.selectedCategoryIndex != index) {
       state = state.copyWith(selectedCategoryIndex: index);
     }
+  }
+
+  void addLiveStream(LiveStreamCardModel stream) {
+    final updated = [stream, ...state.allStreams.where((s) => s.id != stream.id)];
+    state = state.copyWith(allStreams: updated);
+  }
+
+  void removeLiveStream(String streamId) {
+    state = state.copyWith(
+      allStreams: state.allStreams.where((s) => s.id != streamId).toList(),
+    );
+  }
+
+  void setStreams(List<LiveStreamCardModel> streams) {
+    state = state.copyWith(allStreams: streams);
+  }
+
+  void clearStreams() {
+    state = state.copyWith(allStreams: const []);
   }
 
   void toggleFollow(String streamId) {

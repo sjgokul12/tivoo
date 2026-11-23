@@ -176,6 +176,8 @@ class _LiveStreamPageState extends ConsumerState<_LiveStreamPage> {
         videoAsset: widget.stream.videoUrl ?? AppAssets.video2,
         likes: widget.stream.likesCount ?? '12.4K',
         viewers: widget.stream.viewersCount,
+        coverBytes: widget.stream.coverBytes,
+        coverUrl: widget.stream.coverImageUrl,
       ),
     ).start();
   }

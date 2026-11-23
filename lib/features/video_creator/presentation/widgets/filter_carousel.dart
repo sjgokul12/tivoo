@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/constants/app_assets.dart';
 import 'video_filters.dart';
 
 /// Horizontally scrollable Instagram Reels-style filter carousel with:
