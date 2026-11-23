@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 /// Defaults:
 /// - Web / Desktop / iOS: http://localhost:8080
 /// - Android emulator: http://10.0.2.2:8080
-/// - Custom: flutter run --dart-define=TIVOO_API_URL=http://<IP_OR_DOMAIN>:8080
+/// - Custom: `flutter run --dart-define=TIVOO_API_URL=http://<IP_OR_DOMAIN>:8080`
 class ApiConfig {
   ApiConfig._();
 

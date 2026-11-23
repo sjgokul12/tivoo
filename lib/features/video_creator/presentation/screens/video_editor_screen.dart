@@ -34,7 +34,6 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   String? _activeText;
   Color _activeTextColor = const Color(0xFFFFD700);
   String? _activeSticker;
-  String _activeFilter = 'Beauty / Skin Smooth';
   late VideoFilterItem _activeFilterItem;
   double _filterIntensity = 1.0;
   String? _activeEffect;
@@ -55,12 +54,10 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     _activeText = _state.textOverlay;
     _activeTextColor = _state.textOverlayColor;
     _activeSticker = _state.stickerEmoji;
-    _activeFilter = _state.filterName;
     _activeFilterItem = VideoFilterRepository.filters.firstWhere(
       (f) => f.name.toLowerCase() == _state.filterName.toLowerCase() || f.id.toLowerCase() == _state.filterName.toLowerCase(),
       orElse: () => VideoFilterRepository.filters.length > 1 ? VideoFilterRepository.filters[1] : VideoFilterRepository.filters.first,
     );
-    _activeFilter = _activeFilterItem.name;
     _activeSnapLens = _state.activeSnapLens;
     _initVideo();
   }
@@ -444,11 +441,9 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                               HapticFeedback.selectionClick();
                               setModalState(() {
                                 _activeFilterItem = item;
-                                _activeFilter = item.name;
                               });
                               setState(() {
                                 _activeFilterItem = item;
-                                _activeFilter = item.name;
                                 _state.filterName = item.name;
                                 _state.colorFilter = item.getColorFilter(_filterIntensity);
                               });
